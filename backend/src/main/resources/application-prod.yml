@@ -1,4 +1,10 @@
 # Profil prod (docker-compose.prod.yml): JSON zapisi za Dozzle i docker logs
+server:
+  servlet:
+    session:
+      cookie:
+        # U produkciji preglednik šalje sesiju samo preko HTTPS-a.
+        secure: true
 logging:
   structured:
     format:
