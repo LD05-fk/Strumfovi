@@ -23,7 +23,7 @@ Očekivana korist za umjetnika je što jednom unesen portfolio može koristiti z
 | Posjetitelj (neprijavljen) | Pregledati objavljene prilike i javne portfolije umjetnika bez prijave. Za prijavu na priliku treba se prijaviti. |
 | Umjetnik | Izraditi i urediti portfolio (biografija, djela, izložbe, vidljivost po djelu), pretraživati prilike i prijaviti se na njih, pratiti status prijave, dodati prihvaćeno događanje u svoj kalendar. |
 | Organizator | Objaviti priliku (s lokacijom na karti), odrediti što prijava mora sadržavati, pregledati prijave i promijeniti im status uz razlog odbijanja, objaviti rezultate, vidjeti osnovnu statistiku. Novog organizatora mora odobriti administrator. |
-| Administrator | Upravljati korisnicima i ulogama, odobravati organizatore, sakriti neprikladan sadržaj, održavati popise područja umjetnosti i vrsta prilika, pratiti mjesečni izvještaj o korištenju. |
+| Administrator | Upravljati korisnicima i ulogama, odobravati organizatore, blokirati korisnike, sakriti neprikladan sadržaj, održavati popise područja umjetnosti i vrsta prilika te ograničenja učitavanja datoteka, pratiti mjesečni izvještaj o korištenju. |
 | Nositelj kolegija i asistentica (dionici) | Ocjenjuju projekt prema zadatku i kriterijima kolegija. Ne koriste aplikaciju, ali njihovi zahtjevi (OAuth prijava, vanjska integracija, javno postavljanje, dokumentacija) određuju ograničenja projekta. |
 
 ## 1.3 Granice projekta
@@ -35,7 +35,7 @@ Očekivana korist za umjetnika je što jednom unesen portfolio može koristiti z
 Projekt se isporučuje u dva ciklusa.
 
 - **Prvi ciklus** (predaja 20. 11. 2026.): prijava putem Googlea s odabirom uloge (umjetnik ili organizator), portfolio umjetnika (profil, djela s slikama, prethodne izložbe, javni portfolio), objava i uređivanje prilika s lokacijom na karti, javni popis prilika s pretraživanjem i filtrima. Aplikacija je javno postavljena.
-- **Drugi ciklus** (predaja 22. 1. 2027.): prijave na prilike prema zahtjevima koje određuje organizator, pregled prijava i promjena statusa, objava rezultata, dodavanje događanja u Google kalendar, statistika za organizatora, administracija (korisnici, uloge, odobravanje organizatora, skrivanje sadržaja, šifrarnici, postavke), mjesečni izvještaj za administratora.
+- **Drugi ciklus** (predaja 22. 1. 2027.): prijave na prilike prema zahtjevima koje određuje organizator, pregled prijava i promjena statusa, objava rezultata, dodavanje događanja u Google kalendar, statistika za organizatora, administracija (korisnici, uloge, odobravanje organizatora, blokiranje korisnika, skrivanje sadržaja, šifrarnici, postavke), mjesečni izvještaj za administratora te brisanje vlastitog računa. Automatsko zatvaranje prijava nakon isteka roka i zaštita prilika s prijavama od brisanja isporučuju se također u drugom ciklusu.
 
 **Izvan opsega ili odgođeno:**
 
@@ -44,6 +44,8 @@ Projekt se isporučuje u dva ciklusa.
 - Više jezika: sučelje je samo na hrvatskom.
 - Automatska provjera dobnih kriterija: kriteriji prijave su informativni tekst, jer bi za provjeru trebalo prikupljati datum rođenja umjetnika.
 - Naknadno usklađivanje kalendara: promjene datuma događanja koje organizator napravi nakon dodavanja u kalendar ne prenose se u Google kalendar.
+- Javni imenik umjetnika: portfolio se otvara poveznicom koju umjetnik dijeli, a ne pretraživanjem umjetnika.
+- Filtar statistike po razdoblju i izvoz statistike: statistika prikazuje trenutne brojeve.
 - Plaćanje i naplata: korištenje platforme je besplatno.
 
 **Opcionalni dijelovi** (ako tim zaostane, odustaje se redom): 1. obavijesti unutar aplikacije, 2. poredak sudionika (1., 2., 3. mjesto) u rezultatima, 3. zapisnik radnji administratora, 4. grafikoni u statistici (ostaju samo brojevi), 5. integracija s Google Calendar API-jem (zamjenjuje je poveznica „Dodaj u kalendar"), 6. povijest i generiranje mjesečnih izvještaja na zahtjev (ostaje automatski izvještaj). Nikad se ne izostavljaju: prijava putem Googlea, portfolio, prilike s kartom, prijave sa zahtjevima po prilici, odobravanje organizatora, upravljanje ulogama, ispitivanje, javno postavljanje i dokumentacija.
