@@ -8,8 +8,11 @@ import org.springframework.http.*;
 import org.springframework.security.config.annotation.method.configuration.*;
 import org.springframework.security.config.annotation.web.builders.*;
 import org.springframework.security.config.http.*;
+import org.springframework.security.access.hierarchicalroles.*;
+import org.springframework.security.access.expression.method.*;
 import org.springframework.security.web.*;
 import org.springframework.security.web.csrf.*;
+import org.springframework.security.web.access.intercept.*;
 import tools.jackson.databind.*;
 
 @Configuration
@@ -56,11 +59,29 @@ public class SecurityConfig {
                 .authenticationEntryPoint(errors)
                 .accessDeniedHandler(errors));
 
+        // Filter vidi prijavljenog korisnika prije odluke o pristupu ruti.
+        // Ne označavamo ga kao @Component, kako se ne bi registrirao i izvan ovog lanca.
+        http.addFilterBefore(new UserStatusFilter(), AuthorizationFilter.class);
+
         return http.build();
     }
 
     @Bean
     public SecurityErrorHandler securityErrorHandler(ObjectMapper mapper, MessageSource messages) {
         return new SecurityErrorHandler(mapper, messages);
+    }
+
+    @Bean
+    public static RoleHierarchy roleHierarchy() {
+        // Issue ne definira nasljeđivanje: ARTIST, ORGANIZER i ADMIN zasad imaju odvojena prava.
+        return RoleHierarchyImpl.fromHierarchy("");
+    }
+
+    @Bean
+    public static MethodSecurityExpressionHandler methodSecurityExpressionHandler(RoleHierarchy hierarchy) {
+        // @PreAuthorize koristi istu konfiguraciju hijerarhije uloga.
+        var handler = new DefaultMethodSecurityExpressionHandler();
+        handler.setRoleHierarchy(hierarchy);
+        return handler;
     }
 }

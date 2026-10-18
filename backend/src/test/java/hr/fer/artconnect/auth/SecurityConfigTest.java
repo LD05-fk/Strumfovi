@@ -136,6 +136,14 @@ class SecurityConfigTest {
                 .andExpect(status().isOk()).andExpect(content().string("ORGANIZER"));
     }
 
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void administratorNeNasljedujePravaOrganizatora() throws Exception {
+        mvc.perform(get("/api/v1/test/organizer"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+    }
+
     @RestController
     public static class TestController {
         @GetMapping("/**")
