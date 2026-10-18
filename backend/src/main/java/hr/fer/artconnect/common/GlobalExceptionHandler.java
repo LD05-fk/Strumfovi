@@ -1,25 +1,20 @@
 package hr.fer.artconnect.common;
 
-import jakarta.validation.ConstraintViolationException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.MessageSource;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.validation.BindException;
-import org.springframework.validation.FieldError;
-import org.springframework.validation.method.ParameterErrors;
-import org.springframework.web.bind.MissingServletRequestParameterException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.HandlerMethodValidationException;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import org.springframework.web.multipart.MaxUploadSizeExceededException;
-import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import jakarta.validation.*;
+import java.util.*;
+import org.slf4j.*;
+import org.springframework.context.*;
+import org.springframework.http.*;
+import org.springframework.http.converter.*;
+import org.springframework.security.access.*;
+import org.springframework.security.core.context.*;
+import org.springframework.validation.*;
+import org.springframework.validation.method.*;
+import org.springframework.web.bind.*;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.annotation.*;
+import org.springframework.web.multipart.*;
+import org.springframework.web.multipart.support.*;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -106,7 +101,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> accessDenied(AccessDeniedException exception) {
-        return error(ErrorCode.FORBIDDEN);
+        // @PreAuthorize može odbiti i anonimnog korisnika na inače javnoj ruti.
+        return error(SecurityErrorHandler.accessDeniedCode(exception,
+                SecurityContextHolder.getContext().getAuthentication()));
     }
 
     @ExceptionHandler(Exception.class)

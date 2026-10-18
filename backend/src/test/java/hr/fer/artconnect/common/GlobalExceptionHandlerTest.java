@@ -1,42 +1,31 @@
 package hr.fer.artconnect.common;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
+import static org.assertj.core.api.Assertions.*;
+import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import jakarta.validation.ConstraintViolationException;
-import jakarta.validation.Valid;
-import jakarta.validation.Validator;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.boot.test.system.CapturedOutput;
-import org.springframework.boot.test.system.OutputCaptureExtension;
-import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.PageImpl;
+import jakarta.validation.*;
+import jakarta.validation.constraints.*;
+import java.time.*;
+import java.util.*;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.*;
+import org.junit.jupiter.params.*;
+import org.junit.jupiter.params.provider.*;
+import org.springframework.beans.factory.annotation.*;
+import org.springframework.boot.webmvc.test.autoconfigure.*;
+import org.springframework.boot.test.system.*;
+import org.springframework.context.annotation.*;
+import org.springframework.data.domain.*;
+import org.springframework.http.*;
 import org.springframework.http.MediaType;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.security.access.*;
+import org.springframework.security.test.context.support.*;
+import org.springframework.test.web.servlet.*;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MaxUploadSizeExceededException;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.multipart.*;
+import org.springframework.web.server.*;
 
 // Ovdje provjeravamo kontrolere i handler. Sigurnosni filtri pripadaju AUTH zadacima.
 @WebMvcTest(GlobalExceptionHandlerTest.TestController.class)
@@ -62,7 +51,7 @@ class GlobalExceptionHandlerTest {
 
     @ParameterizedTest
     @CsvSource({"constraints,400,VALIDATION_ERROR", "upload,413,FILE_TOO_LARGE",
-            "denied,403,FORBIDDEN", "unexpected,500,INTERNAL_ERROR", "notfound,404,NOT_FOUND"})
+            "denied,401,UNAUTHENTICATED", "unexpected,500,INTERNAL_ERROR", "notfound,404,NOT_FOUND"})
     void handlerObradujeRazliciteIznimke(String kind, int status, String code) throws Exception {
         var result = provjeriGresku(mvc.perform(get("/test/error/{kind}", kind)), status, code);
         if (kind.equals("constraints")) {
@@ -74,6 +63,12 @@ class GlobalExceptionHandlerTest {
             assertThat(result.andReturn().getResponse().getContentAsString())
                     .doesNotContain("interni podatak", "stackTrace", "IllegalStateException");
         }
+    }
+
+    @Test
+    @WithMockUser(roles = "ARTIST")
+    void zabranaPrijavljenomKorisnikuVraca403() throws Exception {
+        provjeriGresku(mvc.perform(get("/test/error/denied")), 403, "FORBIDDEN");
     }
 
     @Test
