@@ -16,7 +16,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.*;
 import org.springframework.context.annotation.*;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.context.*;
-import org.springframework.security.core.userdetails.*;
+import org.springframework.security.core.annotation.*;
 import org.springframework.security.web.context.*;
 import org.springframework.session.*;
 import org.springframework.session.jdbc.*;
@@ -50,7 +50,7 @@ class SessionIntegrationTest {
         var jdbcSession = sessions.createSession();
         // JDBC klasa je interna pa atributima pristupamo preko javnog Session sučelja.
         Session session = jdbcSession;
-        var user = User.withUsername("session-test").password("unused").roles("ARTIST").build();
+        var user = new CurrentUser(UUID.randomUUID(), CurrentUser.Role.ARTIST, CurrentUser.Status.ACTIVE);
         var authentication = UsernamePasswordAuthenticationToken.authenticated(user, null, user.getAuthorities());
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 new SecurityContextImpl(authentication));
@@ -61,12 +61,21 @@ class SessionIntegrationTest {
             Session reloaded = sessions.findById(session.getId());
             assertThat(reloaded).isNotNull();
             assertThat(reloaded.getMaxInactiveInterval()).isEqualTo(Duration.ofHours(8));
-            assertThat(indexedSessions.findByPrincipalName("session-test")).containsKey(session.getId());
+            assertThat(indexedSessions.findByPrincipalName(user.getName())).containsKey(session.getId());
 
             String cookieValue = Base64.getEncoder().encodeToString(
                     session.getId().getBytes(StandardCharsets.UTF_8));
             mvc.perform(get("/api/v1/auth/session-test").cookie(new Cookie("SESSION", cookieValue)))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(user.getName()));
+
+            // Bez čekanja osam sati pomičemo zadnju aktivnost u prošlost i provjeravamo odbijanje.
+            session.setLastAccessedTime(Instant.now().minus(Duration.ofHours(9)));
+            sessions.save(jdbcSession);
+            mvc.perform(get("/api/v1/auth/session-test").cookie(new Cookie("SESSION", cookieValue)))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
+            assertThat((Session) sessions.findById(session.getId())).isNull();
         } finally {
             sessions.deleteById(session.getId());
         }
@@ -103,8 +112,8 @@ class SessionIntegrationTest {
         }
 
         @GetMapping("/api/v1/auth/session-test")
-        public String protectedEndpoint() {
-            return "OK";
+        public String protectedEndpoint(@AuthenticationPrincipal CurrentUser user) {
+            return user.getName();
         }
     }
 }
