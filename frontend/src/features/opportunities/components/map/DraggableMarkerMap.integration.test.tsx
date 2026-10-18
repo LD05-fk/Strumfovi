@@ -1,13 +1,13 @@
 import {
   cleanup,
   fireEvent,
-  render,
   screen,
   waitFor,
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import DraggableMarkerMap from './DraggableMarkerMap'
 import { hr } from '../../../../i18n/hr'
+import { renderWithProviders } from '../../../../test/renderWithProviders'
 
 beforeEach(() => {
   vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(800)
@@ -28,7 +28,7 @@ describe('DraggableMarkerMap integracija s Leafletom', () => {
   it('klik na stvarnu Leaflet kartu poziva onChange s koordinatama', async () => {
     const onChange = vi.fn()
 
-    render(
+    renderWithProviders(
       <DraggableMarkerMap
         value={null}
         onChange={onChange}
@@ -36,13 +36,10 @@ describe('DraggableMarkerMap integracija s Leafletom', () => {
       />,
     )
 
-    await waitFor(() => {
-      const region = screen.getByRole('region', { name: hr.map.ariaLabel })
-      expect(region.querySelector('.leaflet-container')).not.toBeNull()
-    })
+    await screen.findByRole('link', { name: 'OpenStreetMap' })
 
     const region = screen.getByRole('region', { name: hr.map.ariaLabel })
-    const mapElement = region.querySelector('.leaflet-container')
+    const mapElement = region.firstElementChild
 
     if (!mapElement) throw new Error('Leaflet karta nije renderirana.')
 
@@ -56,13 +53,21 @@ describe('DraggableMarkerMap integracija s Leafletom', () => {
     expect(coordinates).toBeDefined()
     if (!coordinates) throw new Error('Koordinate nisu poslane u onChange.')
 
-    expect(Number.isFinite(coordinates.latitude)).toBe(true)
-    expect(Number.isFinite(coordinates.longitude)).toBe(true)
-    expect(coordinates.latitude).not.toBe(45.1)
-    expect(coordinates.longitude).not.toBe(15.2)
-    expect(coordinates.latitude).toBeGreaterThanOrEqual(-90)
-    expect(coordinates.latitude).toBeLessThanOrEqual(90)
-    expect(coordinates.longitude).toBeGreaterThanOrEqual(-180)
-    expect(coordinates.longitude).toBeLessThanOrEqual(180)
+    expect(coordinates).toEqual({ latitude: 45.096791, longitude: 15.205078 })
+
+    fireEvent.click(mapElement, { clientX: 600, clientY: 250 })
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledTimes(2)
+    })
+
+    const edgeCoordinates = onChange.mock.calls[1]?.[0]
+    expect(edgeCoordinates).toBeDefined()
+    if (!edgeCoordinates) throw new Error('Rubne koordinate nisu poslane.')
+
+    expect(edgeCoordinates).toEqual({
+      latitude: 45.096791,
+      longitude: 17.402344,
+    })
   })
 })

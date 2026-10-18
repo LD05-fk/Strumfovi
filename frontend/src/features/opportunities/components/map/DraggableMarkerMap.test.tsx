@@ -1,8 +1,9 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import DraggableMarkerMap from './DraggableMarkerMap'
 import { hr } from '../../../../i18n/hr'
+import { renderWithProviders } from '../../../../test/renderWithProviders'
 
 vi.mock('./LeafletMapInner', async () => {
   const React = await import('react')
@@ -49,7 +50,7 @@ describe('DraggableMarkerMap', () => {
     const user = userEvent.setup()
     const onChange = vi.fn()
 
-    render(
+    renderWithProviders(
       <DraggableMarkerMap
         value={null}
         onChange={onChange}
@@ -71,7 +72,7 @@ describe('DraggableMarkerMap', () => {
     const user = userEvent.setup()
     const onChange = vi.fn()
 
-    render(
+    renderWithProviders(
       <DraggableMarkerMap
         value={null}
         onChange={onChange}
@@ -96,7 +97,7 @@ describe('DraggableMarkerMap', () => {
     const user = userEvent.setup()
     const onChange = vi.fn()
 
-    const { rerender } = render(
+    const { rerender } = renderWithProviders(
       <DraggableMarkerMap
         value={null}
         onChange={onChange}

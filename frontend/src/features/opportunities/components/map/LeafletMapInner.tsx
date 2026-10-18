@@ -152,7 +152,9 @@ export default function LeafletMapInner({
   ariaLabel = hr.map.ariaLabel,
   fitToMarkers = false,
 }: Readonly<LeafletMapInnerProps>) {
-  const [hasTileError, setHasTileError] = useState(false)
+  const [failedTiles, setFailedTiles] = useState<Set<HTMLImageElement>>(
+    () => new Set(),
+  )
   const markerRef = useRef<L.Marker>(null)
 
   const theme = useTheme()
@@ -167,7 +169,7 @@ export default function LeafletMapInner({
           width="32"
           height="40"
           viewBox="0 0 32 40"
-          style="filter: drop-shadow(0 2px 3px rgba(28,25,23,.3))"
+          style="filter: drop-shadow(0 4px 12px rgba(28,25,23,.12))"
         >
           <path
             d="M16 1C7.7 1 1 7.7 1 16c0 11 15 23 15 23s15-12 15-23C31 7.7 24.3 1 16 1Z"
@@ -186,7 +188,27 @@ export default function LeafletMapInner({
 
   const tileEventHandlers = useMemo(
     () => ({
-      tileerror: () => setHasTileError(true),
+      tileerror: (event: L.TileErrorEvent) => {
+        setFailedTiles((tiles) => new Set(tiles).add(event.tile))
+      },
+      tileload: (event: L.TileEvent) => {
+        setFailedTiles((tiles) => {
+          if (!tiles.has(event.tile)) return tiles
+
+          const remainingTiles = new Set(tiles)
+          remainingTiles.delete(event.tile)
+          return remainingTiles
+        })
+      },
+      tileunload: (event: L.TileEvent) => {
+        setFailedTiles((tiles) => {
+          if (!tiles.has(event.tile)) return tiles
+
+          const remainingTiles = new Set(tiles)
+          remainingTiles.delete(event.tile)
+          return remainingTiles
+        })
+      },
     }),
     [],
   )
@@ -286,7 +308,7 @@ export default function LeafletMapInner({
         </MapContainer>
       </Box>
 
-      {hasTileError && (
+      {failedTiles.size > 0 && (
         <Alert severity="warning" sx={{ borderRadius: 2 }}>
           {hr.map.unavailable}
         </Alert>
@@ -294,4 +316,3 @@ export default function LeafletMapInner({
     </Box>
   )
 }
-

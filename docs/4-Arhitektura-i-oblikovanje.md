@@ -52,13 +52,9 @@ Objasnite glavne arhitekturne odluke bez ponavljanja popisa tehnologija. Ako va�
 | Komponenta | Odgovornost | Razlog za ovu granicu |
 | --- | --- | --- |
 | Poslužiteljska aplikacija (`backend/`, Spring Boot 4, Java 25) | REST API pod `/api/v1`, poslovna pravila, prijava i sesija, ovlaštenja, zakazani poslovi | Jedna aplikacija koja se postavlja kao cjelina; moduli su paketi unutar nje, a ne zasebne usluge. |
-| Klijentski dio (`frontend/`, React + Vite + TypeScript) | Korisničko sučelje u pregledniku; poziva API preko `src/api/client.ts` | Prikaz i interakcija odvojeni su od poslovnih pravila; u produkciji ga Caddy servira kao statičke datoteke. |
-| OpenStreetMap Tile Service (vanjski sustav) | Prikaz kartografskih pločica koje klijentski dio dohvaća putem HTTPS-a s `https://tile.openstreetmap.org/{z}/{x}/{y}.png`. | Karta koristi vanjski izvor kartografskih podataka; pločice se dohvaćaju izravno s klijenta i nisu dio baze podataka aplikacije. |
+| Klijentski dio (`frontend/`, React + Vite + TypeScript) | Korisničko sučelje u pregledniku; poziva API preko `src/api/client.ts`; karte prikazuje pomoću Leafleta. | Prikaz i interakcija odvojeni su od poslovnih pravila; u produkciji ga Caddy servira kao statičke datoteke. |
+| OpenStreetMap Tile Service (vanjski sustav) | Klijentski dio dohvaća pločice putem HTTPS-a s `https://tile.openstreetmap.org/{z}/{x}/{y}.png`; atribucija je uvijek vidljiva. | Karta koristi vanjski izvor kartografskih podataka; pločice se dohvaćaju izravno s klijenta, nisu dio baze podataka aplikacije, a pri neuspjelom učitavanju karta prikazuje upozorenje. |
 | Baza podataka (PostgreSQL 17) | Trajni podaci aplikacije i sesije korisnika (Spring Session JDBC) | Podaci imaju jasne relacijske veze (korisnik, prilika, prijava); shemu verzionira Liquibase. |
-
-### Vanjske usluge (Google prijava, OpenStreetMap) dodaje DOC-13.
-
-Klijentski dio izravno dohvaća kartografske pločice od **OpenStreetMapa (OSM)** za prikaz karte lokacija prilika. Karta se prikazuje putem **Leafleta**, a OpenStreetMapova atribucija vidljiva je u svim prikazima karte. Ako se pločice ne uspiju učitati, karta ostaje funkcionalna uz poruku *"Karta trenutno nije dostupna"*.
 
 ### Backend: moduli i slojevi
 
@@ -296,10 +292,10 @@ ADR pišite samo za odluku čije će obrazloženje ostati važno i nakon promjen
 
 | Polje | Zapis odluke |
 | --- | --- |
-| Kontekst i cilj | Prikaz lokacija prilika na karti i odabir lokacije pri objavi prilike zahtijevaju kartografski prikaz u klijentskom dijelu na interaktivnoj karti. Tim treba odabrati kartografsko rješenje koje se lako integrira u React klijentsku aplikaciju. |
-| Kriteriji odluke | Rješenje treba podržavati prikaz oznaka i interakcije potrebne za odabir lokacije, integrirati se s React sučeljem te jasno prikazivati atribuciju izvora kartografskih podataka. |
+| Kontekst i cilj | Prikaz lokacija prilika i odabir lokacije zahtijevaju interaktivnu kartu u React klijentskoj aplikaciji. Za projektni opseg i očekivano opterećenje rješenje treba biti jednostavno za postavljanje bez uspostavljanja računa za naplatu kod kartografskog pružatelja. |
+| Kriteriji odluke | Rješenje mora podržavati oznake i odabir lokacije, integrirati se s Reactom te prikazivati izvor podataka. Prednost ima rješenje koje ne zahtijeva API ključ ni račun s omogućenim obračunom po korištenju i čije postavljanje ne uvodi dodatnu kartografsku naplatu u projektnom opsegu. |
 | Razmatrane alternative | **Google Maps** kao kartografski servis te **OpenStreetMapove** pločice prikazane pomoću **Leafleta**. |
-| Odluka i obrazloženje | Za prikaz karte koristiti **Leaflet**, a kao izvor kartografskih pločica **OpenStreetMap**. Odabrano rješenje podržava prikaz lokacija i interakcije potrebne u sučelju; **Leaflet** se učitava lijeno kako ne bi ulazio u početni paket. Pločice se dohvaćaju s `https://tile.openstreetmap.org/{z}/{x}/{y}.png`, uz vidljivu atribuciju. Kompromis je ovisnost o dostupnosti vanjskog servisa i obveza poštivanja njegovih pravila korištenja. |
+| Odluka i obrazloženje | Odabrati **Leaflet** s javnim pločicama **OpenStreetMapa**. Leaflet je klijentska biblioteka bez kartografskog API ključa, a javni OSM Tile Service za ovaj opseg ne zahtijeva projektni račun za naplatu ni obračun po korištenju kao Google Maps Platform. Time se pojednostavljuje postavljanje i izbjegava konfiguracija Googleovih vjerodajnica i naplate; Leaflet se učitava lijeno kako ne bi ulazio u početni paket. Pločice se dohvaćaju s `https://tile.openstreetmap.org/{z}/{x}/{y}.png`, uz vidljivu atribuciju. Kompromis je ovisnost o javnom servisu bez jamstva dostupnosti, uz obvezu poštivanja njegove politike korištenja pločica; za veće opterećenje treba ponovno procijeniti pružatelja. |
 | Status | Prihvaćeno. |
 
 ## 4.6 Koncepti koji prožimaju sustav
