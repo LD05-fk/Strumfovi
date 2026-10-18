@@ -28,9 +28,9 @@ Proširivi primjeri CrisisMapa prikazuju oblikovanje ispitivanja i izvještavanj
 
 ### Provjera FND-04 — 18. 10. 2026.
 
-Provjeren je commit `3bcf7c9` na grani `feature/FND-04`, uz Javu 25.0.4.1, Spring Boot 4.1.1, Docker i PostgreSQL 17. Završni Maven `verify` prošao je: **121 test, bez grešaka i preskočenih testova**. U uobičajenom razvojnom okruženju provjera se pokreće iz `backend` naredbom `./mvnw -B verify`; lokalno su korišteni postojeći Maven i repozitorij ovisnosti iz `target/tooling`, u offline načinu rada.
+Maven `verify` prošao je: **126 testova, bez grešaka i preskočenih testova**, uz Javu 25.0.4.1, Spring Boot 4.1.1, Docker i PostgreSQL 17. Provjera se pokreće iz `backend` naredbom `./mvnw -B verify`, uz Javu 25 i pokrenut Docker.
 
-Nakon dopune prema pregledu istoga dana ponovno je pokrenut `verify` nad radnim stablom te grane: **126 testova, bez grešaka i preskočenih testova**. Ovo izvođenje uključuje `CurrentUser`, provider, odvojene uloge i stvarno odbijanje istekle sesije. Lokalni zapis je `backend/target/fnd04-review-verify.log`; tablica u nastavku opisuje dopunjene provjere.
+Sigurnosne provjere nalaze se u [paketu testova `auth`](../backend/src/test/java/hr/fer/artconnect/auth), a provjere zajedničke obrade grešaka u [GlobalExceptionHandlerTest](../backend/src/test/java/hr/fer/artconnect/common/GlobalExceptionHandlerTest.java).
 
 | Provjera | Rezultat |
 | --- | --- |
@@ -45,21 +45,16 @@ Nakon dopune prema pregledu istoga dana ponovno je pokrenut `verify` nad radnim 
 | Hijerarhija i statusni filter | Uloge su namjerno odvojene. `ADMIN` ne nasljeđuje prava organizatora; statusni filter još ne ograničava onboarding. |
 | Produkcijski kolačići | `SESSION`: `HttpOnly`, `Secure`, `SameSite=Lax`; CSRF kolačić ima `Secure` i čitljiv je JavaScriptu. |
 
-**Dodatna provjera stvarnog restarta procesa:** pokrenuta je odvojena privremena PostgreSQL baza. Privremeni pomoćni program pokrenuo je backend s testnim korisnikom `restart-test` i testnom zaštićenom rutom koja vraća ime prijavljenog korisnika. Ti dijelovi nisu dodani produkcijskom kodu; nalaze se samo u ignoriranoj mapi `backend/target`.
+**Dodatna lokalna provjera restarta procesa:** uz odvojenu PostgreSQL bazu i privremeni pomoćni program provjeren je sljedeći postupak s testnim korisnikom `restart-test` i testnom zaštićenom rutom:
 
 1. U prvom procesu spremljena je autentificirana sesija u bazu i zapamćen njezin kolačić.
 2. Zahtjev bez kolačića vratio je 401; s kolačićem 200 i `restart-test`.
 3. Proces je ugašen, a novi je pokrenut uz istu bazu, bez ponovnog stvaranja prijave.
 4. Isti kolačić ponovno je vratio 200 i `restart-test`; zahtjev bez kolačića i dalje je vratio 401.
 
-Zabilježeni rezultati:
+Lokalna provjera potvrdila je trajnost sesije između dvaju procesa backenda. Nije dio automatiziranih testova u repozitoriju i ne obuhvaća Google prijavu. Procesi i privremena baza ugašeni su nakon provjere.
 
-```text
-PASS run=1 pid=34520 anonymous=401 session=200 user=restart-test
-PASS run=2 pid=40328 anonymous=401 session=200 user=restart-test
-```
-
-Procesi i privremena baza ugašeni su nakon provjere. Lokalni logovi su `backend/target/fnd04-final-verify.log` i `backend/target/fnd04-restart.log`. Ova provjera potvrđuje trajnost sesije; Google prijava još nije implementirana. Nakon pregleda dodani su `CurrentUser`, provider, konfiguracija odvojenih uloga, rezervirani statusni filter i provjera odbijanja istekle sesije. Provjere onboardinga i blokiranja namjerno ostaju za EPIC-01 i EPIC-08. Za PR treba prenijeti rezultat provjere restarta; pregled koda i spajanje još slijede.
+Google prijava nije implementirana ni provjerena u FND-04. Javna dostupnost `POST /api/v1/dev/login-as` pripada zadatku prijave; trenutačni CSRF izuzetak ne ukida zahtjev za prijavom. Provjere onboardinga i blokiranja pripadaju EPIC-01 i EPIC-08.
 
 <details>
 <summary><strong>Odabir provjera za podnošenje prijave</strong></summary>
