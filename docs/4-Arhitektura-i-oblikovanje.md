@@ -53,9 +53,12 @@ Objasnite glavne arhitekturne odluke bez ponavljanja popisa tehnologija. Ako va�
 | --- | --- | --- |
 | Poslužiteljska aplikacija (`backend/`, Spring Boot 4, Java 25) | REST API pod `/api/v1`, poslovna pravila, prijava i sesija, ovlaštenja, zakazani poslovi | Jedna aplikacija koja se postavlja kao cjelina; moduli su paketi unutar nje, a ne zasebne usluge. |
 | Klijentski dio (`frontend/`, React + Vite + TypeScript) | Korisničko sučelje u pregledniku; poziva API preko `src/api/client.ts` | Prikaz i interakcija odvojeni su od poslovnih pravila; u produkciji ga Caddy servira kao statičke datoteke. |
+| OpenStreetMap Tile Service (vanjski sustav) | Prikaz kartografskih pločica koje klijentski dio dohvaća putem HTTPS-a s `https://tile.openstreetmap.org/{z}/{x}/{y}.png`. | Karta koristi vanjski izvor kartografskih podataka; pločice se dohvaćaju izravno s klijenta i nisu dio baze podataka aplikacije. |
 | Baza podataka (PostgreSQL 17) | Trajni podaci aplikacije i sesije korisnika (Spring Session JDBC) | Podaci imaju jasne relacijske veze (korisnik, prilika, prijava); shemu verzionira Liquibase. |
 
-Vanjske usluge (Google prijava, OpenStreetMap) dodaje DOC-13.
+### Vanjske usluge (Google prijava, OpenStreetMap) dodaje DOC-13.
+
+Klijentski dio izravno dohvaća kartografske pločice od **OpenStreetMapa (OSM)** za prikaz karte lokacija prilika. Karta se prikazuje putem **Leafleta**, a OpenStreetMapova atribucija vidljiva je u svim prikazima karte. Ako se pločice ne uspiju učitati, karta ostaje funkcionalna uz poruku *"Karta trenutno nije dostupna"*.
 
 ### Backend: moduli i slojevi
 
@@ -98,6 +101,7 @@ React aplikacija u `frontend/src/`, organizirana **po značajki**: sve što prip
 | `api/client.ts` | `apiFetch`: osnovna adresa `/api/v1`, kolačić sesije, CSRF zaglavlje `X-XSRF-TOKEN` na zahtjevima koji mijenjaju stanje, slanje JSON-a, pretvaranje svake greške (API, mreža, neočekivan odgovor) u `ApiError` |
 | `app/` | Postavke aplikacije: router (`router.tsx`) i TanStack Query (`queryClient.ts`) |
 | `features/<značajka>/` | Stranice, komponente i hookovi jedne funkcionalnosti, npr. `features/opportunities/` |
+| `features/opportunities/components/map` | Zajednička **MapView** komponenta **(Leaflet + OpenStreetMap)** s podrškom za dinamičko učitavanje **(React.lazy)**, prikaz pojedinačnih/višestrukih oznaka te **DraggableMarkerMap** varijanta za odabir lokacije u obrascu |
 | `components/` | Zajedničke komponente sučelja (izgled, stanja učitavanja i greške) |
 | `i18n/hr.ts` | Svi tekstovi sučelja na hrvatskom |
 
@@ -277,6 +281,16 @@ ADR pišite samo za odluku čije će obrazloženje ostati važno i nakon promjen
 **Analiza primjera:** Strategija rješenja navodi trenutačni pristup; ADR-01 čuva alternative i kriterije koji su do njega doveli. Dijagrami komponenata i razmještaja trebaju odražavati odabrani pristup kako se sustav razvija. Zaseban ADR koristan je za važnu odluku, a ne za svaki odabir alata.
 
 </details>
+
+### ADR-02: OpenStreetMap + Leaflet umjesto Google Mapsa
+
+| Polje | Zapis odluke |
+| --- | --- |
+| Kontekst i cilj | Prikaz lokacija prilika na karti i odabir lokacije pri objavi prilike zahtijevaju kartografski prikaz u klijentskom dijelu na interaktivnoj karti. Tim treba odabrati kartografsko rješenje koje se lako integrira u React klijentsku aplikaciju. |
+| Kriteriji odluke | Rješenje treba podržavati prikaz oznaka i interakcije potrebne za odabir lokacije, integrirati se s React sučeljem te jasno prikazivati atribuciju izvora kartografskih podataka. |
+| Razmatrane alternative | **Google Maps** kao kartografski servis te **OpenStreetMapove** pločice prikazane pomoću **Leafleta**. |
+| Odluka i obrazloženje | Za prikaz karte koristiti **Leaflet**, a kao izvor kartografskih pločica **OpenStreetMap**. Odabrano rješenje podržava prikaz lokacija i interakcije potrebne u sučelju; **Leaflet** se učitava lijeno kako ne bi ulazio u početni paket. Pločice se dohvaćaju s `https://tile.openstreetmap.org/{z}/{x}/{y}.png`, uz vidljivu atribuciju. Kompromis je ovisnost o dostupnosti vanjskog servisa i obveza poštivanja njegovih pravila korištenja. |
+| Status | Prihvaćeno. |
 
 ## 4.6 Koncepti koji prožimaju sustav
 
