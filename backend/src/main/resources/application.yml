@@ -27,9 +27,21 @@ spring:
     # Bez postavljenih konteksta Liquibase primjenjuje sve changesetove
     contexts: dev
   session:
+    # Sesija istječe nakon osam sati bez aktivnosti.
+    timeout: 8h
     jdbc:
       # Shemu sesija stvara Liquibase (changes/001-spring-session.yaml)
       initialize-schema: never
+server:
+  servlet:
+    session:
+      cookie:
+        name: SESSION
+        # JavaScript ne smije čitati identifikator sesije.
+        http-only: true
+        same-site: lax
+        # Lokalno koristimo HTTP; profil prod uključuje Secure za HTTPS.
+        secure: false
 management:
   endpoints:
     web:

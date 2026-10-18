@@ -24,7 +24,37 @@ Proširivi primjeri CrisisMapa prikazuju oblikovanje ispitivanja i izvještavanj
 
 **SonarCloud:** jednom tjedno i ručno analizira granu `master` (`.github/workflows/sonar.yml`) i prikazuje probleme u kodu i pokrivenost backenda (JaCoCo). Samo je informativan: ne pokreće se na pull requestovima i ne blokira spajanje.
 
-**Trenutno stanje:** test konteksta backenda (`ArtConnectApplicationTests`, Spring kontekst uz PostgreSQL kroz Testcontainers) i 6 jediničnih testova API klijenta na frontendu. Ostali testovi nastaju uz zadatke.
+**Trenutno stanje:** backend ima testove konteksta, zajedničkih klasa, sigurnosnih pravila, CSRF-a i sesija te koristi PostgreSQL kroz Testcontainers za integracijske provjere. Frontend ima 6 jediničnih testova API klijenta. Ostali testovi nastaju uz zadatke.
+
+### Provjera FND-04 — 18. 10. 2026.
+
+Maven `verify` prošao je: **126 testova, bez grešaka i preskočenih testova**, uz Javu 25.0.4.1, Spring Boot 4.1.1, Docker i PostgreSQL 17. Provjera se pokreće iz `backend` naredbom `./mvnw -B verify`, uz Javu 25 i pokrenut Docker.
+
+Sigurnosne provjere nalaze se u [paketu testova `auth`](../backend/src/test/java/hr/fer/artconnect/auth), a provjere zajedničke obrade grešaka u [GlobalExceptionHandlerTest](../backend/src/test/java/hr/fer/artconnect/common/GlobalExceptionHandlerTest.java).
+
+| Provjera | Rezultat |
+| --- | --- |
+| Anonimni pristup javnim GET rutama | Prolazi. |
+| Anonimni pristup zaštićenim rutama | 401 `UNAUTHENTICATED`, JSON omotnica i hrvatska poruka. |
+| Anonimni pristup javnoj ruti s `@PreAuthorize` | 401, uključeni sigurnosni filtri; pokriven komentar na issueu #9. |
+| Umjetnik poziva metodu za organizatora | 403 `FORBIDDEN`; organizator može pristupiti. |
+| CSRF kolačić i zaglavlje | Ispravan token dopušta zahtjev; nedostajući ili pogrešan token vraća 403. |
+| Razvojni CSRF izuzetak | Vrijedi samo za razvojne rute uz `dev`, bez aktivnog `prod`; prijava je i dalje potrebna. |
+| Sesija u PostgreSQL-u | Spremljeni `CurrentUser` učitava se kroz `SESSION`, a sesije su dostupne po ID-u korisnika. Provjerava se trajanje od 8 sati i odbijanje istekle sesije s 401 nakon pomicanja zadnje aktivnosti 9 sati u prošlost. |
+| Zajednički principal | `@AuthenticationPrincipal` i `CurrentUserProvider` vraćaju istog korisnika; provider odbija nedostajući, anonimni ili nepodržani principal. Onboarding može imati praznu ulogu. |
+| Hijerarhija i statusni filter | Uloge su namjerno odvojene. `ADMIN` ne nasljeđuje prava organizatora; statusni filter još ne ograničava onboarding. |
+| Produkcijski kolačići | `SESSION`: `HttpOnly`, `Secure`, `SameSite=Lax`; CSRF kolačić ima `Secure` i čitljiv je JavaScriptu. |
+
+**Dodatna lokalna provjera restarta procesa:** uz odvojenu PostgreSQL bazu i privremeni pomoćni program provjeren je sljedeći postupak s testnim korisnikom `restart-test` i testnom zaštićenom rutom:
+
+1. U prvom procesu spremljena je autentificirana sesija u bazu i zapamćen njezin kolačić.
+2. Zahtjev bez kolačića vratio je 401; s kolačićem 200 i `restart-test`.
+3. Proces je ugašen, a novi je pokrenut uz istu bazu, bez ponovnog stvaranja prijave.
+4. Isti kolačić ponovno je vratio 200 i `restart-test`; zahtjev bez kolačića i dalje je vratio 401.
+
+Lokalna provjera potvrdila je trajnost sesije između dvaju procesa backenda. Nije dio automatiziranih testova u repozitoriju i ne obuhvaća Google prijavu. Procesi i privremena baza ugašeni su nakon provjere.
+
+Google prijava nije implementirana ni provjerena u FND-04. Javna dostupnost `POST /api/v1/dev/login-as` pripada zadatku prijave; trenutačni CSRF izuzetak ne ukida zahtjev za prijavom. Provjere onboardinga i blokiranja pripadaju EPIC-01 i EPIC-08.
 
 <details>
 <summary><strong>Odabir provjera za podnošenje prijave</strong></summary>

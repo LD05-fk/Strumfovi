@@ -259,6 +259,16 @@ Napišite nekoliko ADR-a samo za važne odluke čije obrazloženje, alternative 
 
 ADR pišite samo za odluku čije će obrazloženje ostati važno i nakon promjene implementacije. Značajna promjena odluke može se zabilježiti novim ADR-om koji zamjenjuje stari; rutinski odabiri alata ne trebaju detaljne zapise. Promjene dogovorenog opsega pripadaju zahtjevima i njihovoj povijesti promjena; povratna informacija o zadatku ostaje uz odgovarajući zadatak.
 
+### ADR-01: Poslužiteljska sesija umjesto JWT-a
+
+| Polje | Zapis odluke |
+| --- | --- |
+| Kontekst i cilj | React aplikacija treba pamtiti prijavu, a backend treba moći poništiti sesije korisnika. |
+| Razmatrane alternative | Poslužiteljska sesija u PostgreSQL-u ili JWT pristupni tokeni. |
+| Odluka i obrazloženje | Koristimo Spring Session JDBC i kolačić `SESSION`. Već imamo PostgreSQL, a sesije možemo dohvatiti po korisniku i obrisati. Ne trebamo uvoditi osvježavanje i opoziv JWT tokena. |
+| Kompromis | Backend pri radu sa sesijom pristupa bazi. Za zahtjeve koji mijenjaju podatke potrebna je CSRF zaštita. |
+| Status | Prihvaćeno u FND-04 (#9). |
+
 <details>
 <summary><strong>Odabir jednog poslužiteljskog sustava umjesto zasebno postavljenih usluga</strong></summary>
 
@@ -296,15 +306,31 @@ ADR pišite samo za odluku čije će obrazloženje ostati važno i nakon promjen
 
 Paket `hr.fer.artconnect.common` sadrži zajedničke klase za greške, provjeru podataka i straničenje (#8).
 
+### Sesija i sigurnost
+
+`SecurityConfig` dopušta anonimne GET zahtjeve na prilike, umjetnike, djela, datoteke, šifrarnike, javne postavke, `/api/v1/auth/csrf` i `/actuator/health`. Ostali zahtjevi traže prijavu. `@EnableMethodSecurity` uključuje provjere `@PreAuthorize`; privatnost pojedinog djela ili datoteke mora dodatno provjeriti odgovarajuća metoda.
+
+`CurrentUser(UUID id, Role role, Status status)` je zajednički principal prijavljenog korisnika. Serijalizira se u JDBC sesiju, a `getName()` vraća ID korisnika za dohvat njegovih sesija. `role` može biti `null` tijekom onboardinga. Ovo nije DTO odgovora `GET /me`; podatke profila dodat će AUTH zadaci. Kontroler prima `@AuthenticationPrincipal CurrentUser user`, a servis poziva `currentUserProvider.getCurrentUser()`. Bez valjanog principala provider javlja 401 `UNAUTHENTICATED`.
+
+`RoleHierarchy` je spojen na provjere `@PreAuthorize`. Prema dogovoru, uloge ostaju odvojene: `ADMIN` ne nasljeđuje automatski prava `ARTIST` i `ORGANIZER`. `UserStatusFilter` je uključen u sigurnosni lanac prije odluke o pristupu, ali zasad samo propušta zahtjev. Provjere `ONBOARDING_REQUIRED` i `USER_BLOCKED` pripadaju kasnijim zadacima EPIC-01 i EPIC-08.
+
+Spring Session JDBC sprema sesije u postojeće tablice PostgreSQL-a. Sesija istječe nakon 8 sati neaktivnosti. Kolačić `SESSION` ima `HttpOnly` i `SameSite=Lax`, a u profilu `prod` i `Secure`. Springov `FindByIndexNameSessionRepository` dostupan je za kasnije poništavanje sesija korisnika.
+
+Frontend prvo poziva `GET /api/v1/auth/csrf`. Odgovor sadrži `headerName` i `token` te postavlja JavaScriptu čitljiv kolačić `XSRF-TOKEN`. Pri POST, PUT, PATCH i DELETE zahtjevima klijent šalje njegovu vrijednost u `X-XSRF-TOKEN`. Nakon buduće prijave ili odjave klijent treba ponovno dohvatiti token. CSRF izuzetak vrijedi samo za `/api/v1/dev/**` u profilu `dev`, bez aktivnog profila `prod`; ne ukida zahtjev za prijavom.
+
+`SecurityErrorHandler` obrađuje greške u filtrima. Zajedno s `GlobalExceptionHandlerom` koristi istu JSON omotnicu i hrvatske poruke: anonimnom korisniku bez pristupa vraća 401 `UNAUTHENTICATED`, a prijavljenom bez ovlasti 403 `FORBIDDEN`. Izostavljen ili nevaljan CSRF token uvijek vraća 403 `FORBIDDEN`.
+
+Testovi u paketu `auth` uključuju sigurnosne filtre i provjeravaju tok CSRF kolačića i zaglavlja, odvojene uloge, razvojni izuzetak te dohvat principala u kontroleru i servisu. `SessionIntegrationTest` uz Testcontainers PostgreSQL provjerava učitavanje `CurrentUser` principala iz baze, dohvat sesija po ID-u korisnika, postavljeno trajanje od 8 sati, odbijanje istekle sesije i produkcijske kolačiće. Dodatna lokalna provjera 18. 10. 2026. potvrdila je da isti kolačić sesije vrijedi nakon gašenja i ponovnog pokretanja procesa backenda uz istu bazu. Postupak i rezultati zapisani su u [poglavlju o ispitivanju](5-Ispitivanje.md#provjera-fnd-04--18-10-2026).
+
 ### Greške i provjera podataka
 
 Servis javlja očekivanu grešku ovako: `throw new ApiException(ErrorCode.NOT_FOUND, "Prilika nije pronađena.");` Po potrebi dodaje popis `FieldIssue(field, issue)`. `ErrorCode` sadrži svih 30 API kodova i njihove HTTP statuse.
 
-`GlobalExceptionHandler` vraća `{ "error": { "code": "...", "message": "...", "details": [...] } }`. Prazan `details` izostavlja se. Neispravni podaci vraćaju 400 `VALIDATION_ERROR`, prevelika datoteka 413 `FILE_TOO_LARGE`, a zabrana u kontroleru 403 `FORBIDDEN`. Neočekivana greška vraća 500 `INTERNAL_ERROR` s općom porukom; detalji iznimke ostaju samo u logu.
+`GlobalExceptionHandler` vraća `{ "error": { "code": "...", "message": "...", "details": [...] } }`. Prazan `details` izostavlja se. Neispravni podaci vraćaju 400 `VALIDATION_ERROR`, prevelika datoteka 413 `FILE_TOO_LARGE`, a zabrana pristupa 401 za anonimnog korisnika ili 403 za prijavljenog bez ovlasti. Neočekivana greška vraća 500 `INTERNAL_ERROR` s općom porukom; detalji iznimke ostaju samo u logu.
 
 Springove HTTP greške zadržavaju izvorni status i zaglavlja: nepostojeća putanja vraća 404 `NOT_FOUND`, pogrešna metoda 405 `VALIDATION_ERROR`, a nepodržani `Content-Type` 415 `UNSUPPORTED_FILE_TYPE`. Iznimka `ResponseStatusException` također zadržava zadani status, uz sigurnu hrvatsku poruku. Klijentske greške ne zapisuju se kao greške poslužitelja; iznimke sa statusom 5xx zapisuju se u log.
 
-DTO-i koriste Jakarta Validation i `@Valid`. Hrvatski jezik postavlja `CommonWebConfiguration`, a poruke su u `messages_hr.properties`. Kod neispravnog JSON-a polje u detaljima je `body`. Sigurnosne greške koje nastanu prije kontrolera treba obraditi u AUTH konfiguraciji; ovaj handler obrađuje iznimke koje stignu do MVC-a.
+DTO-i koriste Jakarta Validation i `@Valid`. Hrvatski jezik postavlja `CommonWebConfiguration`, a poruke su u `messages_hr.properties`. Kod neispravnog JSON-a polje u detaljima je `body`. Sigurnosne greške koje nastanu prije kontrolera obrađuje `SecurityErrorHandler`; `GlobalExceptionHandler` obrađuje iznimke koje stignu do MVC-a.
 
 ### Straničenje i sortiranje
 
