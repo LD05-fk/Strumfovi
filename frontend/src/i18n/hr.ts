@@ -22,4 +22,15 @@ export const hr = {
     notFound: 'Stranica ne postoji.',
     forbidden: 'Nemate pristup ovoj stranici.',
   },
+
+  map: {
+    ariaLabel: 'Karta lokacije prilike',
+    unavailable: 'Karta trenutno nije dostupna.',
+    setCenterMarker:  'Postavi oznaku u središte karte',
+    dragHint: 'Oznaku možete povući na točan položaj.',
+    noMarkerHint: 'Oznaka nije postavljena.',
+    details: 'Detalji',
+    openInOsm: 'Otvori na OpenStreetMapu',
+    draggableMarkerTitle: 'Pomična oznaka lokacije',
+  },
 } as const
