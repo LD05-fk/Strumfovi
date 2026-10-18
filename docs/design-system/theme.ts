@@ -47,17 +47,3 @@ export const theme = createTheme({
     },
   },
 });
-
-export const statusChip = {
-  PREPARATION: { label: 'U pripremi', bg: '#E7E5E4', fg: '#44403C' },
-  OPEN: { label: 'Otvorena', bg: '#DCFCE7', fg: '#166534' },
-  CLOSED: { label: 'Zatvorena', bg: '#FEE2E2', fg: '#991B1B' },
-  SELECTION: { label: 'Odabir u tijeku', bg: '#FEF3C7', fg: '#92400E' },
-  FINISHED: { label: 'Završena', bg: '#EEF2FF', fg: '#312E81' },
-  SUBMITTED: { label: 'Poslana', bg: '#DBEAFE', fg: '#1E40AF' },
-  UNDER_REVIEW: { label: 'U razmatranju', bg: '#FEF3C7', fg: '#92400E' },
-  NEEDS_INFO: { label: 'Potrebne informacije', bg: '#FEF3C7', fg: '#92400E' },
-  ACCEPTED: { label: 'Prihvaćena', bg: '#DCFCE7', fg: '#166534' },
-  REJECTED: { label: 'Odbijena', bg: '#FEE2E2', fg: '#991B1B' },
-  WITHDRAWN: { label: 'Povučena', bg: '#E7E5E4', fg: '#44403C' },
-} as const;
