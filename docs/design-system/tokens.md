@@ -38,15 +38,19 @@ Font: **Inter** (Google Fonts, podržava č ć š ž đ), fallback `system-ui, s
 | button | 14 / 20 px, bez uppercasea | 600 |
 | caption | 12 / 16 px | 400 |
 
+Naslov početne stranice koristi h1: 36/44 px na sm i šire, 28/36 px na xs. Opis početne stranice koristi 20/28 px na sm i šire te 18/28 px na xs.
+
 ## Razmaci, oblici, sjene, točke prijeloma
 
-- Razmak: `spacing = 8` (1 = 8 px, 2 = 16 px, 3 = 24 px …). Rubni razmak stranice: xs 16 px, sm 24 px, md 32 px.
+- Razmak: `spacing = 8` (1 = 8 px, 2 = 16 px, 3 = 24 px …). Rubni razmak aplikacije: xs 16 px, sm i md 24 px. Zaglavlje, glavni sadržaj i podnožje protežu se punom širinom viewporta; širinu sadržaja određuje pojedina stranica.
 - Radijusi: gumbi i polja 8 px, kartice 12 px, chip 16 px (pilula), dijalog 16 px.
 - Sjene: kartica `0 1px 3px rgba(28,25,23,.08)`, kartica hover `0 4px 12px rgba(28,25,23,.12)`, dijalog `0 12px 32px rgba(28,25,23,.20)`.
-- Prijelomne točke: xs 0, sm 600, md 900 (lg 1200, xl 1536 ostaju MUI zadane). Maksimalna širina sadržaja 1200 px.
+- Prijelomne točke: xs 0, sm 600, md 900 (lg 1200, xl 1536 ostaju MUI zadane). Zaglavlje prikazuje izbornik u Draweru ispod md, a vodoravnu navigaciju na md i šire.
 - Minimalna ciljna površina dodira: 44 × 44 px.
 
 ## Chipovi statusa
+
+### Statusi prilika
 
 | Status | Tekst | Pozadina | Tekst boja | Kontrast |
 |---|---|---|---|---|
@@ -55,6 +59,11 @@ Font: **Inter** (Google Fonts, podržava č ć š ž đ), fallback `system-ui, s
 | `CLOSED` | Zatvorena | `#FEE2E2` | `#991B1B` | 6.8 |
 | `SELECTION` | Odabir u tijeku | `#FEF3C7` | `#92400E` | 6.4 |
 | `FINISHED` | Završena | `#EEF2FF` | `#312E81` | 10.2 |
+
+### Statusi prijava
+
+| Status | Tekst | Pozadina | Tekst boja | Kontrast |
+|---|---|---|---|---|
 | `SUBMITTED` | Poslana | `#DBEAFE` | `#1E40AF` | 7.2 |
 | `UNDER_REVIEW` | U razmatranju | `#FEF3C7` | `#92400E` | 6.4 |
 | `NEEDS_INFO` | Potrebne informacije | `#FEF3C7` | `#92400E` | 6.4 |
@@ -64,11 +73,21 @@ Font: **Inter** (Google Fonts, podržava č ć š ž đ), fallback `system-ui, s
 
 Status se ne smije prenositi samo bojom, uvijek ide i tekst.
 
+## Početna stranica
+
+Početna stranica prikazuje naslov „Umjetnici i prilike na jednom mjestu”, opis usluge i dva poziva na akciju: „Prijava s Googleom” i „Pregledaj prilike”. Sadržaj je centriran, a zaglavlje, glavni sadržaj i podnožje zauzimaju punu širinu viewporta.
+
+| Prikaz | Zaglavlje | Početna stranica |
+|---|---|---|
+| Desktop (md, ≥ 900 px) | Logo, stavka „Prilike” i puna oznaka gumba „Prijava s Googleom” | Naslov i opis u jednom retku; akcije su vodoravno |
+| Tablet (sm, 600–899 px) | Hamburger, logo i puna oznaka gumba „Prijava s Googleom” | Naslov i opis centrirani; akcije su vodoravno |
+| Telefon (xs, < 600 px) | Hamburger, logo i kompaktni gumb s Google oznakom | Naslov/opis se prelamaju; akcije su okomito |
+
 ## Navigacija po ulozi
 
 | Uloga | Stavke |
 |---|---|
-| Posjetitelj | Prilike · gumb „Prijava s Googleom” |
+| Posjetitelj | Početna stranica; „Prilike” · gumb „Prijava s Googleom” u zaglavlju (na telefonu kompaktna Google oznaka) |
 | Umjetnik | Prilike · Portfolio · Moje prijave · korisnički izbornik (Profil, Odjava) |
 | Organizator | Prilike · Moje prilike · Statistika · korisnički izbornik |
 | Admin | Prilike · Administracija · korisnički izbornik |
