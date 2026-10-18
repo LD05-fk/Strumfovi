@@ -24,7 +24,42 @@ Proširivi primjeri CrisisMapa prikazuju oblikovanje ispitivanja i izvještavanj
 
 **SonarCloud:** jednom tjedno i ručno analizira granu `master` (`.github/workflows/sonar.yml`) i prikazuje probleme u kodu i pokrivenost backenda (JaCoCo). Samo je informativan: ne pokreće se na pull requestovima i ne blokira spajanje.
 
-**Trenutno stanje:** test konteksta backenda (`ArtConnectApplicationTests`, Spring kontekst uz PostgreSQL kroz Testcontainers) i 6 jediničnih testova API klijenta na frontendu. Ostali testovi nastaju uz zadatke.
+**Trenutno stanje:** backend ima testove konteksta, zajedničkih klasa, sigurnosnih pravila, CSRF-a i sesija te koristi PostgreSQL kroz Testcontainers za integracijske provjere. Frontend ima 6 jediničnih testova API klijenta. Ostali testovi nastaju uz zadatke.
+
+### Provjera FND-04 — 18. 10. 2026.
+
+Provjeren je commit `3bcf7c9` na grani `feature/FND-04`, uz Javu 25.0.4.1, Spring Boot 4.1.1, Docker i PostgreSQL 17. Završni Maven `verify` prošao je: **121 test, bez grešaka i preskočenih testova**. U uobičajenom razvojnom okruženju provjera se pokreće iz `backend` naredbom `./mvnw -B verify`; lokalno su korišteni postojeći Maven i repozitorij ovisnosti iz `target/tooling`, u offline načinu rada.
+
+Nakon dopune prema pregledu istoga dana ponovno je pokrenut `verify` nad radnim stablom te grane: **126 testova, bez grešaka i preskočenih testova**. Ovo izvođenje uključuje `CurrentUser`, provider, odvojene uloge i stvarno odbijanje istekle sesije. Lokalni zapis je `backend/target/fnd04-review-verify.log`; tablica u nastavku opisuje dopunjene provjere.
+
+| Provjera | Rezultat |
+| --- | --- |
+| Anonimni pristup javnim GET rutama | Prolazi. |
+| Anonimni pristup zaštićenim rutama | 401 `UNAUTHENTICATED`, JSON omotnica i hrvatska poruka. |
+| Anonimni pristup javnoj ruti s `@PreAuthorize` | 401, uključeni sigurnosni filtri; pokriven komentar na issueu #9. |
+| Umjetnik poziva metodu za organizatora | 403 `FORBIDDEN`; organizator može pristupiti. |
+| CSRF kolačić i zaglavlje | Ispravan token dopušta zahtjev; nedostajući ili pogrešan token vraća 403. |
+| Razvojni CSRF izuzetak | Vrijedi samo za razvojne rute uz `dev`, bez aktivnog `prod`; prijava je i dalje potrebna. |
+| Sesija u PostgreSQL-u | Spremljeni `CurrentUser` učitava se kroz `SESSION`, a sesije su dostupne po ID-u korisnika. Provjerava se trajanje od 8 sati i odbijanje istekle sesije s 401 nakon pomicanja zadnje aktivnosti 9 sati u prošlost. |
+| Zajednički principal | `@AuthenticationPrincipal` i `CurrentUserProvider` vraćaju istog korisnika; provider odbija nedostajući, anonimni ili nepodržani principal. Onboarding može imati praznu ulogu. |
+| Hijerarhija i statusni filter | Uloge su namjerno odvojene. `ADMIN` ne nasljeđuje prava organizatora; statusni filter još ne ograničava onboarding. |
+| Produkcijski kolačići | `SESSION`: `HttpOnly`, `Secure`, `SameSite=Lax`; CSRF kolačić ima `Secure` i čitljiv je JavaScriptu. |
+
+**Dodatna provjera stvarnog restarta procesa:** pokrenuta je odvojena privremena PostgreSQL baza. Privremeni pomoćni program pokrenuo je backend s testnim korisnikom `restart-test` i testnom zaštićenom rutom koja vraća ime prijavljenog korisnika. Ti dijelovi nisu dodani produkcijskom kodu; nalaze se samo u ignoriranoj mapi `backend/target`.
+
+1. U prvom procesu spremljena je autentificirana sesija u bazu i zapamćen njezin kolačić.
+2. Zahtjev bez kolačića vratio je 401; s kolačićem 200 i `restart-test`.
+3. Proces je ugašen, a novi je pokrenut uz istu bazu, bez ponovnog stvaranja prijave.
+4. Isti kolačić ponovno je vratio 200 i `restart-test`; zahtjev bez kolačića i dalje je vratio 401.
+
+Zabilježeni rezultati:
+
+```text
+PASS run=1 pid=34520 anonymous=401 session=200 user=restart-test
+PASS run=2 pid=40328 anonymous=401 session=200 user=restart-test
+```
+
+Procesi i privremena baza ugašeni su nakon provjere. Lokalni logovi su `backend/target/fnd04-final-verify.log` i `backend/target/fnd04-restart.log`. Ova provjera potvrđuje trajnost sesije; Google prijava još nije implementirana. Nakon pregleda dodani su `CurrentUser`, provider, konfiguracija odvojenih uloga, rezervirani statusni filter i provjera odbijanja istekle sesije. Provjere onboardinga i blokiranja namjerno ostaju za EPIC-01 i EPIC-08. Za PR treba prenijeti rezultat provjere restarta; pregled koda i spajanje još slijede.
 
 <details>
 <summary><strong>Odabir provjera za podnošenje prijave</strong></summary>
