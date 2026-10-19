@@ -26,6 +26,23 @@ Proširivi primjeri CrisisMapa prikazuju oblikovanje ispitivanja i izvještavanj
 
 **Trenutno stanje:** backend ima testove konteksta, zajedničkih klasa, sigurnosnih pravila, CSRF-a i sesija te koristi PostgreSQL kroz Testcontainers za integracijske provjere. Frontend ima 6 jediničnih testova API klijenta. Ostali testovi nastaju uz zadatke.
 
+### Provjera FND-05 — 19. 10. 2026.
+
+Backend `mvn -B -ntp verify` prošao je u Dockeru (`maven:3.9-eclipse-temurin-25`),
+uz Javu 25.0.4.1 i PostgreSQL 17 kroz Testcontainers: **147 testova, bez grešaka i
+preskočenih testova**. Završili su i pakiranje aplikacije i JaCoCo izvještaj.
+
+Za ovaj zadatak dodan je 21 test u [paketu `catalog`](../backend/src/test/java/hr/fer/artconnect/catalog):
+
+- `SettingsServiceTest`: 14 provjera parsiranja, zadanih vrijednosti za nedostajuće
+  ključeve i odbijanja neispravnih brojeva ili vrijednosti izvan dopuštenog raspona.
+- `CatalogIntegrationTest`: 7 provjera s pravom bazom i sigurnosnim filtrima.
+  Pokrivaju javni pristup, izostavljanje neaktivnih stavki, redoslijed po poziciji
+  i nazivu, straničenje i praznu stranicu iza kraja, neispravne parametre
+  (uključujući `pageSize=101`) te dohvat izmijenjenih postavki iz baze.
+
+API i naredbe za ponavljanje provjere opisani su u [catalog.md](api/catalog.md#provjera).
+
 ### Provjera FND-04 — 18. 10. 2026.
 
 Maven `verify` prošao je: **126 testova, bez grešaka i preskočenih testova**, uz Javu 25.0.4.1, Spring Boot 4.1.1, Docker i PostgreSQL 17. Provjera se pokreće iz `backend` naredbom `./mvnw -B verify`, uz Javu 25 i pokrenut Docker.
