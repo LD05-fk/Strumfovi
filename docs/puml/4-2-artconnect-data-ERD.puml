@@ -1,6 +1,6 @@
 @startuml
-' ER dijagram tablica uvedenih zadatkom FND-03 (changesetovi 001-003).
-' Dopunjuje se kako epici dodaju svoje tablice (users, artworks, opportunities...).
+' ER dijagram tablica uvedenih zadacima FND-03 i OPP-01-DB (changesetovi 001-003 i opp-001).
+' Dopunjuje se kako epici dodaju svoje tablice (users, artworks...).
 hide circle
 hide methods
 skinparam linetype ortho
@@ -53,11 +53,56 @@ package "Spring Session JDBC (infrastruktura)" {
   }
 }
 
+package "Prilike (modul opportunity)" {
+  entity "opportunities" as opportunities {
+    * id : uuid <<PK>>
+    --
+    * organizer_id : uuid
+    * type_id : uuid <<FK>>
+    * title : varchar(200)
+    * description : text
+    * deadline : timestamptz
+    criteria : text
+    prize : text
+    * location_type : varchar(16)
+    street_address : varchar(200)
+    city : varchar(100)
+    postal_code : varchar(10)
+    latitude : numeric(9,6)
+    longitude : numeric(9,6)
+    online_url : varchar(1024)
+    event_start : timestamptz
+    event_end : timestamptz
+    * status : varchar(16) = PREPARATION
+    * archived : boolean = false
+    * hidden_by_admin : boolean = false
+    hidden_at : timestamptz
+    published_at : timestamptz
+    * created_at : timestamptz = now()
+    * updated_at : timestamptz = now()
+  }
+
+  entity "opportunity_art_fields" as opportunity_art_fields {
+    * opportunity_id : uuid <<PK>> <<FK>>
+    * art_field_id : uuid <<PK>> <<FK>>
+  }
+}
+
+opportunity_types ||--o{ opportunities : type_id
+opportunities ||--o{ opportunity_art_fields : "ON DELETE CASCADE"
+art_fields ||--o{ opportunity_art_fields : art_field_id
 spring_session ||--o{ spring_session_attributes : "ON DELETE CASCADE"
 
 note bottom of system_settings
   Ograničenja uploada koja administrator mijenja bez deploya.
   FK updated_by -> users(id) dodaje AUTH changeset
   kad tablica users nastane.
+end note
+
+note bottom of opportunities
+  CHECK osigurava pravila lokacije,
+  statusa i termina događanja.
+  FK organizer_id -> users(id) dodaje
+  AUTH changeset bez kaskade.
 end note
 @enduml
