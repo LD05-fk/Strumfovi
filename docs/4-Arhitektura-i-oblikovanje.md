@@ -146,8 +146,6 @@ Svi pozivi backenda idu kroz `apiFetch` iz `api/client.ts`, nikad kroz vlastiti 
 
 **Izvor dijagrama:** [`docs/puml/4-2-artconnect-data-ERD.puml`](puml/4-2-artconnect-data-ERD.puml)  
 
-**Model podataka:** [`breakdown/data-model.md`](../breakdown/data-model.md)
-
 **Implementacija:** Liquibase changesetovi `001-spring-session.yaml` – `007-organizer-profiles.yaml` i `opp-001-create-opportunities.yaml` u
 `backend/src/main/resources/db/changelog/changes/`; JPA entiteti `ArtField` i
 `OpportunityType` u `hr.fer.artconnect.catalog.domain`, `SystemSetting` u `hr.fer.artconnect.common.domain`,
