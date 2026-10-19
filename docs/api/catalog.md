@@ -3,9 +3,7 @@
 Tri javna GET endpointa za obrasce, filtre i provjeru datoteka prije slanja.
 Sve putanje počinju s `/api/v1`. Prijava i CSRF token nisu potrebni.
 
-Dokument je pripremljen prema odjeljku „Šifrarnici i javne postavke” i OpenAPI
-shemi iz dostavljenog `API.md`. Izvorni `breakdown/api/catalog.md` nije dostupan
-u repozitoriju. Administratorsko uređivanje pripada zasebnim zadacima.
+Administratorsko uređivanje pripada zasebnim zadacima.
 
 ## GET /art-fields
 
@@ -109,10 +107,6 @@ Odgovor `200 OK` (`CatalogItemPage`):
 }
 ```
 
-Izvorna OpenAPI specifikacija za ove popise navodi samo `200`. Ovdje je dopisan
-`400` koji izričito traži FND-05. Sekundarno sortiranje po nazivu također je
-preuzeto iz issuea; opis u `API.md` spominje samo poziciju.
-
 ## GET /settings/public
 
 Vraća pet ograničenja iz `system_settings`. Nema parametara ni straničenja.
@@ -149,8 +143,8 @@ zadanu vrijednost, jednaku početnim podacima Liquibasea.
 
 Neispravna vrijednost u bazi (nije cijeli broj ili je izvan raspona) predstavlja
 grešku konfiguracije: endpoint vraća `500 INTERNAL_ERROR` kroz zajedničku obradu
-grešaka, bez izlaganja ključa i vrijednosti klijentu. To je odabrano ponašanje za
-slučaj koji issue ne određuje; zadane vrijednosti koriste se za nedostajuće ključeve.
+grešaka, bez izlaganja ključa i vrijednosti klijentu. Za nedostajuće ključeve
+koriste se zadane vrijednosti.
 
 Frontend koristi ove vrijednosti za raniju provjeru datoteka. Budući servisi za
 upload i predaju prijave trebaju pozivati isti `SettingsService` radi provjere na
