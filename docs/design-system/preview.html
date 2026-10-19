@@ -42,13 +42,34 @@ label{display:block;font-size:14px;font-weight:600;margin-bottom:4px}
 .wfs{display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
 .wf{background:#fff;border:2px solid #A8A29E;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;font-size:14px;line-height:20px}
 .wf.xs{width:360px;height:640px}.wf.md{width:960px;height:560px}
+.wf.home-xs{width:366px;height:694px}.wf.home-sm{width:750px;height:692px}.wf.home-md{width:1098px;height:692px}
 .wf header{display:flex;align-items:center;gap:16px;padding:0 16px;height:64px;border-bottom:1px solid var(--divider);background:#fff}
+.wf.home-xs header{height:64px;gap:16px;padding:0 8px}
+.wf.home-sm header{height:60px}
+.wf.home-md header{height:62px}
 .logo{font-weight:700;color:var(--primary);font-size:18px}
 .wf nav{display:flex;gap:4px;flex:1}.wf nav a{padding:8px 12px;border-radius:8px;color:var(--text);text-decoration:none;font-weight:600}
 .wf nav a.on{background:var(--primary-light);color:#312E81}
 .wf .body{flex:1;padding:24px;background:var(--bg)}
+.home-hero{flex:1;text-align:center;background:var(--bg);padding:76px 24px 24px}
+.home-hero h2{font-size:36px;line-height:44px;font-weight:700;margin:0 0 4px;border:0;padding:0}
+.home-hero p{font-size:18px;line-height:26px;color:var(--text2);margin:0}
+.home-actions{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:32px}
+.home-actions button{height:44px;padding:0 20px;border-radius:8px;background:#fff;font:600 14px Inter,system-ui,sans-serif;white-space:nowrap}
+.home-actions .google{border:1px solid #78716C;color:var(--text)}
+.home-actions .browse{border:2px solid var(--primary);color:var(--primary)}
+.gmark{font:bold 16px Arial,sans-serif;margin-right:8px;background:conic-gradient(from -45deg,#4285F4 0deg 90deg,#34A853 90deg 180deg,#FBBC05 180deg 270deg,#EA4335 270deg);background-clip:text;-webkit-text-fill-color:transparent}
 .ph{background:#E7E5E4;border-radius:8px;color:var(--text2);display:flex;align-items:center;justify-content:center;font-size:12px}
 .wf footer{padding:16px;border-top:1px solid var(--divider);color:var(--text2);font-size:12px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.wf.home-xs footer{height:82px;padding:16px;flex-direction:column;justify-content:center;gap:10px}
+.wf.home-sm footer,.wf.home-md footer{height:56px;padding:0 24px;align-items:center}
+.wf.home-xs .home-hero{padding:64px 32px 24px}
+.wf.home-xs .home-hero h2{font-size:28px;line-height:36px;margin-bottom:8px}
+.wf.home-xs .home-hero p{font-size:18px;line-height:28px}
+.wf.home-xs .home-actions{flex-direction:column;gap:12px;margin-top:32px}
+.wf.home-xs .home-actions button{width:194px}
+.wf.home-sm .home-hero{padding-top:72px}
+.wf.home-sm .home-hero h2{font-size:36px;line-height:44px}
 .burger{width:44px;height:44px;border:0;background:none;font-size:24px;cursor:pointer}
 .drawer{position:absolute;inset:0;display:flex}.drawer .pnl{width:280px;background:#fff;padding:16px;box-shadow:0 12px 32px rgba(28,25,23,.2)}
 .drawer .pnl a{display:block;padding:12px;border-radius:8px;font-weight:600;color:var(--text);text-decoration:none}
@@ -101,7 +122,7 @@ label{display:block;font-size:14px;font-weight:600;margin-bottom:4px}
 <div class="f"><label for="a">Naziv djela</label><input id="a" value="Plavi horizont"></div>
 <div class="f err"><label for="b">E-adresa</label><input id="b" value="luka@" aria-invalid="true" aria-describedby="e"><small id="e">Unesite ispravnu e-adresu.</small></div>
 </div>
-<h3>Chipovi statusa</h3>
+<h3>Chipovi statusa prilika</h3>
 <div class="row" style="gap:8px">
 <span class="chip" style="background:#E7E5E4;color:#44403C">U pripremi</span>
 <span class="chip" style="background:#DCFCE7;color:#166534">Otvorena</span>
@@ -109,6 +130,7 @@ label{display:block;font-size:14px;font-weight:600;margin-bottom:4px}
 <span class="chip" style="background:#FEF3C7;color:#92400E">Odabir u tijeku</span>
 <span class="chip" style="background:#EEF2FF;color:#312E81">Završena</span>
 </div>
+<h3>Chipovi statusa prijava</h3>
 <div class="row" style="gap:8px;margin-top:8px">
 <span class="chip" style="background:#DBEAFE;color:#1E40AF">Poslana</span>
 <span class="chip" style="background:#FEF3C7;color:#92400E">U razmatranju</span>
@@ -130,38 +152,32 @@ label{display:block;font-size:14px;font-weight:600;margin-bottom:4px}
 <div class="dlg" role="dialog" aria-labelledby="dt"><h4 id="dt">Povući prijavu?</h4><p style="margin:0;color:var(--text2)">Ovu radnju ne možete poništiti.</p><div class="a"><button class="btn s">Odustani</button><button class="btn d">Povuci</button></div></div>
 </div>
 
-<h2>4. Wireframe – mobitel (xs, 360 px)</h2>
+<h2>4. Responzivna početna stranica</h2>
+<p style="color:var(--text2)">Početna je centrirana unutar školjke pune širine. Zaglavlje, sadržaj i podnožje protežu se preko viewporta; promjene na manjim širinama odnose se na navigaciju i raspored akcija.</p>
 <div class="wfs">
-<div><div class="cap">Umjetnik · zatvoren izbornik</div>
-<div class="wf xs"><header><button class="burger" aria-label="Otvori izbornik">☰</button><span class="logo">ArtConnect</span><span style="flex:1"></span><div class="ph" style="width:36px;height:36px;border-radius:50%">UM</div></header>
-<div class="body"><h3 style="margin-top:0">Prilike</h3><div class="ph" style="height:40px;margin-bottom:16px">Pretraga / filtri</div>
-<div class="card" style="width:auto;margin-bottom:12px"><span class="chip" style="background:#DCFCE7;color:#166534">Otvorena</span><h4>Naziv prilike</h4><p>Organizator · rok</p></div>
-<div class="card" style="width:auto"><span class="chip" style="background:#DCFCE7;color:#166534">Otvorena</span><h4>Naziv prilike</h4><p>Organizator · rok</p></div></div>
-<footer><span>© ArtConnect</span><span>Kontakt · Uvjeti</span></footer></div></div>
-
-<div><div class="cap">Umjetnik · izbornik otvoren (Esc zatvara)</div>
-<div class="wf xs pos"><header><button class="burger">☰</button><span class="logo">ArtConnect</span></header><div class="body"></div><footer><span>© ArtConnect</span></footer>
-<div class="drawer"><div class="pnl"><div class="logo" style="margin-bottom:16px">ArtConnect</div><a style="background:var(--primary-light);color:#312E81" href="#">Prilike</a><a href="#">Portfolio</a><a href="#">Moje prijave</a><hr style="border:0;border-top:1px solid var(--divider)"><a href="#">Profil</a><a href="#">Odjava</a></div><div class="scr"></div></div></div></div>
-
-<div><div class="cap">Posjetitelj · greška 404</div>
-<div class="wf xs"><header><button class="burger">☰</button><span class="logo">ArtConnect</span><span style="flex:1"></span><button class="btn p" style="min-height:36px;padding:0 12px">Prijava</button></header>
-<div class="body err-page"><div class="big">404</div><h3>Stranica nije pronađena</h3><p style="color:var(--text2)">Adresa ne postoji ili je premještena.</p><button class="btn p">Na početnu</button></div>
-<footer><span>© ArtConnect</span></footer></div></div>
+<div><div class="cap">Telefon · xs (366 px)</div>
+<div class="wf home-xs"><header><button class="burger" aria-label="Otvori izbornik">☰</button><span class="logo">ArtConnect</span><span style="flex:1"></span><button class="home-actions google" style="width:40px;height:36px;padding:0;margin:0;border:1px solid #78716C"><span class="gmark" style="margin:0">G</span></button></header>
+<div class="home-hero"><h2>Umjetnici i prilike na jednom mjestu</h2><p>ArtConnect povezuje umjetnike s organizatorima izložbi, natječaja i rezidencija.</p><div class="home-actions"><button class="google"><span class="gmark">G</span>Prijava s Googleom</button><button class="browse">Pregledaj prilike</button></div></div>
+<footer><span>© 2026 ArtConnect</span><span>Kontakt · Uvjeti korištenja · Privatnost</span></footer></div></div>
+<div><div class="cap">Tablet · sm (750 px)</div>
+<div class="wf home-sm"><header><button class="burger" aria-label="Otvori izbornik">☰</button><span class="logo">ArtConnect</span><span style="flex:1"></span><button class="home-actions google" style="height:36px;padding:0 12px;margin:0;border:1px solid #78716C"><span class="gmark">G</span>Prijava s Googleom</button></header>
+<div class="home-hero"><h2>Umjetnici i prilike na jednom mjestu</h2><p>ArtConnect povezuje umjetnike s organizatorima izložbi, natječaja i rezidencija.</p><div class="home-actions"><button class="google"><span class="gmark">G</span>Prijava s Googleom</button><button class="browse">Pregledaj prilike</button></div></div>
+<footer><span>© 2026 ArtConnect</span><span>Kontakt · Uvjeti korištenja · Privatnost</span></footer></div></div>
+<div><div class="cap">Desktop · md+ (1098 px)</div>
+<div class="wf home-md"><header><span class="logo">ArtConnect</span><nav><a class="on" href="#">Prilike</a></nav><span style="flex:1"></span><button class="home-actions google" style="height:36px;padding:0 12px;margin:0;border:1px solid #78716C"><span class="gmark">G</span>Prijava s Googleom</button></header>
+<div class="home-hero"><h2>Umjetnici i prilike na jednom mjestu</h2><p>ArtConnect povezuje umjetnike s organizatorima izložbi, natječaja i rezidencija.</p><div class="home-actions"><button class="google"><span class="gmark">G</span>Prijava s Googleom</button><button class="browse">Pregledaj prilike</button></div></div>
+<footer><span>© 2026 ArtConnect</span><span>Kontakt · Uvjeti korištenja · Privatnost</span></footer></div></div>
 </div>
 
-<h2>5. Wireframe – desktop (md ≥ 900 px)</h2>
-<div class="cap">Organizator · početna s prilikama</div>
-<div class="wf md"><header><span class="logo">ArtConnect</span><nav><a class="on" href="#">Prilike</a><a href="#">Moje prilike</a><a href="#">Statistika</a></nav><div class="ph" style="width:36px;height:36px;border-radius:50%">OR</div></header>
-<div class="body"><h3 style="margin-top:0">Prilike</h3><div class="cards3">
-<div class="card" style="width:auto"><span class="chip" style="background:#DCFCE7;color:#166534">Otvorena</span><h4>Naziv prilike</h4><p>Organizator · rok</p></div>
-<div class="card" style="width:auto"><span class="chip" style="background:#FEF3C7;color:#92400E">Odabir u tijeku</span><h4>Naziv prilike</h4><p>Organizator · rok</p></div>
-<div class="card" style="width:auto"><span class="chip" style="background:#EEF2FF;color:#312E81">Završena</span><h4>Naziv prilike</h4><p>Organizator · rok</p></div></div></div>
-<footer><span>© ArtConnect</span><span>Kontakt · Uvjeti korištenja · Privatnost</span></footer></div>
-
-<div class="wfs" style="margin-top:32px">
-<div><div class="cap">Posjetitelj · zaglavlje</div><div class="wf" style="width:460px"><header><span class="logo">ArtConnect</span><nav><a class="on" href="#">Prilike</a></nav><button class="btn p" style="min-height:36px;padding:0 12px">Prijava s Googleom</button></header></div></div>
-<div><div class="cap">Admin · zaglavlje</div><div class="wf" style="width:460px"><header><span class="logo">ArtConnect</span><nav><a class="on" href="#">Prilike</a><a href="#">Administracija</a></nav><div class="ph" style="width:36px;height:36px;border-radius:50%">AD</div></header></div></div>
-<div><div class="cap">403 / opća greška</div><div class="wf" style="width:460px"><div class="body err-page"><div class="big">403</div><h3>Pristup zabranjen</h3><p style="color:var(--text2)">Nemate ovlasti za ovu stranicu.</p></div></div></div>
+<h2>5. Primjeri iz aplikacije</h2>
+<div class="wfs">
+<div><div class="cap">Umjetnik · izbornik otvoren (Esc zatvara)</div>
+<div class="wf xs pos"><header><button class="burger">☰</button><span class="logo">ArtConnect</span></header><div class="body"></div><footer><span>© 2026 ArtConnect</span></footer>
+<div class="drawer"><div class="pnl"><div class="logo" style="margin-bottom:16px">ArtConnect</div><a style="background:var(--primary-light);color:#312E81" href="#">Prilike</a><a href="#">Portfolio</a><a href="#">Moje prijave</a><hr style="border:0;border-top:1px solid var(--divider)"><a href="#">Profil</a><a href="#">Odjava</a></div><div class="scr"></div></div></div></div>
+<div><div class="cap">404 · stranica nije pronađena</div>
+<div class="wf xs"><header><button class="burger">☰</button><span class="logo">ArtConnect</span><span style="flex:1"></span><button class="home-actions google" style="width:40px;height:36px;padding:0;margin:0;border:1px solid #78716C"><span class="gmark" style="margin:0">G</span></button></header>
+<div class="body err-page"><div class="big">404</div><h3>Stranica ne postoji.</h3><p style="color:var(--text2)">Adresa ne postoji ili je premještena.</p><button class="btn s">Na početnu</button></div>
+<footer><span>© 2026 ArtConnect</span><span>Kontakt · Uvjeti korištenja · Privatnost</span></footer></div></div>
 </div>
 </main>
 </body>
