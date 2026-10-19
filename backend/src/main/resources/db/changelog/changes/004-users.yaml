@@ -1,0 +1,131 @@
+databaseChangeLog:
+  - changeSet:
+      id: AUTH-01-DB-create-users
+      author: lukadimjasevic
+      comment: Tablica korisnika sustava
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_users
+              - column:
+                  name: google_sub
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: email
+                  type: varchar(254)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: display_name
+                  type: varchar(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: avatar_url
+                  type: varchar(1024)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: role
+                  type: varchar(32)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: status
+                  type: varchar(32)
+                  defaultValue: 'ONBOARDING'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: organizer_approval
+                  type: varchar(32)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: blocked_at
+                  type: timestamptz
+                  constraints:
+                    nullable: true
+              - column:
+                  name: deleted_at
+                  type: timestamptz
+                  constraints:
+                    nullable: true
+              - column:
+                  name: last_login_at
+                  type: timestamptz
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: users
+            indexName: ux_users_google_sub
+            unique: true
+            columns:
+              - column:
+                  name: google_sub
+        - createIndex:
+            tableName: users
+            indexName: ux_users_email_lower
+            unique: true
+            columns:
+              - column:
+                  name: lower(email)
+                  computed: true
+        - createIndex:
+            tableName: users
+            indexName: ix_users_role_status
+            columns:
+              - column:
+                  name: role
+              - column:
+                  name: status
+        - sql:
+            sql: >-
+              ALTER TABLE users
+              ADD CONSTRAINT ck_users_role CHECK (role IN ('ARTIST', 'ORGANIZER', 'ADMIN')),
+              ADD CONSTRAINT ck_users_status CHECK (status IN ('INVITED', 'ONBOARDING', 'ACTIVE', 'BLOCKED', 'DELETED')),
+              ADD CONSTRAINT ck_users_organizer_approval CHECK (
+                (role IS NOT DISTINCT FROM 'ORGANIZER') = (organizer_approval IS NOT NULL)
+              ),
+              ADD CONSTRAINT ck_users_organizer_approval_value CHECK (organizer_approval IN ('PENDING', 'APPROVED'))
+      rollback:
+        - dropTable:
+            tableName: users
+
+  - changeSet:
+      id: AUTH-01-DB-fk-system-settings-updated-by
+      author: lukadimjasevic
+      comment: Strani ključ koji je čekao tablicu users
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: system_settings
+            baseColumnNames: updated_by
+            constraintName: fk_system_settings_updated_by
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: SET NULL
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: system_settings
+            constraintName: fk_system_settings_updated_by

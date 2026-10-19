@@ -1,0 +1,56 @@
+databaseChangeLog:
+  - changeSet:
+      id: AUTH-01-DB-seed-dev-users
+      author: lukadimjasevic
+      comment: Testni korisnici za lokalni razvoj
+      context: dev
+      changes:
+        - insert:
+            tableName: users
+            columns:
+              - column: { name: id, valueComputed: gen_random_uuid() }
+              - column: { name: google_sub, value: dev-artist-1 }
+              - column: { name: email, value: umjetnik@artconnect.test }
+              - column: { name: display_name, value: Testni Umjetnik }
+              - column: { name: role, value: ARTIST }
+              - column: { name: status, value: ACTIVE }
+        - insert:
+            tableName: users
+            columns:
+              - column: { name: id, valueComputed: gen_random_uuid() }
+              - column: { name: google_sub, value: dev-artist-2 }
+              - column: { name: email, value: umjetnik2@artconnect.test }
+              - column: { name: display_name, value: Druga Umjetnica }
+              - column: { name: role, value: ARTIST }
+              - column: { name: status, value: ACTIVE }
+        - insert:
+            tableName: users
+            columns:
+              - column: { name: id, valueComputed: gen_random_uuid() }
+              - column: { name: google_sub, value: dev-organizer-1 }
+              - column: { name: email, value: organizator@artconnect.test }
+              - column: { name: display_name, value: Testni Organizator }
+              - column: { name: role, value: ORGANIZER }
+              - column: { name: status, value: ACTIVE }
+              - column: { name: organizer_approval, value: APPROVED }
+        - insert:
+            tableName: users
+            columns:
+              - column: { name: id, valueComputed: gen_random_uuid() }
+              - column: { name: google_sub, value: dev-admin-1 }
+              - column: { name: email, value: admin@artconnect.test }
+              - column: { name: display_name, value: Testni Administrator }
+              - column: { name: role, value: ADMIN }
+              - column: { name: status, value: ACTIVE }
+        - insert:
+            tableName: users
+            columns:
+              - column: { name: id, valueComputed: gen_random_uuid() }
+              - column: { name: google_sub, value: dev-onboarding-1 }
+              - column: { name: email, value: novi@artconnect.test }
+              - column: { name: display_name, value: Novi Korisnik }
+              - column: { name: status, value: ONBOARDING }
+      rollback:
+        - delete:
+            tableName: users
+            where: "email in ('umjetnik@artconnect.test', 'umjetnik2@artconnect.test', 'organizator@artconnect.test', 'admin@artconnect.test', 'novi@artconnect.test')"

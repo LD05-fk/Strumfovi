@@ -89,17 +89,21 @@ Ovisnosti idu prema dolje: web → servis → domena.
 
 ### Frontend: struktura
 
-React aplikacija u `frontend/src/`, organizirana **po značajki**: sve što pripada jednoj funkcionalnosti (stranice, komponente, hookovi za API) je na jednom mjestu. Zasad postoje API klijent i prazni direktoriji; ostalo se puni uz zadatke epika.
+React aplikacija u `frontend/src/`, organizirana po značajkama i zajedničkim komponentama. Router i globalni MUI provider nalaze se u korijenskoj aplikaciji; zajednički izgled, stanja i lokalizacija odvojeni su od funkcionalnih stranica.
 
 | Mjesto | Sadržaj |
 | --- | --- |
-| `main.tsx`, `App.tsx` | Ulazna točka i korijenska komponenta |
+| `main.tsx` | Ulazna točka i globalni MUI provider (`ThemeProvider`, `CssBaseline`) |
+| `App.tsx` | Korijenska aplikacija, React Router i definicije ruta |
+| `app/theme.ts` | MUI tema s dizajnerskim tokenima |
 | `api/client.ts` | `apiFetch`: osnovna adresa `/api/v1`, kolačić sesije, CSRF zaglavlje `X-XSRF-TOKEN` na zahtjevima koji mijenjaju stanje, slanje JSON-a, pretvaranje svake greške (API, mreža, neočekivan odgovor) u `ApiError` |
-| `app/` | Postavke aplikacije: router (`router.tsx`) i TanStack Query (`queryClient.ts`) |
-| `features/<značajka>/` | Stranice, komponente i hookovi jedne funkcionalnosti, npr. `features/opportunities/` |
+| `components/layout/` | `AppLayout`: zaglavlje, navigacija prema ulozi, mobilni Drawer, poveznica za preskok na sadržaj, `<Outlet />`, podnožje i naslov stranice |
+| `components/state/` | Zajedničke komponente učitavanja, praznog i greška stanja; stranice 403/404; statusni chipovi i globalni Snackbar (`useNotify`) |
+| `features/<značajka>/` | Stranice, komponente i hookovi jedne funkcionalnosti, npr. početna stranica u `features/home/` ili `features/opportunities/` |
 | `features/opportunities/components/map` | Zajednička **MapView** komponenta **(Leaflet + OpenStreetMap)** s podrškom za dinamičko učitavanje **(React.lazy)**, prikaz pojedinačnih/višestrukih oznaka te **DraggableMarkerMap** varijanta za odabir lokacije u obrascu |
-| `components/` | Zajedničke komponente sučelja (izgled, stanja učitavanja i greške) |
-| `i18n/hr.ts` | Svi tekstovi sučelja na hrvatskom |
+| `i18n/hr.ts` | Zajednički tekstovi sučelja na hrvatskom; značajke mogu imati vlastite tekstove |
+
+Dok AUTH-01-FE1 ne isporuči hook za dohvat trenutnog korisnika, izgled prikazuje posjetiteljsku navigaciju. Statusi prilika i prijava definirani su zasebno.
 
 Svi pozivi backenda idu kroz `apiFetch` iz `api/client.ts`, nikad kroz vlastiti `fetch`, kako bi CSRF i obrada grešaka bili na jednom mjestu. Putanje, polja i kodovi grešaka uzimaju se iz API dokumentacije tima.
 
@@ -138,20 +142,18 @@ Svi pozivi backenda idu kroz `apiFetch` iz `api/client.ts`, nikad kroz vlastiti 
 
 ![ER dijagram podataka sustava ArtConnect](assets/diagrams/4-2-artconnect-data-ERD.svg)
 
-**Slika 4.2. ER dijagram tablica uvedenih zadacima FND-03 i OPP-01-DB**
+**Slika 4.2. ER dijagram postojećih tablica**
 
-**Izvor dijagrama:** [`docs/puml/4-2-artconnect-data-ERD.puml`](puml/4-2-artconnect-data-ERD.puml)
+**Izvor dijagrama:** [`docs/puml/4-2-artconnect-data-ERD.puml`](puml/4-2-artconnect-data-ERD.puml)  
 
 **Model podataka:** [`breakdown/data-model.md`](../breakdown/data-model.md)
 
-**Implementacija:** Liquibase changesetovi `001-spring-session.yaml`, `002-system-settings.yaml`,
-`003-catalogs.yaml` i `opp-001-create-opportunities.yaml` u
-`backend/src/main/resources/db/changelog/changes/`; JPA entiteti `ArtField` i `OpportunityType` u
-`hr.fer.artconnect.catalog.domain` te `SystemSetting` u `hr.fer.artconnect.common.domain`.
-Tablice Spring Sessiona nemaju entitet - njima Spring Session JDBC pristupa izravno. Dijagram prikazuje
-tablice koje su uvedene tim changesetovima. Stupac `opportunities.organizer_id` zasad je obavezni UUID;
-AUTH changeset dodaje FK na `users(id)` bez kaskade kada se uvede korisnička tablica. Stavke šifrarnika
-se ne brišu nego isključuju (`active = false`).
+**Implementacija:** Liquibase changesetovi `001-spring-session.yaml` – `007-organizer-profiles.yaml` i `opp-001-create-opportunities.yaml` u
+`backend/src/main/resources/db/changelog/changes/`; JPA entiteti `ArtField` i
+`OpportunityType` u `hr.fer.artconnect.catalog.domain`, `SystemSetting` u `hr.fer.artconnect.common.domain`,
+`User` i `OrganizerProfile` u `hr.fer.artconnect.auth.domain`.
+Tablice Spring Sessiona nemaju entitet - njima Spring Session JDBC pristupa izravno. Dijagram pokriva samo
+tablice koje trenutno postoje. Stavke šifrarnika se ne brišu nego isključuju (`active = false`).
 
 <details>
 <summary><strong>Jedna prijava poplave i povezani podaci</strong></summary>
@@ -363,9 +365,10 @@ Sučelje se gradi na MUI-ju, a svi ekrani koriste iste tokene:
 - **Razmaci i oblici:** MUI `spacing` 8 px; radijusi 8 px (gumbi, polja), 12 px (kartice), 16 px (chip, dijalog).
 - **Prijelomne točke:** xs < 600, sm 600–899, md ≥ 900 px.
 - **Statusi:** prilike (`PREPARATION`…`FINISHED`) i prijave (`SUBMITTED`…`WITHDRAWN`) prikazuju se chipom s hrvatskim tekstom i bojom; status se nikad ne prenosi samo bojom.
-- **Navigacija po ulozi:** posjetitelj vidi „Prilike” i „Prijava s Googleom”; umjetnik „Portfolio” i „Moje prijave”; organizator „Moje prilike” i „Statistika”; administrator „Administracija”; prijavljeni korisnik ima izbornik „Profil” / „Odjava”. Na xs navigacija je u izborniku (drawer) koji se zatvara tipkom Esc.
+- **Početna stranica i navigacija:** početna stranica prikazuje naslov i opis ArtConnecta te akcije „Prijava s Googleom” i „Pregledaj prilike”. Posjetitelj na md+ vidi „Prilike” i punu oznaku prijave; na xs/sm navigacija je u draweru, a na xs gumb prijave prikazuje samo Google oznaku. Umjetnik vidi „Portfolio” i „Moje prijave”; organizator „Moje prilike” i „Statistika”; administrator „Administracija”; prijavljeni korisnik ima izbornik „Profil” / „Odjava”. Drawer se zatvara tipkom Esc.
+- **Izgled:** zaglavlje, glavni sadržaj i podnožje protežu se punom širinom viewporta; rubni razmak je 16 px na xs i 24 px na sm/md.
 
-Pristupačnost: sučelje je na hrvatskom (`<html lang="hr">`), svi interaktivni elementi dostupni su tipkovnicom s vidljivim fokusom (prsten 3 px u primarnoj boji), ciljne površine dodira su najmanje 44 × 44 px, a polja obrasca imaju oznaku i poruku greške povezanu s poljem.
+Pristupačnost: sučelje je na hrvatskom (`<html lang="hr">`), postoji poveznica „Preskoči na sadržaj”, a interaktivni elementi dostupni su tipkovnicom s vidljivim fokusom (prsten 3 px u primarnoj boji). Dizajnerski cilj za dodirne površine je najmanje 44 × 44 px; kompaktni gumb prijave u zaglavlju trenutačno je manji. Polja obrasca trebaju imati oznaku i poruku greške povezanu s poljem.
 
 ## 4.7 Arhitekturni rizici i tehnički dug
 

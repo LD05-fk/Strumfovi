@@ -1,6 +1,6 @@
 @startuml
-' ER dijagram tablica uvedenih zadacima FND-03 i OPP-01-DB (changesetovi 001-003 i opp-001).
-' Dopunjuje se kako epici dodaju svoje tablice (users, artworks...).
+' ER dijagram postojećih tablica (changesetovi 001-007 i i opp-001).
+' Dopunjuje se kako epici dodaju svoje tablice.
 hide circle
 hide methods
 skinparam linetype ortho
@@ -24,6 +24,38 @@ package "Šifrarnici (modul catalog)" {
     * position : smallint = 0
   }
 }
+
+package "Korisnici (modul auth)" {
+  entity "users" as users {
+    * id : uuid <<PK>>
+    --
+    google_sub : varchar(255) <<UNIQUE>>
+    email : varchar(254) <<UNIQUE lower(email)>>
+    * display_name : varchar(120)
+    avatar_url : varchar(1024)
+    role : varchar(32) <<ARTIST|ORGANIZER|ADMIN>>
+    * status : varchar(32) = 'ONBOARDING'
+    organizer_approval : varchar(32) <<PENDING|APPROVED>>
+    blocked_at : timestamptz
+    deleted_at : timestamptz
+    last_login_at : timestamptz
+    * created_at : timestamptz = now()
+    * updated_at : timestamptz = now()
+  }
+
+  entity "organizer_profiles" as organizer_profiles {
+    * user_id : uuid <<PK>> <<FK>>
+    --
+    organization_name : varchar(200)
+    * updated_at : timestamptz = now()
+  }
+}
+
+users ||--o| organizer_profiles : "ON DELETE CASCADE"
+
+note bottom of users
+  organizer_approval je popunjen samo kad je role = 'ORGANIZER'.
+end note
 
 entity "system_settings" as system_settings {
   * key : varchar(64) <<PK>>
@@ -93,16 +125,9 @@ opportunities ||--o{ opportunity_art_fields : "ON DELETE CASCADE"
 art_fields ||--o{ opportunity_art_fields : art_field_id
 spring_session ||--o{ spring_session_attributes : "ON DELETE CASCADE"
 
+users ||--o{ system_settings : "updated_by (ON DELETE SET NULL)"
+
 note bottom of system_settings
   Ograničenja uploada koja administrator mijenja bez deploya.
-  FK updated_by -> users(id) dodaje AUTH changeset
-  kad tablica users nastane.
-end note
-
-note bottom of opportunities
-  CHECK osigurava pravila lokacije,
-  statusa i termina događanja.
-  FK organizer_id -> users(id) dodaje
-  AUTH changeset bez kaskade.
 end note
 @enduml

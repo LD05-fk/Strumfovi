@@ -9,5 +9,17 @@ databaseChangeLog:
       file: changes/003-catalogs.yaml
       relativeToChangelogFile: true
   - include:
+      file: changes/004-users.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/005-admin-seed.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/006-dev-users.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/007-organizer-profiles.yaml
+      relativeToChangelogFile: true
+  - include:
       file: changes/opp-001-create-opportunities.yaml
       relativeToChangelogFile: true

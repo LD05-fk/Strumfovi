@@ -3,6 +3,13 @@
 export const hr = {
   appName: 'ArtConnect',
 
+  home: {
+    title: 'Umjetnici i prilike na jednom mjestu',
+    description:
+      'ArtConnect povezuje umjetnike s organizatorima izložbi, natječaja i rezidencija.',
+    browseOpportunities: 'Pregledaj prilike',
+  },
+
   common: {
     save: 'Spremi',
     cancel: 'Odustani',
@@ -15,12 +22,32 @@ export const hr = {
     loading: 'Učitavanje…',
     retry: 'Pokušaj ponovno',
     empty: 'Nema podataka.',
+    home: 'Na početnu',
   },
 
   errors: {
     generic: 'Nešto je pošlo po zlu. Pokušajte ponovno.',
     notFound: 'Stranica ne postoji.',
     forbidden: 'Nemate pristup ovoj stranici.',
+    pageNotFoundDescription: 'Adresa ne postoji ili je premještena.',
+    errorTitle: 'Došlo je do pogreške',
+  },
+
+  opportunityStatus: {
+    PREPARATION: 'U pripremi',
+    OPEN: 'Otvorena',
+    CLOSED: 'Zatvorena',
+    SELECTION: 'Odabir u tijeku',
+    FINISHED: 'Završena',
+  },
+
+  applicationStatus: {
+    SUBMITTED: 'Poslana',
+    UNDER_REVIEW: 'U razmatranju',
+    NEEDS_INFO: 'Potrebne informacije',
+    ACCEPTED: 'Prihvaćena',
+    REJECTED: 'Odbijena',
+    WITHDRAWN: 'Povučena',
   },
 
   map: {
