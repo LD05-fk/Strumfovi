@@ -1,5 +1,8 @@
 package hr.fer.artconnect.auth.domain;
 
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -9,8 +12,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "users")
@@ -110,5 +111,33 @@ public class User {
 
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public static User createOnboardingUser(String googleSub, String email, String displayName, String avatarUrl){
+        User user = new User();
+        user.googleSub = googleSub;
+        user.email = email;
+        user.displayName = displayName;
+        user.avatarUrl = avatarUrl;
+        user.role = null;
+        user.status = UserStatus.ONBOARDING;
+        user.organizerApproval = null;
+        user.lastLoginAt = OffsetDateTime.now();
+        return user;
+    }
+
+    public void updateGoogleProfile(String email, String displayName, String avatarUrl) {
+        this.email = email;
+        this.displayName = displayName;
+        this.avatarUrl = avatarUrl;
+        this.lastLoginAt = OffsetDateTime.now();
+    }
+    public void activateInvitedGoogleAccount(String googleSub, String email, String displayName, String avatarUrl){
+        this.googleSub = googleSub;
+        this.email = email;
+        this.displayName = displayName;
+        this.avatarUrl = avatarUrl;
+        this.status = UserStatus.ACTIVE;
+        this.lastLoginAt = OffsetDateTime.now();
     }
 }
