@@ -8,3 +8,6 @@ databaseChangeLog:
   - include:
       file: changes/003-catalogs.yaml
       relativeToChangelogFile: true
+  - include:
+      file: changes/opp-001-create-opportunities.yaml
+      relativeToChangelogFile: true
