@@ -1,0 +1,64 @@
+databaseChangeLog:
+  - changeSet:
+      id: AUTH-01-DB-create-organizer-profiles
+      author: lukadimjasevic
+      comment: Tablica profila organizatora
+      changes:
+        - createTable:
+            tableName: organizer_profiles
+            columns:
+              - column:
+                  name: user_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_organizer_profiles
+              - column:
+                  name: organization_name
+                  type: varchar(200)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: organizer_profiles
+            baseColumnNames: user_id
+            constraintName: fk_organizer_profiles_user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+      rollback:
+        - dropTable:
+            tableName: organizer_profiles
+
+  - changeSet:
+      id: AUTH-01-DB-seed-dev-organizer-profile
+      author: lukadimjasevic
+      comment: Profil testnog organizatora
+      context: dev
+      preConditions:
+        - onFail: MARK_RAN
+        - onFailMessage: Preskačem profil testnog organizatora (dev korisnik ne postoji).
+        - and:
+            - sqlCheck:
+                expectedResult: 1
+                sql: SELECT count(*) FROM users WHERE email = 'organizator@artconnect.test'
+      changes:
+        - insert:
+            tableName: organizer_profiles
+            columns:
+              - column:
+                  name: user_id
+                  valueComputed: "(SELECT id FROM users WHERE email = 'organizator@artconnect.test')"
+              - column:
+                  name: organization_name
+                  value: Testna galerija
+      rollback:
+        - delete:
+            tableName: organizer_profiles
+            where: "user_id in (select id from users where email = 'organizator@artconnect.test')"

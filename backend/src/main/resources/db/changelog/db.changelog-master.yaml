@@ -17,3 +17,6 @@ databaseChangeLog:
   - include:
       file: changes/006-dev-users.yaml
       relativeToChangelogFile: true
+  - include:
+      file: changes/007-organizer-profiles.yaml
+      relativeToChangelogFile: true
