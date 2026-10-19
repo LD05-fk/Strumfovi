@@ -1,0 +1,29 @@
+databaseChangeLog:
+  - changeSet:
+      id: AUTH-01-DB-seed-admin
+      author: lukadimjasevic
+      comment: Prvi administrator iz varijable ARTCONNECT_ADMIN_EMAIL
+      runAlways: true
+      preConditions:
+        - onFail: MARK_RAN
+        - onFailMessage: Preskačem stvaranje administratora (varijabla nije postavljena ili korisnik već postoji).
+        - and:
+            - sqlCheck:
+                expectedResult: 1
+                sql: SELECT count(*) WHERE length('${adminEmail}') > 0
+            - sqlCheck:
+                expectedResult: 0
+                sql: SELECT count(*) FROM users WHERE lower(email) = lower('${adminEmail}')
+      changes:
+        - insert:
+            tableName: users
+            columns:
+              - column: { name: id, valueComputed: gen_random_uuid() }
+              - column: { name: email, valueComputed: "lower('${adminEmail}')" }
+              - column: { name: display_name, value: Administrator }
+              - column: { name: role, value: ADMIN }
+              - column: { name: status, value: INVITED }
+      rollback:
+        - delete:
+            tableName: users
+            where: "lower(email) = lower('${adminEmail}')"

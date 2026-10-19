@@ -142,12 +142,13 @@ Svi pozivi backenda idu kroz `apiFetch` iz `api/client.ts`, nikad kroz vlastiti 
 
 ![ER dijagram podataka sustava ArtConnect](assets/diagrams/4-2-artconnect-data-ERD.svg)
 
-**Slika 4.2. ER dijagram tablica uvedenih zadatkom FND-03**
+**Slika 4.2. ER dijagram postojećih tablica**
 
 **Izvor dijagrama:** [`docs/puml/4-2-artconnect-data-ERD.puml`](puml/4-2-artconnect-data-ERD.puml)  
-**Implementacija:** Liquibase changesetovi `001-spring-session.yaml`, `002-system-settings.yaml` i
-`003-catalogs.yaml` u `backend/src/main/resources/db/changelog/changes/`; JPA entiteti `ArtField` i
-`OpportunityType` u `hr.fer.artconnect.catalog.domain`, `SystemSetting` u `hr.fer.artconnect.common.domain`.
+**Implementacija:** Liquibase changesetovi `001-spring-session.yaml` – `007-organizer-profiles.yaml` u
+`backend/src/main/resources/db/changelog/changes/`; JPA entiteti `ArtField` i
+`OpportunityType` u `hr.fer.artconnect.catalog.domain`, `SystemSetting` u `hr.fer.artconnect.common.domain`,
+`User` i `OrganizerProfile` u `hr.fer.artconnect.auth.domain`.
 Tablice Spring Sessiona nemaju entitet - njima Spring Session JDBC pristupa izravno. Dijagram pokriva samo
 tablice koje trenutno postoje. Stavke šifrarnika se ne brišu nego isključuju (`active = false`).
 

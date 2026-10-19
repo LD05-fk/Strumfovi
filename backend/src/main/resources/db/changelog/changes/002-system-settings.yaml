@@ -1,4 +1,4 @@
-# FK updated_by -> users(id) dodaje AUTH changeset kad tablica users nastane.
+# FK updated_by -> users(id) dodan je u 004-users.yaml (changeSet AUTH-01-DB-fk-system-settings-updated-by).
 databaseChangeLog:
   - changeSet:
       id: FND-03-DB-create-system-settings
