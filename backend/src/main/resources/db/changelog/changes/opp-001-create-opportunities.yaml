@@ -1,5 +1,4 @@
-# FK organizer_id -> users(id) dodaje AUTH changeset kada nastane tablica users,
-# bez ON DELETE CASCADE kako bi prilike ostale nakon anonimizacije računa.
+# FK organizatora nema kaskadno brisanje jer se račun anonimizira, a prilike ostaju.
 databaseChangeLog:
   - changeSet:
       id: OPP-01-DB-create-opportunities
@@ -115,6 +114,22 @@ databaseChangeLog:
       rollback:
         - dropTable:
             tableName: opportunities
+
+  - changeSet:
+      id: OPP-01-DB-fk-opportunities-organizer
+      author: vnovakovic05
+      comment: Veza prilike s računom organizatora bez kaskadnog brisanja
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: opportunities
+            baseColumnNames: organizer_id
+            constraintName: fk_opp_organizer
+            referencedTableName: users
+            referencedColumnNames: id
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: opportunities
+            constraintName: fk_opp_organizer
 
   - changeSet:
       id: OPP-01-DB-add-opportunity-type-fk

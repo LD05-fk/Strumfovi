@@ -47,7 +47,8 @@ class ArtConnectApplicationTests {
 				select conname
 				from pg_constraint
 				where conrelid = 'opportunities'::regclass and contype = 'f'
-				""", String.class)).containsExactly("fk_opp_type");
+				order by conname
+				""", String.class)).containsExactly("fk_opp_organizer", "fk_opp_type");
 		assertThat(jdbc.queryForList("""
 				select conname
 				from pg_constraint
@@ -68,25 +69,29 @@ class ArtConnectApplicationTests {
 				"ix_oaf_art_field");
 
 		assertThat(onDeleteRule("fk_opp_type")).isEqualTo("r");
+		assertThat(onDeleteRule("fk_opp_organizer")).isEqualTo("a");
 		assertThat(onDeleteRule("fk_oaf_opportunity")).isEqualTo("c");
 		assertThat(onDeleteRule("fk_oaf_art_field")).isEqualTo("r");
 
 		var opportunityTypeId = jdbc.queryForObject(
 				"select id from opportunity_types limit 1", UUID.class);
 		assertThat(opportunityTypeId).isNotNull();
+		var organizerId = jdbc.queryForObject(
+				"select id from users where email = 'organizator@artconnect.test'", UUID.class);
+		assertThat(organizerId).isNotNull();
 		assertThatThrownBy(() -> jdbc.update("""
 				insert into opportunities
 					(id, organizer_id, type_id, title, description, deadline,
-					 location_type, street_address, city)
+					 location_type, street_address, city, latitude, longitude)
 				values (?, ?, ?, 'Physical test', 'Description', now(),
-				        'PHYSICAL', 'Test street', 'Zagreb')
-				""", UUID.randomUUID(), UUID.randomUUID(), opportunityTypeId))
+				        'PHYSICAL', 'Test street', 'Zagreb', null, 15.98)
+				""", UUID.randomUUID(), organizerId, opportunityTypeId))
 				.isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
 		assertThatThrownBy(() -> jdbc.update("""
 				insert into opportunities
 					(id, organizer_id, type_id, title, description, deadline, location_type)
 				values (?, ?, ?, 'Online test', 'Description', now(), 'ONLINE')
-				""", UUID.randomUUID(), UUID.randomUUID(), opportunityTypeId))
+				""", UUID.randomUUID(), organizerId, opportunityTypeId))
 				.isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
 		assertThatThrownBy(() -> jdbc.update("""
 				insert into opportunities
@@ -94,7 +99,7 @@ class ArtConnectApplicationTests {
 					 location_type, online_url, event_start, event_end)
 				values (?, ?, ?, 'Event test', 'Description', now(),
 				        'ONLINE', 'https://example.test', now(), now() - interval '1 hour')
-				""", UUID.randomUUID(), UUID.randomUUID(), opportunityTypeId))
+				""", UUID.randomUUID(), organizerId, opportunityTypeId))
 				.isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
 		assertThatThrownBy(() -> jdbc.update("""
 				insert into opportunities
@@ -102,14 +107,36 @@ class ArtConnectApplicationTests {
 					 location_type, online_url, status)
 				values (?, ?, ?, 'Status test', 'Description', now(),
 				        'ONLINE', 'https://example.test', 'UNKNOWN')
-				""", UUID.randomUUID(), UUID.randomUUID(), opportunityTypeId))
+				""", UUID.randomUUID(), organizerId, opportunityTypeId))
 				.isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
 		assertThatThrownBy(() -> jdbc.update("""
 				insert into opportunities
 					(id, organizer_id, type_id, title, description, deadline, location_type)
 				values (?, ?, ?, 'Location test', 'Description', now(), 'HYBRID')
+				""", UUID.randomUUID(), organizerId, opportunityTypeId))
+				.isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+		assertThatThrownBy(() -> jdbc.update("""
+				insert into opportunities
+					(id, organizer_id, type_id, title, description, deadline,
+					 location_type, online_url)
+				values (?, ?, ?, 'Organizer test', 'Description', now(),
+				        'ONLINE', 'https://example.test')
 				""", UUID.randomUUID(), UUID.randomUUID(), opportunityTypeId))
 				.isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+
+		var retainedOpportunityId = UUID.randomUUID();
+		jdbc.update("""
+				insert into opportunities
+					(id, organizer_id, type_id, title, description, deadline,
+					 location_type, online_url)
+				values (?, ?, ?, 'Organizer retention test', 'Description', now(),
+				        'ONLINE', 'https://example.test')
+				""", retainedOpportunityId, organizerId, opportunityTypeId);
+		assertThatThrownBy(() -> jdbc.update("delete from users where id = ?", organizerId))
+				.isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+		assertThat(jdbc.queryForObject(
+				"select count(*) from opportunities where id = ?", Integer.class, retainedOpportunityId))
+				.isEqualTo(1);
 
 		var liquibase = liquibase();
 		int opportunityChangeSets = jdbc.queryForObject("""
@@ -117,7 +144,7 @@ class ArtConnectApplicationTests {
 				from databasechangelog
 				where id like 'OPP-01-DB-%'
 				""", Integer.class);
-		assertThat(opportunityChangeSets).isPositive();
+		assertThat(opportunityChangeSets).isEqualTo(18);
 		try {
 			liquibase.rollback(opportunityChangeSets, new Contexts("dev"), new LabelExpression());
 		} finally {

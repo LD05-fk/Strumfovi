@@ -7,7 +7,7 @@ Ovaj dokument opisuje relacijski model koji uvode Liquibase changesetovi. Enum-v
 | Stupac | Tip | Null | Zadano | Ograničenja / značenje |
 | --- | --- | --- | --- | --- |
 | `id` | `uuid` | ne | — | Primarni ključ. |
-| `organizer_id` | `uuid` | ne | — | ID organizatora. FK na `users(id)` dodat će AUTH changeset kada tablica `users` bude uvedena; bez `ON DELETE CASCADE` jer se račun anonimizira, a prilike ostaju. |
+| `organizer_id` | `uuid` | ne | — | FK `fk_opp_organizer` na `users(id)` bez kaskadnog brisanja (`NO ACTION`); račun se anonimizira, a prilike ostaju. |
 | `type_id` | `uuid` | ne | — | FK na `opportunity_types(id)`, `ON DELETE RESTRICT`. |
 | `title` | `varchar(200)` | ne | — | Naslov. |
 | `description` | `text` | ne | — | Opis; najviše 10.000 znakova provjerava aplikacija. |

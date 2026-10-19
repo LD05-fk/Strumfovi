@@ -89,7 +89,7 @@ package "Prilike (modul opportunity)" {
   entity "opportunities" as opportunities {
     * id : uuid <<PK>>
     --
-    * organizer_id : uuid
+    * organizer_id : uuid <<FK>>
     * type_id : uuid <<FK>>
     * title : varchar(200)
     * description : text
@@ -126,6 +126,7 @@ art_fields ||--o{ opportunity_art_fields : art_field_id
 spring_session ||--o{ spring_session_attributes : "ON DELETE CASCADE"
 
 users ||--o{ system_settings : "updated_by (ON DELETE SET NULL)"
+users ||--o{ opportunities : "organizer_id (NO ACTION)"
 
 note bottom of system_settings
   Ograničenja uploada koja administrator mijenja bez deploya.
