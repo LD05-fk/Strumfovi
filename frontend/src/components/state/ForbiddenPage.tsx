@@ -17,7 +17,7 @@ export function ForbiddenPage() {
       <Typography component="h1" variant="h4">
         {hr.errors.forbidden}
       </Typography>
-      <Button component={RouterLink} to="/opportunities" variant="contained">
+      <Button component={RouterLink} to="/" variant="contained">
         {hr.common.back}
       </Button>
     </Stack>

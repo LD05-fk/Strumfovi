@@ -12,7 +12,7 @@ export function ErrorState({ error, message, onRetry }: ErrorStateProps) {
   const errorMessage = message ?? error?.message ?? hr.errors.generic
 
   return (
-    <Stack spacing={2} sx={{ alignItems: 'flex-start' }}>
+    <Stack spacing={2} sx={{ alignItems: 'center', textAlign: 'center' }}>
       <Alert severity="error" role="alert">
         {errorMessage}
       </Alert>

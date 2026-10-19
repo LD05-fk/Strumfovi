@@ -1,4 +1,4 @@
-import { Typography } from '@mui/material'
+import { Stack, Typography } from '@mui/material'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { AppLayout } from './components/layout/AppLayout'
 import { usePageTitle } from './components/layout/usePageTitle'
@@ -27,12 +27,15 @@ function ErrorPage() {
   usePageTitle(hr.errors.errorTitle)
 
   return (
-    <>
-      <Typography component="h1" variant="h1" sx={{ mb: 2 }}>
+    <Stack
+      spacing={2}
+      sx={{ alignItems: 'center', textAlign: 'center', pt: 4 }}
+    >
+      <Typography component="h1" variant="h1">
         {hr.errors.errorTitle}
       </Typography>
       <ErrorState onRetry={() => window.location.reload()} />
-    </>
+    </Stack>
   )
 }
 

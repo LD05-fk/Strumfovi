@@ -64,7 +64,7 @@ describe('shared state components', () => {
 
 describe('error pages', () => {
   it('renders the forbidden page and sets its title', async () => {
-    render(
+    const { container } = render(
       <MemoryRouter>
         <ForbiddenPage />
       </MemoryRouter>,
@@ -74,6 +74,7 @@ describe('error pages', () => {
     expect(
       screen.getByRole('heading', { name: hr.errors.forbidden }),
     ).toBeTruthy()
+    expect(container.querySelector('a')?.getAttribute('href')).toBe('/')
     await waitFor(() => expect(document.title).toBe('403 | ArtConnect'))
   })
 
