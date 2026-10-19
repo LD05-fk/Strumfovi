@@ -20,8 +20,8 @@ export function NotFoundPage() {
       <Typography color="text.secondary">
         {hr.errors.pageNotFoundDescription}
       </Typography>
-      <Button component={RouterLink} to="/opportunities" variant="contained">
-        Na početnu
+      <Button component={RouterLink} to="/" variant="contained">
+        {hr.common.home}
       </Button>
     </Stack>
   )

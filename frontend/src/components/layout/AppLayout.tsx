@@ -254,7 +254,7 @@ export function AppLayout({ role = null, onSignOut }: AppLayoutProps) {
       <Box
         component="footer"
         sx={{
-          px: { xs: 2, sm: 3, md: 4 },
+          px: { xs: 2, sm: 3 },
           py: 2,
           borderTop: 1,
           borderColor: 'divider',

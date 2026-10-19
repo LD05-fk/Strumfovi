@@ -22,6 +22,7 @@ export const hr = {
     loading: 'Učitavanje…',
     retry: 'Pokušaj ponovno',
     empty: 'Nema podataka.',
+    home: 'Na početnu',
   },
 
   errors: {

@@ -93,7 +93,9 @@ React aplikacija u `frontend/src/`, organizirana po značajkama i zajedničkim k
 
 | Mjesto | Sadržaj |
 | --- | --- |
-| `main.tsx`, `App.tsx`, `app/` | Ulazna točka, globalna MUI tema/provideri i React Router rute |
+| `main.tsx` | Ulazna točka i globalni MUI provider (`ThemeProvider`, `CssBaseline`) |
+| `App.tsx` | Korijenska aplikacija, React Router i definicije ruta |
+| `app/theme.ts` | MUI tema s dizajnerskim tokenima |
 | `api/client.ts` | `apiFetch`: osnovna adresa `/api/v1`, kolačić sesije, CSRF zaglavlje `X-XSRF-TOKEN` na zahtjevima koji mijenjaju stanje, slanje JSON-a, pretvaranje svake greške (API, mreža, neočekivan odgovor) u `ApiError` |
 | `components/layout/` | `AppLayout`: zaglavlje, navigacija prema ulozi, mobilni Drawer, poveznica za preskok na sadržaj, `<Outlet />`, podnožje i naslov stranice |
 | `components/state/` | Zajedničke komponente učitavanja, praznog i greška stanja; stranice 403/404; statusni chipovi i globalni Snackbar (`useNotify`) |
@@ -303,6 +305,22 @@ ADR pišite samo za odluku čije će obrazloženje ostati važno i nakon promjen
 ## 4.6 Koncepti koji prožimaju sustav
 
 Paket `hr.fer.artconnect.common` sadrži zajedničke klase za greške, provjeru podataka i straničenje (#8).
+
+### Sesija i sigurnost
+
+`SecurityConfig` dopušta anonimne GET zahtjeve na prilike, umjetnike, djela, datoteke, šifrarnike, javne postavke, `/api/v1/auth/csrf` i `/actuator/health`. Ostali zahtjevi traže prijavu. `@EnableMethodSecurity` uključuje provjere `@PreAuthorize`; privatnost pojedinog djela ili datoteke mora dodatno provjeriti odgovarajuća metoda.
+
+`CurrentUser(UUID id, Role role, Status status)` je zajednički principal prijavljenog korisnika. Serijalizira se u JDBC sesiju, a `getName()` vraća ID korisnika za dohvat njegovih sesija. `role` može biti `null` tijekom onboardinga. Ovo nije DTO odgovora `GET /me`; podatke profila dodat će AUTH zadaci. Kontroler prima `@AuthenticationPrincipal CurrentUser user`, a servis poziva `currentUserProvider.getCurrentUser()`. Bez valjanog principala provider javlja 401 `UNAUTHENTICATED`.
+
+`RoleHierarchy` je spojen na provjere `@PreAuthorize`. Prema dogovoru, uloge ostaju odvojene: `ADMIN` ne nasljeđuje automatski prava `ARTIST` i `ORGANIZER`. `UserStatusFilter` je uključen u sigurnosni lanac prije odluke o pristupu, ali zasad samo propušta zahtjev. Provjere `ONBOARDING_REQUIRED` i `USER_BLOCKED` pripadaju kasnijim zadacima EPIC-01 i EPIC-08.
+
+Spring Session JDBC sprema sesije u postojeće tablice PostgreSQL-a. Sesija istječe nakon 8 sati neaktivnosti. Kolačić `SESSION` ima `HttpOnly` i `SameSite=Lax`, a u profilu `prod` i `Secure`. Springov `FindByIndexNameSessionRepository` dostupan je za kasnije poništavanje sesija korisnika.
+
+Frontend prvo poziva `GET /api/v1/auth/csrf`. Odgovor sadrži `headerName` i `token` te postavlja JavaScriptu čitljiv kolačić `XSRF-TOKEN`. Pri POST, PUT, PATCH i DELETE zahtjevima klijent šalje njegovu vrijednost u `X-XSRF-TOKEN`. Nakon buduće prijave ili odjave klijent treba ponovno dohvatiti token. CSRF izuzetak vrijedi samo za `/api/v1/dev/**` u profilu `dev`, bez aktivnog profila `prod`; ne ukida zahtjev za prijavom.
+
+`SecurityErrorHandler` obrađuje greške u filtrima. Zajedno s `GlobalExceptionHandlerom` koristi istu JSON omotnicu i hrvatske poruke: anonimnom korisniku bez pristupa vraća 401 `UNAUTHENTICATED`, a prijavljenom bez ovlasti 403 `FORBIDDEN`. Izostavljen ili nevaljan CSRF token uvijek vraća 403 `FORBIDDEN`.
+
+Testovi u paketu `auth` uključuju sigurnosne filtre i provjeravaju tok CSRF kolačića i zaglavlja, odvojene uloge, razvojni izuzetak te dohvat principala u kontroleru i servisu. `SessionIntegrationTest` uz Testcontainers PostgreSQL provjerava učitavanje `CurrentUser` principala iz baze, dohvat sesija po ID-u korisnika, postavljeno trajanje od 8 sati, odbijanje istekle sesije i produkcijske kolačiće. Dodatna lokalna provjera 18. 10. 2026. potvrdila je da isti kolačić sesije vrijedi nakon gašenja i ponovnog pokretanja procesa backenda uz istu bazu. Postupak i rezultati zapisani su u [poglavlju o ispitivanju](5-Ispitivanje.md#provjera-fnd-04--18-10-2026).
 
 ### Greške i provjera podataka
 
