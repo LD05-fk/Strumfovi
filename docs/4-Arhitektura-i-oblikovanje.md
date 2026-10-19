@@ -138,14 +138,20 @@ Svi pozivi backenda idu kroz `apiFetch` iz `api/client.ts`, nikad kroz vlastiti 
 
 ![ER dijagram podataka sustava ArtConnect](assets/diagrams/4-2-artconnect-data-ERD.svg)
 
-**Slika 4.2. ER dijagram tablica uvedenih zadatkom FND-03**
+**Slika 4.2. ER dijagram tablica uvedenih zadacima FND-03 i OPP-01-DB**
 
-**Izvor dijagrama:** [`docs/puml/4-2-artconnect-data-ERD.puml`](puml/4-2-artconnect-data-ERD.puml)  
-**Implementacija:** Liquibase changesetovi `001-spring-session.yaml`, `002-system-settings.yaml` i
-`003-catalogs.yaml` u `backend/src/main/resources/db/changelog/changes/`; JPA entiteti `ArtField` i
-`OpportunityType` u `hr.fer.artconnect.catalog.domain`, `SystemSetting` u `hr.fer.artconnect.common.domain`.
-Tablice Spring Sessiona nemaju entitet - njima Spring Session JDBC pristupa izravno. Dijagram pokriva samo
-tablice koje trenutno postoje. Stavke šifrarnika se ne brišu nego isključuju (`active = false`).
+**Izvor dijagrama:** [`docs/puml/4-2-artconnect-data-ERD.puml`](puml/4-2-artconnect-data-ERD.puml)
+
+**Model podataka:** [`breakdown/data-model.md`](../breakdown/data-model.md)
+
+**Implementacija:** Liquibase changesetovi `001-spring-session.yaml`, `002-system-settings.yaml`,
+`003-catalogs.yaml` i `opp-001-create-opportunities.yaml` u
+`backend/src/main/resources/db/changelog/changes/`; JPA entiteti `ArtField` i `OpportunityType` u
+`hr.fer.artconnect.catalog.domain` te `SystemSetting` u `hr.fer.artconnect.common.domain`.
+Tablice Spring Sessiona nemaju entitet - njima Spring Session JDBC pristupa izravno. Dijagram prikazuje
+tablice koje su uvedene tim changesetovima. Stupac `opportunities.organizer_id` zasad je obavezni UUID;
+AUTH changeset dodaje FK na `users(id)` bez kaskade kada se uvede korisnička tablica. Stavke šifrarnika
+se ne brišu nego isključuju (`active = false`).
 
 <details>
 <summary><strong>Jedna prijava poplave i povezani podaci</strong></summary>
