@@ -146,13 +146,22 @@ Svi pozivi backenda idu kroz `apiFetch` iz `api/client.ts`, nikad kroz vlastiti 
 
 **Izvor dijagrama:** [`docs/puml/4-2-artconnect-data-ERD.puml`](puml/4-2-artconnect-data-ERD.puml)  
 
-**Implementacija:** Liquibase changesetovi `001-spring-session.yaml` – `009-artist-profiles.yaml` u
+**Implementacija:** Liquibase changesetovi `001-spring-session.yaml` – `007-organizer-profiles.yaml`, `opp-001-create-opportunities.yaml` i `021-artworks-and-files.yaml` u
 `backend/src/main/resources/db/changelog/changes/`; JPA entiteti `ArtField` i
 `OpportunityType` u `hr.fer.artconnect.catalog.domain`, `SystemSetting` u `hr.fer.artconnect.common.domain`,
 `User` i `OrganizerProfile` u `hr.fer.artconnect.auth.domain`, `ArtistProfile`, `ArtistLink` i
-`PastExhibition` u `hr.fer.artconnect.artist.domain`.
-Tablice Spring Sessiona nemaju entitet - njima Spring Session JDBC pristupa izravno. Dijagram pokriva samo
-tablice koje trenutno postoje. Stavke šifrarnika se ne brišu nego isključuju (`active = false`).
+`PastExhibition` u `hr.fer.artconnect.artist.domain`, `StoredFile` u `hr.fer.artconnect.file.domain` te `Artwork` i `ArtworkImage` u `hr.fer.artconnect.artwork.domain`.
+Tablice Spring Sessiona nemaju entitet - njima Spring Session JDBC pristupa izravno. Stavke šifrarnika se ne brišu nego isključuju (`active = false`).
+
+Changeset `021-artworks-and-files.yaml` stvara:
+
+| Tablica | Podaci i ograničenja |
+| --- | --- |
+| `stored_files` | Vlasnik (`users`, cascade), namjena `ARTWORK_IMAGE` ili `APPLICATION_ATTACHMENT`, izvorno ime, tip `image/jpeg`, `image/png` ili `application/pdf`, veličina veća od nule, jedinstveni relativni `storage_key` za volumen `/data/uploads` i vrijeme stvaranja. Datoteka se fizički briše servisom, ne bazom. |
+| `artworks` | Umjetnik (`users`, cascade), naslov, godina uz CHECK `>= 1900`, tehnika, neobavezne dimenzije i opis do 5000 znakova, vidljivost `PUBLIC` ili zadano `PRIVATE`, `hidden_by_admin` i `hidden_at` te vremena stvaranja/ažuriranja. |
+| `artwork_images` | Djelo i povezani redak datoteke (oba cascade), neobavezan alt tekst do 300 znakova (zadano naslov djela) i redoslijed; `file_id` je jedinstven. Najviše tri slike po djelu provodi aplikacija, ne baza. |
+
+Indeksi: `ix_stored_files_owner (owner_id)`, `ix_artworks_artist_visibility (artist_id, visibility) WHERE hidden_by_admin = false`, `ix_artworks_artist_created (artist_id, created_at DESC)` za Moj portfolio i `ix_artwork_images_artwork (artwork_id, position)`. Dev kontekst dodaje testnom umjetniku jedno javno i jedno privatno djelo bez slika. Enum vrijednosti pohranjuju se kao varchar i provjeravaju CHECK ograničenjima.
 
 <details>
 <summary><strong>Jedna prijava poplave i povezani podaci</strong></summary>

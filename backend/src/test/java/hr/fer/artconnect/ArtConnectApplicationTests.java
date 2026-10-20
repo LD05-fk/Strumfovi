@@ -142,9 +142,13 @@ class ArtConnectApplicationTests {
 		int opportunityChangeSets = jdbc.queryForObject("""
 				select count(*)
 				from databasechangelog
-				where id like 'OPP-01-DB-%'
+				where orderexecuted >= (
+				  select min(orderexecuted)
+				  from databasechangelog
+				  where id like 'OPP-01-DB-%'
+				)
 				""", Integer.class);
-		assertThat(opportunityChangeSets).isEqualTo(18);
+		assertThat(opportunityChangeSets).isGreaterThanOrEqualTo(36);
 		try {
 			liquibase.rollback(opportunityChangeSets, new Contexts("dev"), new LabelExpression());
 		} finally {
@@ -154,6 +158,9 @@ class ArtConnectApplicationTests {
 				.isTrue();
 		assertThat(jdbc.queryForObject("select to_regclass('opportunity_art_fields') is null", Boolean.class))
 				.isTrue();
+		assertThat(jdbc.queryForObject("select to_regclass('artwork_images') is null", Boolean.class)).isTrue();
+		assertThat(jdbc.queryForObject("select to_regclass('artworks') is null", Boolean.class)).isTrue();
+		assertThat(jdbc.queryForObject("select to_regclass('stored_files') is null", Boolean.class)).isTrue();
 
 		liquibase = liquibase();
 		try {
@@ -162,6 +169,8 @@ class ArtConnectApplicationTests {
 			liquibase.close();
 		}
 		assertThat(jdbc.queryForObject("select to_regclass('opportunities') is not null", Boolean.class))
+				.isTrue();
+		assertThat(jdbc.queryForObject("select to_regclass('artwork_images') is not null", Boolean.class))
 				.isTrue();
 	}
 
@@ -177,6 +186,129 @@ class ArtConnectApplicationTests {
 				.findCorrectDatabaseImplementation(new JdbcConnection(connection));
 		return new Liquibase("db/changelog/db.changelog-master.yaml",
 				new ClassLoaderResourceAccessor(), database);
+	}
+
+	@Test
+	void artworkAndFileSchemaConstraintsIndexesCascadeAndRollback() throws Exception {
+		assertThat(jdbc.queryForList("""
+				select conname
+				from pg_constraint
+				where conrelid in ('stored_files'::regclass, 'artworks'::regclass)
+				  and contype = 'c'
+				""", String.class)).containsExactlyInAnyOrder(
+				"ck_stored_files_purpose", "ck_stored_files_content_type",
+				"ck_stored_files_size_bytes", "ck_artworks_year", "ck_artworks_visibility",
+				"ck_artworks_description_length");
+		assertThat(jdbc.queryForList("""
+				select conname
+				from pg_constraint
+				where conrelid in ('stored_files'::regclass, 'artwork_images'::regclass)
+				  and contype = 'u'
+				""", String.class)).containsExactlyInAnyOrder(
+				"uq_stored_files_storage_key", "uq_artwork_images_file_id");
+		assertThat(jdbc.queryForList("""
+				select conname
+				from pg_constraint
+				where conname in (
+				  'fk_stored_files_owner', 'fk_artworks_artist',
+				  'fk_artwork_images_artwork', 'fk_artwork_images_file'
+				)
+				""", String.class)).containsExactlyInAnyOrder(
+				"fk_stored_files_owner", "fk_artworks_artist",
+				"fk_artwork_images_artwork", "fk_artwork_images_file");
+
+		assertThat(jdbc.queryForList("""
+				select indexname
+				from pg_indexes
+				where schemaname = current_schema()
+				  and tablename in ('stored_files', 'artworks', 'artwork_images')
+				  and indexname like 'ix_%'
+				""", String.class)).containsExactlyInAnyOrder(
+				"ix_stored_files_owner", "ix_artworks_artist_visibility",
+				"ix_artworks_artist_created", "ix_artwork_images_artwork");
+		assertThat(jdbc.queryForObject("""
+				select indexdef
+				from pg_indexes
+				where indexname = 'ix_artworks_artist_visibility'
+				""", String.class)).contains("WHERE (hidden_by_admin = false)");
+		assertThat(onDeleteRule("fk_stored_files_owner")).isEqualTo("c");
+		assertThat(onDeleteRule("fk_artworks_artist")).isEqualTo("c");
+		assertThat(onDeleteRule("fk_artwork_images_artwork")).isEqualTo("c");
+		assertThat(onDeleteRule("fk_artwork_images_file")).isEqualTo("c");
+
+		assertThat(jdbc.queryForObject("""
+				select count(*) from artworks
+				where artist_id = (select id from users where email = 'umjetnik@artconnect.test')
+				""", Integer.class)).isEqualTo(2);
+		assertThat(jdbc.queryForList("""
+				select visibility from artworks
+				where artist_id = (select id from users where email = 'umjetnik@artconnect.test')
+				order by visibility
+				""", String.class)).containsExactly("PRIVATE", "PUBLIC");
+
+		var ownerId = UUID.randomUUID();
+		var artworkId = UUID.randomUUID();
+		var fileId = UUID.randomUUID();
+		jdbc.update("""
+				insert into users (id, display_name)
+				values (?, 'Cascade test user')
+				""", ownerId);
+		jdbc.update("""
+				insert into artworks (id, artist_id, title, year, technique)
+				values (?, ?, 'Cascade test artwork', 2024, 'Test')
+				""", artworkId, ownerId);
+		jdbc.update("""
+				insert into stored_files
+					(id, owner_id, purpose, original_name, content_type, size_bytes, storage_key)
+				values (?, ?, 'ARTWORK_IMAGE', 'test.png', 'image/png', 1, ?)
+				""", fileId, ownerId, UUID.randomUUID() + ".png");
+		jdbc.update("""
+				insert into artwork_images (id, artwork_id, file_id)
+				values (?, ?, ?)
+				""", UUID.randomUUID(), artworkId, fileId);
+		assertThat(jdbc.queryForObject(
+				"select visibility from artworks where id = ?", String.class, artworkId))
+				.isEqualTo("PRIVATE");
+		assertThat(jdbc.queryForObject(
+				"select position from artwork_images where artwork_id = ?", Short.class, artworkId))
+				.isZero();
+		jdbc.update("delete from users where id = ?", ownerId);
+		assertThat(jdbc.queryForObject(
+				"select count(*) from artworks where id = ?", Integer.class, artworkId)).isZero();
+		assertThat(jdbc.queryForObject(
+				"select count(*) from artwork_images where artwork_id = ?", Integer.class, artworkId)).isZero();
+		assertThat(jdbc.queryForObject(
+				"select count(*) from stored_files where id = ?", Integer.class, fileId)).isZero();
+
+		assertThatThrownBy(() -> jdbc.update("""
+				insert into artworks (id, artist_id, title, year, technique, description)
+				values (?, (select id from users where email = 'umjetnik@artconnect.test'),
+				        'Too long description', 2024, 'Test', ?)
+				""", UUID.randomUUID(), "x".repeat(5001)))
+				.isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+
+		var liquibase = liquibase();
+		int artworkChangeSets = jdbc.queryForObject("""
+				select count(*) from databasechangelog where id like 'ART-01-DB-%'
+				""", Integer.class);
+		assertThat(artworkChangeSets).isEqualTo(18);
+		try {
+			liquibase.rollback(artworkChangeSets, new Contexts("dev"), new LabelExpression());
+		} finally {
+			liquibase.close();
+		}
+		assertThat(jdbc.queryForObject("select to_regclass('artwork_images') is null", Boolean.class)).isTrue();
+		assertThat(jdbc.queryForObject("select to_regclass('artworks') is null", Boolean.class)).isTrue();
+		assertThat(jdbc.queryForObject("select to_regclass('stored_files') is null", Boolean.class)).isTrue();
+
+		liquibase = liquibase();
+		try {
+			liquibase.update(new Contexts("dev"), new LabelExpression());
+		} finally {
+			liquibase.close();
+		}
+		assertThat(jdbc.queryForObject("select to_regclass('artwork_images') is not null", Boolean.class))
+				.isTrue();
 	}
 
 	@Test
