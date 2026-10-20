@@ -1,3 +1,9 @@
+artconnect:
+  geocoding:
+    base-url: http://127.0.0.1:9099
+    user-agent: ArtConnect-Test/1.0
+    min-interval: 0s
+    max-wait: 0s
 spring:
   liquibase:
     contexts: test

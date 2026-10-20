@@ -47,6 +47,10 @@ services:
       SPRING_LIQUIBASE_CONTEXTS: prod
       # JSON zapisi (application-prod.yml)
       SPRING_PROFILES_ACTIVE: prod
+      ARTCONNECT_GEOCODING_BASE_URL: ${ARTCONNECT_GEOCODING_BASE_URL:-https://nominatim.openstreetmap.org}
+      ARTCONNECT_GEOCODING_USER_AGENT: ${ARTCONNECT_GEOCODING_USER_AGENT:-ArtConnect/1.0 (+https://artconnect-fer.duckdns.org)}
+      ARTCONNECT_GEOCODING_MIN_INTERVAL: ${ARTCONNECT_GEOCODING_MIN_INTERVAL:-1s}
+      ARTCONNECT_GEOCODING_MAX_WAIT: ${ARTCONNECT_GEOCODING_MAX_WAIT:-2s}
       # e-mail prvog administratora; prazno = ne stvara se nitko
       ARTCONNECT_ADMIN_EMAIL: ${ARTCONNECT_ADMIN_EMAIL:-}
     # port se namjerno ne izlaže prema van, dostupan je samo Caddyju

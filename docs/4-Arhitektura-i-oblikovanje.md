@@ -24,7 +24,7 @@ Za svaki UML dijagram čuvajte čitljivu sliku i PlantUML izvor, kako je opisano
 
 | Odluka | Razmatrana alternativa | Projektno specifično obrazloženje i kompromis |
 | --- | --- | --- |
-|  |  |  |
+| Geokodiranje preko backenda (ADR-03) | Nominatim poziv izravno iz preglednika | Backend centralno provodi ograničenje korištenja i skriva vanjsku integraciju od klijenta; zahtjevi se mogu odbiti ako slobodan termin nije dostupan unutar dvije sekunde. |
 
 Objasnite glavne arhitekturne odluke bez ponavljanja popisa tehnologija. Ako važna odluka ima ADR, dovoljno je u tablici navesti njegov ID.
 
@@ -54,6 +54,7 @@ Objasnite glavne arhitekturne odluke bez ponavljanja popisa tehnologija. Ako va�
 | Poslužiteljska aplikacija (`backend/`, Spring Boot 4, Java 25) | REST API pod `/api/v1`, poslovna pravila, prijava i sesija, ovlaštenja, zakazani poslovi | Jedna aplikacija koja se postavlja kao cjelina; moduli su paketi unutar nje, a ne zasebne usluge. |
 | Klijentski dio (`frontend/`, React + Vite + TypeScript) | Korisničko sučelje u pregledniku; poziva API preko `src/api/client.ts`; karte prikazuje pomoću Leafleta. | Prikaz i interakcija odvojeni su od poslovnih pravila; u produkciji ga Caddy servira kao statičke datoteke. |
 | OpenStreetMap Tile Service (vanjski sustav) | Klijentski dio dohvaća pločice putem HTTPS-a s `https://tile.openstreetmap.org/{z}/{x}/{y}.png`; atribucija je uvijek vidljiva. | Karta koristi vanjski izvor kartografskih podataka; pločice se dohvaćaju izravno s klijenta, nisu dio baze podataka aplikacije, a pri neuspjelom učitavanju karta prikazuje upozorenje. |
+| Nominatim (vanjski sustav) | Backend prima adresu preko `GET /api/v1/geocoding/search`, ograničava odlazne zahtjeve na jedan u sekundi i vraća koordinate organizatoru. | Adresa se geokodira na backendu kako klijent ne bi zaobilazio globalno ograničenje Nominatima; backend postavlja prepoznatljiv `User-Agent`, a neuspjeh vanjske usluge ne sprema se u bazu. |
 | Baza podataka (PostgreSQL 17) | Trajni podaci aplikacije i sesije korisnika (Spring Session JDBC) | Podaci imaju jasne relacijske veze (korisnik, prilika, prijava); shemu verzionira Liquibase. |
 
 ### Backend: moduli i slojevi
@@ -66,6 +67,7 @@ Kod je organiziran **paket po modulu** (`hr.fer.artconnect.<modul>`). Moduli zas
 | `artist` | Profil umjetnika i javni portfolio |
 | `artwork` | Djela u portfoliju i njihove slike |
 | `opportunity` | Prilike (natječaji, izložbe, radionice): objava, pretraživanje, statusi |
+| `opportunity.service.geocoding` | Geokodiranje adrese preko Nominatima; integracija je backend-only i bez trajne pohrane |
 | `application` | Prijave umjetnika na prilike i odluke organizatora |
 | `result` | Objava rezultata i sudjelovanja |
 | `file` | Pohrana datoteka na volumenu `/data/uploads` i provjera vrste |
@@ -313,6 +315,17 @@ ADR pišite samo za odluku čije će obrazloženje ostati važno i nakon promjen
 | Razmatrane alternative | **Google Maps** kao kartografski servis te **OpenStreetMapove** pločice prikazane pomoću **Leafleta**. |
 | Odluka i obrazloženje | Odabrati **Leaflet** s javnim pločicama **OpenStreetMapa**. Leaflet je klijentska biblioteka bez kartografskog API ključa, a javni OSM Tile Service za ovaj opseg ne zahtijeva projektni račun za naplatu ni obračun po korištenju kao Google Maps Platform. Time se pojednostavljuje postavljanje i izbjegava konfiguracija Googleovih vjerodajnica i naplate; Leaflet se učitava lijeno kako ne bi ulazio u početni paket. Pločice se dohvaćaju s `https://tile.openstreetmap.org/{z}/{x}/{y}.png`, uz vidljivu atribuciju. Kompromis je ovisnost o javnom servisu bez jamstva dostupnosti, uz obvezu poštivanja njegove politike korištenja pločica; za veće opterećenje treba ponovno procijeniti pružatelja. |
 | Status | Prihvaćeno. |
+
+### ADR-03: Geokodiranje preko backenda (Nominatim)
+
+| Polje | Zapis odluke |
+| --- | --- |
+| Kontekst i cilj | Organizatoru treba pretvorba adrese prilike u koordinate. Nominatim zahtijeva poštovanje ograničenja od jednog zahtjeva u sekundi za cijelu aplikaciju. |
+| Kriteriji odluke | Zahtjev mora biti ograničen globalno, koristiti prepoznatljiv `User-Agent`, ne izlagati vanjski servis pregledniku i omogućiti determinističko testiranje bez mrežnog poziva javnoj usluzi. |
+| Razmatrane alternative | Izravni poziv iz preglednika ili poziv iz backenda s centralnim ograničivačem i konfigurabilnim Nominatim URL-om. |
+| Odluka i obrazloženje | Odabrati backend poziv `GET /search` preko Spring `RestClient`. Jedan `ReentrantLock` ograničava pozive cijelog procesa, a `Clock` i konfiguracija omogućuju testiranje i razvoj preko lažnog poslužitelja. Organizatori, uključujući one na čekanju, mogu geokodirati prilike u pripremi; odobrenje se zasebno provjerava pri objavi prilike. |
+| Kompromis | Svi geokodirajući zahtjevi čekaju zajednički raspoloživi termin; ako termin nije dostupan unutar dvije sekunde ili Nominatim ne odgovori, korisnik dobiva odgovarajuću grešku i može ručno odabrati lokaciju. Javni Nominatim nema jamstvo dostupnosti. |
+| Status | Prihvaćeno u OPP-01-BE3. |
 
 ## 4.6 Koncepti koji prožimaju sustav
 
