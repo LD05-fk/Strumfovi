@@ -1,0 +1,272 @@
+# Profil umjetnika je 1:1 s korisnikom, pa je user_id ujedno primarni ključ.
+databaseChangeLog:
+  - changeSet:
+      id: PORT-01-DB-create-artist-profiles
+      author: lukadimjasevic
+      comment: Tablica profila umjetnika
+      changes:
+        - createTable:
+            tableName: artist_profiles
+            columns:
+              - column:
+                  name: user_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_artist_profiles
+              - column:
+                  name: biography
+                  type: text
+              - column:
+                  name: artist_statement
+                  type: text
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: artist_profiles
+            baseColumnNames: user_id
+            constraintName: fk_artist_profiles_user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+      rollback:
+        - dropTable:
+            tableName: artist_profiles
+
+  - changeSet:
+      id: PORT-01-DB-create-artist-profile-art-fields
+      author: lukadimjasevic
+      comment: Veza profila umjetnika s područjima umjetnosti
+      changes:
+        - createTable:
+            tableName: artist_profile_art_fields
+            columns:
+              - column:
+                  name: user_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: art_field_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: artist_profile_art_fields
+            columnNames: user_id, art_field_id
+            constraintName: pk_artist_profile_art_fields
+        - addForeignKeyConstraint:
+            baseTableName: artist_profile_art_fields
+            baseColumnNames: user_id
+            constraintName: fk_apaf_artist_profile
+            referencedTableName: artist_profiles
+            referencedColumnNames: user_id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: artist_profile_art_fields
+            baseColumnNames: art_field_id
+            constraintName: fk_apaf_art_field
+            referencedTableName: art_fields
+            referencedColumnNames: id
+            onDelete: RESTRICT
+      rollback:
+        - dropTable:
+            tableName: artist_profile_art_fields
+
+  - changeSet:
+      id: PORT-01-DB-create-artist-links
+      author: lukadimjasevic
+      comment: Vanjske poveznice na profilu umjetnika
+      changes:
+        - createTable:
+            tableName: artist_links
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_artist_links
+              - column:
+                  name: user_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: label
+                  type: varchar(60)
+              - column:
+                  name: url
+                  type: varchar(1024)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: position
+                  type: smallint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: artist_links
+            baseColumnNames: user_id
+            constraintName: fk_artist_links_artist_profile
+            referencedTableName: artist_profiles
+            referencedColumnNames: user_id
+            onDelete: CASCADE
+        - createIndex:
+            tableName: artist_links
+            indexName: ix_artist_links_user
+            columns:
+              - column:
+                  name: user_id
+        - sql:
+            sql: >-
+              ALTER TABLE artist_links
+              ADD CONSTRAINT ck_artist_links_url CHECK (url ~ '^https?://')
+      rollback:
+        - dropTable:
+            tableName: artist_links
+
+  - changeSet:
+      id: PORT-01-DB-create-past-exhibitions
+      author: lukadimjasevic
+      comment: Prethodne izložbe vezane na profil umjetnika
+      changes:
+        - createTable:
+            tableName: past_exhibitions
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_past_exhibitions
+              - column:
+                  name: artist_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: title
+                  type: varchar(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: year
+                  type: smallint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: place
+                  type: varchar(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: past_exhibitions
+            baseColumnNames: artist_id
+            constraintName: fk_past_exhibitions_artist
+            referencedTableName: artist_profiles
+            referencedColumnNames: user_id
+            onDelete: CASCADE
+        - createIndex:
+            tableName: past_exhibitions
+            indexName: ix_past_exhibitions_artist
+            columns:
+              - column:
+                  name: artist_id
+        - sql:
+            sql: >-
+              ALTER TABLE past_exhibitions
+              ADD CONSTRAINT ck_past_exhibitions_year CHECK (year >= 1900)
+      rollback:
+        - dropTable:
+            tableName: past_exhibitions
+
+  - changeSet:
+      id: PORT-01-DB-seed-dev-artist-profile
+      author: lukadimjasevic
+      comment: Profil testnog umjetnika za E2E testove
+      context: dev
+      preConditions:
+        - onFail: MARK_RAN
+        - onFailMessage: Preskačem profil testnog umjetnika (dev korisnik ne postoji).
+        - sqlCheck:
+            expectedResult: 1
+            sql: SELECT count(*) FROM users WHERE email = 'umjetnik@artconnect.test'
+      changes:
+        - insert:
+            tableName: artist_profiles
+            columns:
+              - column:
+                  name: user_id
+                  valueComputed: "(SELECT id FROM users WHERE email = 'umjetnik@artconnect.test')"
+              - column:
+                  name: biography
+                  value: Testni umjetnik iz Zagreba. Slika i fotografira gradske motive.
+              - column:
+                  name: artist_statement
+                  value: Zanima me odnos svjetla i betona u svakodnevnom gradskom prostoru.
+        - insert:
+            tableName: artist_profile_art_fields
+            columns:
+              - column:
+                  name: user_id
+                  valueComputed: "(SELECT id FROM users WHERE email = 'umjetnik@artconnect.test')"
+              - column:
+                  name: art_field_id
+                  valueComputed: "(SELECT id FROM art_fields WHERE code = 'slikarstvo')"
+        - insert:
+            tableName: artist_profile_art_fields
+            columns:
+              - column:
+                  name: user_id
+                  valueComputed: "(SELECT id FROM users WHERE email = 'umjetnik@artconnect.test')"
+              - column:
+                  name: art_field_id
+                  valueComputed: "(SELECT id FROM art_fields WHERE code = 'fotografija')"
+        - insert:
+            tableName: artist_links
+            columns:
+              - column: { name: id, valueComputed: gen_random_uuid() }
+              - column:
+                  name: user_id
+                  valueComputed: "(SELECT id FROM users WHERE email = 'umjetnik@artconnect.test')"
+              - column: { name: label, value: Osobna stranica }
+              - column: { name: url, value: "https://umjetnik.artconnect.test" }
+              - column: { name: position, valueNumeric: 1 }
+        - insert:
+            tableName: past_exhibitions
+            columns:
+              - column: { name: id, valueComputed: gen_random_uuid() }
+              - column:
+                  name: artist_id
+                  valueComputed: "(SELECT id FROM users WHERE email = 'umjetnik@artconnect.test')"
+              - column: { name: title, value: Gradski motivi }
+              - column: { name: year, valueNumeric: 2024 }
+              - column: { name: place, value: "Galerija Nova, Zagreb" }
+      rollback:
+        - delete:
+            tableName: past_exhibitions
+            where: "artist_id in (select id from users where email = 'umjetnik@artconnect.test')"
+        - delete:
+            tableName: artist_links
+            where: "user_id in (select id from users where email = 'umjetnik@artconnect.test')"
+        - delete:
+            tableName: artist_profile_art_fields
+            where: "user_id in (select id from users where email = 'umjetnik@artconnect.test')"
+        - delete:
+            tableName: artist_profiles
+            where: "user_id in (select id from users where email = 'umjetnik@artconnect.test')"
