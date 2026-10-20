@@ -12,3 +12,9 @@ logging:
   level:
     root: INFO
     com.zaxxer.hikari: WARN
+artconnect:
+  geocoding:
+    base-url: ${ARTCONNECT_GEOCODING_BASE_URL:https://nominatim.openstreetmap.org}
+    user-agent: ${ARTCONNECT_GEOCODING_USER_AGENT:ArtConnect/1.0 (+https://artconnect-fer.duckdns.org)}
+    min-interval: ${ARTCONNECT_GEOCODING_MIN_INTERVAL:1s}
+    max-wait: ${ARTCONNECT_GEOCODING_MAX_WAIT:2s}
