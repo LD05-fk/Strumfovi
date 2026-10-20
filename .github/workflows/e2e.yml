@@ -1,0 +1,76 @@
+name: e2e
+
+on:
+  workflow_dispatch: # ručno: Actions -> e2e -> Run workflow
+  schedule:
+    - cron: "0 2 * * *" # svake noći u 02:00 UTC (radi samo na zadanoj grani)
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BASE_URL: http://localhost:5173
+      SPRING_PROFILES_ACTIVE: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+
+      - name: Pokrenuti bazu
+        run: docker compose up -d --wait
+
+      - name: Pokrenuti backend (profil dev)
+        working-directory: backend
+        run: |
+          chmod +x mvnw
+          nohup ./mvnw -B spring-boot:run > ../backend.log 2>&1 &
+
+      - name: Pokrenuti frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          nohup npm run dev > ../frontend.log 2>&1 &
+
+      - name: Provjera
+        run: |
+          for i in $(seq 1 90); do
+            if curl -fs http://localhost:8080/actuator/health | grep -q UP \
+               && curl -fs http://localhost:5173 > /dev/null; then
+              echo "Sustav radi"; exit 0
+            fi
+            sleep 2
+          done
+          echo "Sustav nije pokrenut"; cat backend.log frontend.log; exit 1
+
+      - name: Instalirati testne ovisnosti
+        run: pip install -r tests/requirements.txt
+
+      - name: Pokrenuti E2E testove
+        run: pytest tests/selenium --html=report.html --self-contained-html
+
+      - name: Spremiti izvještaj
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            report.html
+            backend.log
+            frontend.log

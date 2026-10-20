@@ -44,6 +44,10 @@ class CatalogIntegrationTest {
     @BeforeEach
     void pripremiSifrarnike() {
         // Svaki test dobiva isti mali skup; transakcija na kraju vraća početne podatke.
+        // Veze na šifrarnike (npr. područja iz dev seeda profila umjetnika) brišu se prve
+        // jer su FK-ovi prema šifrarnicima RESTRICT.
+        jdbc.update("DELETE FROM artist_profile_art_fields");
+        jdbc.update("DELETE FROM opportunity_art_fields");
         for (String table : new String[]{"art_fields", "opportunity_types"}) {
             jdbc.update("DELETE FROM " + table);
             insertItem(table, "beta", "Beta", true, 2);

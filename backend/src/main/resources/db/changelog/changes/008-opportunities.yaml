@@ -1,5 +1,8 @@
 # FK organizatora nema kaskadno brisanje jer se račun anonimizira, a prilike ostaju.
 databaseChangeLog:
+  # Datoteka se prije zvala opp-001-create-opportunities.yaml, logicalFilePath čuva
+  # stari naziv u DATABASECHANGELOG-u da se primijenjeni changesetovi ne izvrše ponovno.
+  - logicalFilePath: db/changelog/changes/opp-001-create-opportunities.yaml
   - changeSet:
       id: OPP-01-DB-create-opportunities
       author: vnovakovic05
