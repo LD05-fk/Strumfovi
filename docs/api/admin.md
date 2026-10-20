@@ -89,16 +89,14 @@ Upit koristi postojeće tablice. Indeks `ix_users_role_status` već postoji;
 hoće li ga upit koristiti, ovisi o filtrima i planu izvršavanja PostgreSQL-a.
 Nove migracije nisu potrebne.
 
-### Razlike u specifikaciji
+### Validacija i sigurnosne provjere
 
-Issue zahtijeva `400 VALIDATION_ERROR` s detaljem po polju za neispravne
-parametre, iako OpenAPI odjeljak za ovu rutu u `API.md` ne navodi odgovor 400.
-Primjenjuje se validacija tražena issueom. Predviđeni su i odgovori
-`401 UNAUTHENTICATED` te `403 FORBIDDEN`. Provjere statusa pozivatelja
-(`ONBOARDING_REQUIRED`, `USER_BLOCKED`) koje dokumentacija dodatno navodi
-pripadaju zajedničkim sigurnosnim filtrima i zasebnim zadacima.
-Trenutni `UserStatusFilter` još ne provodi te dvije provjere; ovaj endpoint
-provodi prijavu i administratorsku ulogu, kako traži #200.
+Za neispravne parametre endpoint vraća `400 VALIDATION_ERROR` s detaljem
+po polju, bez valjane sesije `401 UNAUTHENTICATED`, a korisniku bez
+administratorske uloge `403 FORBIDDEN`.
+
+Trenutni `UserStatusFilter` još ne provodi provjere statusa pozivatelja
+`ONBOARDING_REQUIRED` i `USER_BLOCKED`; one pripadaju zasebnim zadacima.
 
 ### Provjera
 
