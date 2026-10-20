@@ -1,6 +1,6 @@
 # Prilike — geokodiranje
 
-Ovaj odjeljak dokumentira dodatak OPP-01-BE3 uz API ugovor za prilike. OpenAPI specifikacija tima ostaje izvor istine za putanje i sheme.
+Ovaj odjeljak dokumentira endpoint za geokodiranje adrese.
 
 ## `GET /api/v1/geocoding/search`
 

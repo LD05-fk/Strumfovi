@@ -5,7 +5,6 @@ import hr.fer.artconnect.common.ErrorCode;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,40 +35,43 @@ public class NominatimRateLimiter {
     }
 
     public <T> T execute(Supplier<T> outboundRequest) {
-        long waitNanos = maxWait.toNanos();
-        long startedAt = System.nanoTime();
-        boolean acquired;
+        Duration sleepDuration;
         try {
-            acquired = lock.tryLock(waitNanos, TimeUnit.NANOSECONDS);
+            lock.lockInterruptibly();
         } catch (InterruptedException _) {
             Thread.currentThread().interrupt();
-            throw rateLimited();
-        }
-        if (!acquired) {
             throw rateLimited();
         }
 
         try {
-            while (lastRequestAt != null) {
-                Instant allowedAt = lastRequestAt.plus(minInterval);
-                Duration intervalRemaining = Duration.between(clock.instant(), allowedAt);
-                if (intervalRemaining.isNegative() || intervalRemaining.isZero()) {
-                    break;
+            Instant now = clock.instant();
+            Instant scheduledAt = now;
+            if (lastRequestAt != null) {
+                Instant nextAvailableAt = lastRequestAt.plus(minInterval);
+                if (now.isBefore(nextAvailableAt)) {
+                    scheduledAt = nextAvailableAt;
                 }
-                long remainingWait = waitNanos - (System.nanoTime() - startedAt);
-                if (remainingWait <= 0 || intervalRemaining.toNanos() > remainingWait) {
-                    throw rateLimited();
-                }
-                sleeper.sleep(Duration.ofNanos(Math.min(intervalRemaining.toNanos(), remainingWait)));
             }
-            lastRequestAt = clock.instant();
-            return outboundRequest.get();
-        } catch (InterruptedException _) {
-            Thread.currentThread().interrupt();
-            throw rateLimited();
+
+            sleepDuration = Duration.between(now, scheduledAt);
+            if (sleepDuration.compareTo(maxWait) > 0) {
+                throw rateLimited();
+            }
+            lastRequestAt = scheduledAt;
         } finally {
             lock.unlock();
         }
+
+        if (!sleepDuration.isZero()) {
+            try {
+                sleeper.sleep(sleepDuration);
+            } catch (InterruptedException _) {
+                Thread.currentThread().interrupt();
+                throw rateLimited();
+            }
+        }
+
+        return outboundRequest.get();
     }
 
     private static void sleep(Duration duration) throws InterruptedException {
