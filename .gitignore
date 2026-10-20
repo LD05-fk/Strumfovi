@@ -27,6 +27,5 @@ Thumbs.db
 
 #Test
 report.html
-assets/
 __pycache__/
 .pytest_cache/
