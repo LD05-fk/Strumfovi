@@ -1,0 +1,408 @@
+databaseChangeLog:
+  - changeSet:
+      id: ART-01-DB-create-stored-files
+      author: vnovakovic05
+      comment: Tablica metapodataka učitanih datoteka
+      changes:
+        - createTable:
+            tableName: stored_files
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_stored_files
+              - column:
+                  name: owner_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: purpose
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: original_name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content_type
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: size_bytes
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: storage_key
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uq_stored_files_storage_key
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropTable:
+            tableName: stored_files
+
+  - changeSet:
+      id: ART-01-DB-fk-stored-files-owner
+      author: vnovakovic05
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: stored_files
+            baseColumnNames: owner_id
+            constraintName: fk_stored_files_owner
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: stored_files
+            constraintName: fk_stored_files_owner
+
+  - changeSet:
+      id: ART-01-DB-check-stored-files-purpose
+      author: vnovakovic05
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE stored_files
+              ADD CONSTRAINT ck_stored_files_purpose
+                CHECK (purpose IN ('ARTWORK_IMAGE', 'APPLICATION_ATTACHMENT'))
+      rollback:
+        - sql:
+            sql: ALTER TABLE stored_files DROP CONSTRAINT ck_stored_files_purpose
+
+  - changeSet:
+      id: ART-01-DB-check-stored-files-content-type
+      author: vnovakovic05
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE stored_files
+              ADD CONSTRAINT ck_stored_files_content_type
+                CHECK (content_type IN ('image/jpeg', 'image/png', 'application/pdf'))
+      rollback:
+        - sql:
+            sql: ALTER TABLE stored_files DROP CONSTRAINT ck_stored_files_content_type
+
+  - changeSet:
+      id: ART-01-DB-check-stored-files-size
+      author: vnovakovic05
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE stored_files
+              ADD CONSTRAINT ck_stored_files_size_bytes CHECK (size_bytes > 0)
+      rollback:
+        - sql:
+            sql: ALTER TABLE stored_files DROP CONSTRAINT ck_stored_files_size_bytes
+
+  - changeSet:
+      id: ART-01-DB-index-stored-files-owner
+      author: vnovakovic05
+      comment: Pronalaženje svih datoteka vlasnika
+      changes:
+        - createIndex:
+            tableName: stored_files
+            indexName: ix_stored_files_owner
+            columns:
+              - column:
+                  name: owner_id
+      rollback:
+        - dropIndex:
+            tableName: stored_files
+            indexName: ix_stored_files_owner
+
+  - changeSet:
+      id: ART-01-DB-create-artworks
+      author: vnovakovic05
+      comment: Tablica djela umjetnika
+      changes:
+        - createTable:
+            tableName: artworks
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_artworks
+              - column:
+                  name: artist_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: title
+                  type: varchar(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: year
+                  type: smallint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: technique
+                  type: varchar(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: dimensions
+                  type: varchar(100)
+              - column:
+                  name: description
+                  type: text
+              - column:
+                  name: visibility
+                  type: varchar(16)
+                  defaultValue: PRIVATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: hidden_by_admin
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: hidden_at
+                  type: timestamptz
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropTable:
+            tableName: artworks
+
+  - changeSet:
+      id: ART-01-DB-fk-artworks-artist
+      author: vnovakovic05
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: artworks
+            baseColumnNames: artist_id
+            constraintName: fk_artworks_artist
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: artworks
+            constraintName: fk_artworks_artist
+
+  - changeSet:
+      id: ART-01-DB-check-artworks-year
+      author: vnovakovic05
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE artworks
+              ADD CONSTRAINT ck_artworks_year CHECK (year >= 1900)
+      rollback:
+        - sql:
+            sql: ALTER TABLE artworks DROP CONSTRAINT ck_artworks_year
+
+  - changeSet:
+      id: ART-01-DB-check-artworks-visibility
+      author: vnovakovic05
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE artworks
+              ADD CONSTRAINT ck_artworks_visibility CHECK (visibility IN ('PUBLIC', 'PRIVATE'))
+      rollback:
+        - sql:
+            sql: ALTER TABLE artworks DROP CONSTRAINT ck_artworks_visibility
+
+  - changeSet:
+      id: ART-01-DB-check-artworks-description-length
+      author: vnovakovic05
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE artworks
+              ADD CONSTRAINT ck_artworks_description_length
+                CHECK (description IS NULL OR char_length(description) <= 5000)
+      rollback:
+        - sql:
+            sql: ALTER TABLE artworks DROP CONSTRAINT ck_artworks_description_length
+
+  - changeSet:
+      id: ART-01-DB-index-artworks-artist-visibility
+      author: vnovakovic05
+      comment: Javni portfolio neskrivenih djela
+      changes:
+        - sql:
+            sql: >-
+              CREATE INDEX ix_artworks_artist_visibility
+              ON artworks (artist_id, visibility)
+              WHERE hidden_by_admin = false
+      rollback:
+        - sql:
+            sql: DROP INDEX ix_artworks_artist_visibility
+
+  - changeSet:
+      id: ART-01-DB-index-artworks-artist-created
+      author: vnovakovic05
+      comment: Popis Moj portfolio sortiran od najnovijeg djela
+      changes:
+        - sql:
+            sql: >-
+              CREATE INDEX ix_artworks_artist_created
+              ON artworks (artist_id, created_at DESC)
+      rollback:
+        - sql:
+            sql: DROP INDEX ix_artworks_artist_created
+
+  - changeSet:
+      id: ART-01-DB-create-artwork-images
+      author: vnovakovic05
+      comment: Povezivanje djela s njegovim slikama
+      changes:
+        - createTable:
+            tableName: artwork_images
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_artwork_images
+              - column:
+                  name: artwork_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: file_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uq_artwork_images_file_id
+              - column:
+                  name: alt_text
+                  type: varchar(300)
+              - column:
+                  name: position
+                  type: smallint
+                  defaultValueNumeric: "0"
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropTable:
+            tableName: artwork_images
+
+  - changeSet:
+      id: ART-01-DB-fk-artwork-images-artwork
+      author: vnovakovic05
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: artwork_images
+            baseColumnNames: artwork_id
+            constraintName: fk_artwork_images_artwork
+            referencedTableName: artworks
+            referencedColumnNames: id
+            onDelete: CASCADE
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: artwork_images
+            constraintName: fk_artwork_images_artwork
+
+  - changeSet:
+      id: ART-01-DB-fk-artwork-images-file
+      author: vnovakovic05
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: artwork_images
+            baseColumnNames: file_id
+            constraintName: fk_artwork_images_file
+            referencedTableName: stored_files
+            referencedColumnNames: id
+            onDelete: CASCADE
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: artwork_images
+            constraintName: fk_artwork_images_file
+
+  - changeSet:
+      id: ART-01-DB-index-artwork-images-artwork
+      author: vnovakovic05
+      comment: Učitavanje slika djela redoslijedom
+      changes:
+        - createIndex:
+            tableName: artwork_images
+            indexName: ix_artwork_images_artwork
+            columns:
+              - column:
+                  name: artwork_id
+              - column:
+                  name: position
+      rollback:
+        - dropIndex:
+            tableName: artwork_images
+            indexName: ix_artwork_images_artwork
+
+  - changeSet:
+      id: ART-01-DB-seed-dev-artworks
+      author: vnovakovic05
+      comment: Dva testna djela umjetnika za lokalni razvoj
+      context: dev
+      preConditions:
+        - onFail: MARK_RAN
+        - onFailMessage: Preskačem djela testnog umjetnika (dev korisnik ne postoji).
+        - sqlCheck:
+            expectedResult: 1
+            sql: SELECT count(*) FROM users WHERE email = 'umjetnik@artconnect.test'
+      changes:
+        - insert:
+            tableName: artworks
+            columns:
+              - column: { name: id, value: "02100000-0000-0000-0000-000000000001" }
+              - column:
+                  name: artist_id
+                  valueComputed: "(SELECT id FROM users WHERE email = 'umjetnik@artconnect.test')"
+              - column: { name: title, value: Plavi horizont }
+              - column: { name: year, valueNumeric: "2024" }
+              - column: { name: technique, value: Akril na platnu }
+              - column: { name: visibility, value: PUBLIC }
+        - insert:
+            tableName: artworks
+            columns:
+              - column: { name: id, value: "02100000-0000-0000-0000-000000000002" }
+              - column:
+                  name: artist_id
+                  valueComputed: "(SELECT id FROM users WHERE email = 'umjetnik@artconnect.test')"
+              - column: { name: title, value: Tiha obala }
+              - column: { name: year, valueNumeric: "2023" }
+              - column: { name: technique, value: Ulje na platnu }
+              - column: { name: visibility, value: PRIVATE }
+      rollback:
+        - delete:
+            tableName: artworks
+            where: "id IN ('02100000-0000-0000-0000-000000000001', '02100000-0000-0000-0000-000000000002')"

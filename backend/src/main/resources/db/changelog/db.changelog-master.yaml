@@ -23,3 +23,6 @@ databaseChangeLog:
   - include:
       file: changes/opp-001-create-opportunities.yaml
       relativeToChangelogFile: true
+  - include:
+      file: changes/021-artworks-and-files.yaml
+      relativeToChangelogFile: true
