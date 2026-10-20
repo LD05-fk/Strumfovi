@@ -24,3 +24,9 @@ backend/.mcp.json
 # Datoteke operacijskog sustava
 .DS_Store
 Thumbs.db
+
+#Test
+report.html
+assets/
+__pycache__/
+.pytest_cache/
