@@ -1,0 +1,4 @@
+spring:
+  liquibase:
+    contexts: test
+    change-log: classpath:db/changelog/db.changelog-test.yaml
