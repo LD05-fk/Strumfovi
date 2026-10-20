@@ -1,0 +1,358 @@
+# FK organizatora nema kaskadno brisanje jer se račun anonimizira, a prilike ostaju.
+databaseChangeLog:
+  - changeSet:
+      id: OPP-01-DB-create-opportunities
+      author: vnovakovic05
+      comment: Tablica prilika
+      changes:
+        - createTable:
+            tableName: opportunities
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_opportunities
+              - column:
+                  name: organizer_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: title
+                  type: varchar(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: deadline
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: criteria
+                  type: text
+              - column:
+                  name: prize
+                  type: text
+              - column:
+                  name: location_type
+                  type: varchar(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: street_address
+                  type: varchar(200)
+              - column:
+                  name: city
+                  type: varchar(100)
+              - column:
+                  name: postal_code
+                  type: varchar(10)
+              - column:
+                  name: latitude
+                  type: numeric(9,6)
+              - column:
+                  name: longitude
+                  type: numeric(9,6)
+              - column:
+                  name: online_url
+                  type: varchar(1024)
+              - column:
+                  name: event_start
+                  type: timestamptz
+              - column:
+                  name: event_end
+                  type: timestamptz
+              - column:
+                  name: status
+                  type: varchar(16)
+                  defaultValue: PREPARATION
+                  constraints:
+                    nullable: false
+              - column:
+                  name: archived
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: hidden_by_admin
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: hidden_at
+                  type: timestamptz
+              - column:
+                  name: published_at
+                  type: timestamptz
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropTable:
+            tableName: opportunities
+
+  - changeSet:
+      id: OPP-01-DB-fk-opportunities-organizer
+      author: vnovakovic05
+      comment: Veza prilike s računom organizatora bez kaskadnog brisanja
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: opportunities
+            baseColumnNames: organizer_id
+            constraintName: fk_opp_organizer
+            referencedTableName: users
+            referencedColumnNames: id
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: opportunities
+            constraintName: fk_opp_organizer
+
+  - changeSet:
+      id: OPP-01-DB-add-opportunity-type-fk
+      author: vnovakovic05
+      changes:
+        - addForeignKeyConstraint:
+            constraintName: fk_opp_type
+            baseTableName: opportunities
+            baseColumnNames: type_id
+            referencedTableName: opportunity_types
+            referencedColumnNames: id
+            onDelete: RESTRICT
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: opportunities
+            constraintName: fk_opp_type
+
+  - changeSet:
+      id: OPP-01-DB-check-opportunity-location-type
+      author: vnovakovic05
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE opportunities
+              ADD CONSTRAINT ck_opp_location_type
+              CHECK (location_type IN ('PHYSICAL', 'ONLINE'))
+      rollback:
+        - sql:
+            sql: ALTER TABLE opportunities DROP CONSTRAINT ck_opp_location_type
+
+  - changeSet:
+      id: OPP-01-DB-check-opportunity-status
+      author: vnovakovic05
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE opportunities
+              ADD CONSTRAINT ck_opp_status
+              CHECK (status IN ('PREPARATION', 'OPEN', 'CLOSED', 'SELECTION', 'FINISHED'))
+      rollback:
+        - sql:
+            sql: ALTER TABLE opportunities DROP CONSTRAINT ck_opp_status
+
+  - changeSet:
+      id: OPP-01-DB-check-physical-opportunity-location
+      author: vnovakovic05
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE opportunities
+              ADD CONSTRAINT ck_opp_physical
+              CHECK (location_type <> 'PHYSICAL' OR (street_address IS NOT NULL AND city IS NOT NULL AND latitude IS NOT NULL AND longitude IS NOT NULL))
+      rollback:
+        - sql:
+            sql: ALTER TABLE opportunities DROP CONSTRAINT ck_opp_physical
+
+  - changeSet:
+      id: OPP-01-DB-check-online-opportunity-location
+      author: vnovakovic05
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE opportunities
+              ADD CONSTRAINT ck_opp_online
+              CHECK (location_type <> 'ONLINE' OR online_url IS NOT NULL)
+      rollback:
+        - sql:
+            sql: ALTER TABLE opportunities DROP CONSTRAINT ck_opp_online
+
+  - changeSet:
+      id: OPP-01-DB-check-opportunity-event-end
+      author: vnovakovic05
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE opportunities
+              ADD CONSTRAINT ck_opp_event_end
+              CHECK (event_end IS NULL OR (event_start IS NOT NULL AND event_end >= event_start))
+      rollback:
+        - sql:
+            sql: ALTER TABLE opportunities DROP CONSTRAINT ck_opp_event_end
+
+  - changeSet:
+      id: OPP-01-DB-index-public-opportunities
+      author: vnovakovic05
+      comment: Javno pretraživanje i sortiranje prilika po roku
+      changes:
+        - sql:
+            sql: >-
+              CREATE INDEX ix_opp_public ON opportunities (status, deadline)
+              WHERE archived = false AND hidden_by_admin = false
+      rollback:
+        - sql:
+            sql: DROP INDEX ix_opp_public
+
+  - changeSet:
+      id: OPP-01-DB-index-organizer-opportunities
+      author: vnovakovic05
+      comment: Popis prilika organizatora
+      changes:
+        - sql:
+            sql: >-
+              CREATE INDEX ix_opp_organizer ON opportunities (organizer_id, created_at DESC)
+      rollback:
+        - sql:
+            sql: DROP INDEX ix_opp_organizer
+
+  - changeSet:
+      id: OPP-01-DB-index-opportunity-city
+      author: vnovakovic05
+      comment: Filtriranje prilika po gradu bez obzira na velika i mala slova
+      changes:
+        - sql:
+            sql: CREATE INDEX ix_opp_city_lower ON opportunities (lower(city))
+      rollback:
+        - sql:
+            sql: DROP INDEX ix_opp_city_lower
+
+  - changeSet:
+      id: OPP-01-DB-index-open-opportunity-deadline
+      author: vnovakovic05
+      comment: Dohvat otvorenih prilika za automatsko zatvaranje po roku
+      changes:
+        - sql:
+            sql: CREATE INDEX ix_opp_open_deadline ON opportunities (deadline) WHERE status = 'OPEN'
+      rollback:
+        - sql:
+            sql: DROP INDEX ix_opp_open_deadline
+
+  - changeSet:
+      id: OPP-01-DB-index-opportunity-full-text-search
+      author: vnovakovic05
+      comment: Punotekstna pretraga naslova i opisa prilike
+      changes:
+        - sql:
+            sql: >-
+              CREATE INDEX ix_opp_fts ON opportunities
+              USING GIN (to_tsvector('simple', title || ' ' || description))
+      rollback:
+        - sql:
+            sql: DROP INDEX ix_opp_fts
+
+  - changeSet:
+      id: OPP-01-DB-index-published-opportunities
+      author: vnovakovic05
+      comment: Mjesečni izvještaj objavljenih prilika
+      changes:
+        - sql:
+            sql: CREATE INDEX ix_opp_published_at ON opportunities (published_at)
+      rollback:
+        - sql:
+            sql: DROP INDEX ix_opp_published_at
+
+  - changeSet:
+      id: OPP-01-DB-create-opportunity-art-fields
+      author: vnovakovic05
+      comment: Veza prilika s područjima umjetnosti
+      changes:
+        - createTable:
+            tableName: opportunity_art_fields
+            columns:
+              - column:
+                  name: opportunity_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: art_field_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: opportunity_art_fields
+            columnNames: opportunity_id, art_field_id
+            constraintName: pk_opportunity_art_fields
+      rollback:
+        - dropTable:
+            tableName: opportunity_art_fields
+
+  - changeSet:
+      id: OPP-01-DB-add-opportunity-art-fields-opportunity-fk
+      author: vnovakovic05
+      changes:
+        - addForeignKeyConstraint:
+            constraintName: fk_oaf_opportunity
+            baseTableName: opportunity_art_fields
+            baseColumnNames: opportunity_id
+            referencedTableName: opportunities
+            referencedColumnNames: id
+            onDelete: CASCADE
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: opportunity_art_fields
+            constraintName: fk_oaf_opportunity
+
+  - changeSet:
+      id: OPP-01-DB-add-opportunity-art-fields-art-field-fk
+      author: vnovakovic05
+      changes:
+        - addForeignKeyConstraint:
+            constraintName: fk_oaf_art_field
+            baseTableName: opportunity_art_fields
+            baseColumnNames: art_field_id
+            referencedTableName: art_fields
+            referencedColumnNames: id
+            onDelete: RESTRICT
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: opportunity_art_fields
+            constraintName: fk_oaf_art_field
+
+  - changeSet:
+      id: OPP-01-DB-index-opportunity-art-fields-art-field
+      author: vnovakovic05
+      comment: Filtriranje prilika po području umjetnosti
+      changes:
+        - createIndex:
+            tableName: opportunity_art_fields
+            indexName: ix_oaf_art_field
+            columns:
+              - column:
+                  name: art_field_id
+      rollback:
+        - dropIndex:
+            tableName: opportunity_art_fields
+            indexName: ix_oaf_art_field

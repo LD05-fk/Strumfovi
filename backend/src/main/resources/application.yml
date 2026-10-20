@@ -26,6 +26,8 @@ spring:
   liquibase:
     # Bez postavljenih konteksta Liquibase primjenjuje sve changesetove
     contexts: dev
+    parameters:
+      adminEmail: ${ARTCONNECT_ADMIN_EMAIL:}
   session:
     # Sesija istječe nakon osam sati bez aktivnosti.
     timeout: 8h
