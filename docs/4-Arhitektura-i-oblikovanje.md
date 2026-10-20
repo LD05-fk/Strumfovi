@@ -146,10 +146,11 @@ Svi pozivi backenda idu kroz `apiFetch` iz `api/client.ts`, nikad kroz vlastiti 
 
 **Izvor dijagrama:** [`docs/puml/4-2-artconnect-data-ERD.puml`](puml/4-2-artconnect-data-ERD.puml)  
 
-**Implementacija:** Liquibase changesetovi `001-spring-session.yaml` – `007-organizer-profiles.yaml`, `opp-001-create-opportunities.yaml` i `021-artworks-and-files.yaml` u
+**Implementacija:** Liquibase changesetovi `001-spring-session.yaml` – `009-artist-profiles.yaml` i `021-artworks-and-files.yaml` u
 `backend/src/main/resources/db/changelog/changes/`; JPA entiteti `ArtField` i
 `OpportunityType` u `hr.fer.artconnect.catalog.domain`, `SystemSetting` u `hr.fer.artconnect.common.domain`,
-`User` i `OrganizerProfile` u `hr.fer.artconnect.auth.domain`, `StoredFile` u `hr.fer.artconnect.file.domain` te `Artwork` i `ArtworkImage` u `hr.fer.artconnect.artwork.domain`.
+`User` i `OrganizerProfile` u `hr.fer.artconnect.auth.domain`, `ArtistProfile`, `ArtistLink` i
+`PastExhibition` u `hr.fer.artconnect.artist.domain`, `StoredFile` u `hr.fer.artconnect.file.domain` te `Artwork` i `ArtworkImage` u `hr.fer.artconnect.artwork.domain`.
 Tablice Spring Sessiona nemaju entitet - njima Spring Session JDBC pristupa izravno. Stavke šifrarnika se ne brišu nego isključuju (`active = false`).
 
 Changeset `021-artworks-and-files.yaml` stvara:
