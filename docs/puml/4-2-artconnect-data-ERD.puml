@@ -1,5 +1,5 @@
 @startuml
-' ER dijagram postojećih tablica (changesetovi 001-007 i i opp-001).
+' ER dijagram postojećih tablica (changesetovi 001-009).
 ' Dopunjuje se kako epici dodaju svoje tablice.
 hide circle
 hide methods
@@ -85,6 +85,40 @@ package "Spring Session JDBC (infrastruktura)" {
   }
 }
 
+package "Profil umjetnika (modul artist)" {
+  entity "artist_profiles" as artist_profiles {
+    * user_id : uuid <<PK>> <<FK>>
+    --
+    biography : text
+    artist_statement : text
+    * updated_at : timestamptz = now()
+  }
+
+  entity "artist_profile_art_fields" as artist_profile_art_fields {
+    * user_id : uuid <<PK>> <<FK>>
+    * art_field_id : uuid <<PK>> <<FK>>
+  }
+
+  entity "artist_links" as artist_links {
+    * id : uuid <<PK>>
+    --
+    * user_id : uuid <<FK>>
+    label : varchar(60)
+    * url : varchar(1024) <<http(s)://>>
+    * position : smallint = 0
+  }
+
+  entity "past_exhibitions" as past_exhibitions {
+    * id : uuid <<PK>>
+    --
+    * artist_id : uuid <<FK>>
+    * title : varchar(200)
+    * year : smallint <<1900 ili kasnije>>
+    * place : varchar(200)
+    * created_at : timestamptz = now()
+  }
+}
+
 package "Prilike (modul opportunity)" {
   entity "opportunities" as opportunities {
     * id : uuid <<PK>>
@@ -120,6 +154,11 @@ package "Prilike (modul opportunity)" {
   }
 }
 
+users ||--o| artist_profiles : "ON DELETE CASCADE"
+artist_profiles ||--o{ artist_profile_art_fields : "ON DELETE CASCADE"
+art_fields ||--o{ artist_profile_art_fields : art_field_id
+artist_profiles ||--o{ artist_links : "ON DELETE CASCADE"
+artist_profiles ||--o{ past_exhibitions : "artist_id (ON DELETE CASCADE)"
 opportunity_types ||--o{ opportunities : type_id
 opportunities ||--o{ opportunity_art_fields : "ON DELETE CASCADE"
 art_fields ||--o{ opportunity_art_fields : art_field_id
