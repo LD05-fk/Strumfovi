@@ -117,10 +117,18 @@ Zahtjevi su grupirani po područjima (epicima plana rada). Svaki ima stabilan ID
 
 **Cilj:** Odrediti važna svojstva kvalitete i uvjete rada odobrene aplikacije na način koji tim može razumno provjeriti.
 
-| ID | Opis | Prioritet | Izvor |
-| --- | --- | --- | --- |
-| NF-01 | [Konkretan zahtjev (npr. odziv, sigurnost, pristupačnost)] | Visok / Srednji / Nizak | [Sigurnost / Uputa / SLA] | [Mjerenje / Testni scenarij / Pregled] |
-|  |  |  |  |
+| ID | Opis | Prioritet | Izvor | Provjera |
+| --- | --- | --- | --- | --- |
+| NF-01 | **Sigurnost pristupa:** prijava je isključivo putem Googlea (bez lozinki). Sesija je poslužiteljska i istječe nakon 8 sati neaktivnosti, kolačić sesije nije dostupan JavaScriptu, a zahtjevi koji mijenjaju podatke zaštićeni su od CSRF napada. Pristup bez prijave vraća 401, a pristup bez ovlasti 403. | Visok | G06; odluka tima | Integracijski testovi autorizacije i sesije. |
+| NF-02 | **Privatnost podataka:** privatna djela i prilozi dostupni su samo ovlaštenim osobama, brisanje računa anonimizira osobne podatke, tajne (lozinke, ključevi, tokeni) nikad nisu u repozitoriju, a javna adresa dostupna je putem HTTPS-a. | Visok | Odluka tima | Testovi vlasništva i pristupa datotekama. `.env.example` bez vrijednosti. Pregled HTTPS-a na javnoj adresi. |
+| NF-03 | **Ograničenja unosa:** slike su samo JPG ili PNG, najviše 5 MB, do tri po djelu. Unos se uvijek provjerava na poslužitelju, a poruke grešaka su na hrvatskom u jedinstvenom obliku. | Srednji | Odluka tima | Testovi učitavanja datoteka i validacije. |
+| NF-04 | **Responzivnost:** sučelje je upotrebljivo na mobitelu i na računalu u aktualnim inačicama preglednika Chrome, Firefox i Edge. | Srednji | Odluka tima | Ručna provjera glavnih tokova na oba oblika zaslona. |
+| NF-05 | **Pristupačnost:** sve stranice mogu se koristiti tipkovnicom uz vidljiv fokus, postoji poveznica „Preskoči na sadržaj”, slike imaju alternativni tekst, a status se prikazuje i tekstom, ne samo bojom. | Srednji | Odluka tima | Pregled sučelja tipkovnicom. Provjera alatom Lighthouse na glavnim stranicama. |
+| NF-06 | **Odziv:** popisi su uvijek straničeni (zadano 20, najviše 100 po stranici), a pretraga prilika koristi indekse u bazi. Pretraga prilika vraća rezultate u najviše 5 sekundi (početna vrijednost; konačnu brojku treba potvrditi s asistenticom). | Srednji | Odluka tima | Mjerenje vremena odgovora pretrage na demo podacima. |
+| NF-07 | **Održivost:** u `master` ulazi samo promjena sa zelenim CI-jem (provjere Backend i Frontend) i jednim odobrenjem druge osobe. Osnovni testovi pokrivaju poslovna pravila i glavne tokove, shema baze mijenja se samo Liquibase migracijama, a SonarCloud tjedno pregledava kvalitetu koda. | Srednji | Pravila kolegija; odluka tima | Zaštita grane `master`, rezultati GitHub Actionsa, SonarCloud. |
+| NF-08 | **Isporuka i rad:** spajanje u `master` automatski isporučuje novu inačicu na AWS EC2 (Docker). Poslužitelj pri paljenju sam povuče zadnju inačicu. Zapisi su dostupni u pregledniku, a baza se jednom dnevno sigurnosno kopira (čuva se zadnjih 7 kopija). | Srednji | Pravila kolegija; odluka tima | Pokretanja workflowa CD, `/actuator/health`, pregled zapisa na `/logs`. |
+| NF-09 | **Dostupnost:** aplikacija nije stalno upaljena (zbog štednje AWS kredita), nego je dostupna na zahtjev i u terminima ocjenjivanja i demonstracija. | Nizak | Odluka tima | Workflow Server (`status`), varijabla `ALWAYS_ON` u razdobljima ocjenjivanja. |
+| NF-10 | **Vanjske usluge:** poštuju se uvjeti korištenja OpenStreetMapa (najviše jedan zahtjev u sekundi prema Nominatimu, vlastito zaglavlje `User-Agent`, atribucija na karti). Ako usluga karte nije dostupna, aplikacija prikazuje poruku i omogućuje ručni unos položaja. | Srednji | Odluka tima (uvjeti korištenja OSM-a) | Test geokodiranja i pregled karte. |
 
 ## 2.3 Dionici i akteri
 

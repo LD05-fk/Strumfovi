@@ -20,6 +20,7 @@ coverage/
 *.iml
 .vscode/
 backend/.mcp.json
+frontend/.mcp.json
 
 # Datoteke operacijskog sustava
 .DS_Store
