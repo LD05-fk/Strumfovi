@@ -53,6 +53,8 @@ management:
     health:
       show-details: never
 artconnect:
+  storage:
+    root: ${ARTCONNECT_STORAGE_ROOT:./data/uploads}
   geocoding:
     # Local development must opt in explicitly before contacting the public service.
     base-url: ${ARTCONNECT_GEOCODING_BASE_URL:http://127.0.0.1:9099}

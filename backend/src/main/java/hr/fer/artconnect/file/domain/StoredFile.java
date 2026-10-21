@@ -48,6 +48,16 @@ public class StoredFile {
 
     protected StoredFile() {}
 
+    public StoredFile(User owner, FilePurpose purpose, String originalName, String contentType,
+            long sizeBytes, String storageKey) {
+        this.owner = owner;
+        this.purpose = purpose;
+        this.originalName = originalName;
+        this.contentType = contentType;
+        this.sizeBytes = sizeBytes;
+        this.storageKey = storageKey;
+    }
+
     @PrePersist
     void onCreate() {
         this.createdAt = OffsetDateTime.now();

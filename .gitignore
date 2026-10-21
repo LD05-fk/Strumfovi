@@ -9,6 +9,7 @@
 target/
 *.class
 HELP.md
+data/uploads/
 
 # Node / Vite
 node_modules/
