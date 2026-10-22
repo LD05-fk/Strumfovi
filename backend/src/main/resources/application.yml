@@ -6,6 +6,9 @@ spring:
     encoding: UTF-8
     fallback-to-system-locale: false
   jackson:
+    deserialization:
+      # Cijeli brojevi iz API-ja ne smiju se dobiti skraćivanjem decimalnog unosa.
+      accept-float-as-int: false
     datatype:
       datetime:
         write-dates-as-timestamps: false
