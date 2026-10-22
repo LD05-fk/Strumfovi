@@ -5,6 +5,8 @@ import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import hr.fer.artconnect.file.service.FileTooLargeException;
+import hr.fer.artconnect.file.service.UnsupportedFileTypeException;
 import jakarta.validation.*;
 import jakarta.validation.constraints.*;
 import java.time.*;
@@ -51,6 +53,8 @@ class GlobalExceptionHandlerTest {
 
     @ParameterizedTest
     @CsvSource({"constraints,400,VALIDATION_ERROR", "upload,413,FILE_TOO_LARGE",
+            "service-too-large,413,FILE_TOO_LARGE",
+            "unsupported,415,UNSUPPORTED_FILE_TYPE",
             "denied,401,UNAUTHENTICATED", "unexpected,500,INTERNAL_ERROR", "notfound,404,NOT_FOUND"})
     void handlerObradujeRazliciteIznimke(String kind, int status, String code) throws Exception {
         var result = provjeriGresku(mvc.perform(get("/test/error/{kind}", kind)), status, code);
@@ -192,6 +196,8 @@ class GlobalExceptionHandlerTest {
             throw switch (kind) {
                 case "constraints" -> new ConstraintViolationException(validator.validate(new Input("")));
                 case "upload" -> new MaxUploadSizeExceededException(50 * 1024 * 1024);
+                case "service-too-large" -> new FileTooLargeException();
+                case "unsupported" -> new UnsupportedFileTypeException();
                 case "denied" -> new AccessDeniedException("interni podatak");
                 case "notfound" -> new ApiException(ErrorCode.NOT_FOUND, "Prilika nije pronađena.");
                 default -> new IllegalStateException("interni podatak");

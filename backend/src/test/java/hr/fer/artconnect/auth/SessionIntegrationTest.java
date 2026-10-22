@@ -27,7 +27,9 @@ import org.testcontainers.junit.jupiter.*;
 import org.testcontainers.postgresql.*;
 
 // Pokrenuti web poslužitelj potreban je da Boot primijeni postavke sesijskog kolačića.
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "artconnect.storage.root=target/test-uploads")
 @AutoConfigureMockMvc
 @Import(SessionIntegrationTest.TestController.class)
 // I uz oba profila produkcija mora zadržati CSRF zaštitu razvojnih ruta.

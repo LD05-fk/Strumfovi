@@ -327,6 +327,17 @@ ADR pišite samo za odluku čije će obrazloženje ostati važno i nakon promjen
 | Kompromis | Svi geokodirajući zahtjevi čekaju zajednički raspoloživi termin; ako termin nije dostupan unutar dvije sekunde ili Nominatim ne odgovori, korisnik dobiva odgovarajuću grešku i može ručno odabrati lokaciju. Javni Nominatim nema jamstvo dostupnosti. |
 | Status | Prihvaćeno u OPP-01-BE3. |
 
+### ADR-04: Pohrana datoteka na Docker volumenu
+
+| Polje | Zapis odluke |
+| --- | --- |
+| Kontekst i cilj | Slike djela i budući prilozi prijava moraju biti pohranjeni odvojeno od poslovne logike i opstati pri zamjeni backend kontejnera. |
+| Kriteriji odluke | Pohrana treba imati jedinstvene ključeve, metapodatke u `stored_files`, sigurne putanje, očuvanje nakon ponovnog pokretanja i provjeru stvarnog tipa datoteke bez povjerenja u klijentska zaglavlja. |
+| Razmatrane alternative | Datoteke kao binarni podaci u PostgreSQL-u, lokalna putanja unutar kontejnera ili zajednički direktorij na trajnom Docker volumenu. |
+| Odluka i obrazloženje | Koristiti `FileStorageService` s korijenom `artconnect.storage.root`, UUID nazivima i metapodacima u `stored_files`; u produkciji montirati imenovani volumen `uploads` na `/data/uploads`. Binarne podatke ne spremati u PostgreSQL jer bi povećavali bazu i sigurnosne kopije te opteretili bazu pohranom i dohvatom sadržaja datoteka. Lokalna putanja unutar kontejnera nije dovoljna jer bi se datoteke izgubile pri zamjeni kontejnera. Imenovani Docker volumen opstaje neovisno o životnom vijeku kontejnera. Lokalni backend izvan Dockera koristi `./data/uploads`. Tip se određuje po JPEG, PNG ili PDF magic bytes. |
+| Kompromis | Baza i datotečni sustav ne dijele jednu atomsku transakciju; privremene datoteke, atomsko premještanje i callbackovi transakcije ograničavaju rizik nekonzistentnosti. Docker volumen opstaje nakon zamjene kontejnera, ali zahtijeva zasebnu sigurnosnu kopiju i oporavak. |
+| Status | Prihvaćeno u PORT-04-BE1 (#104). |
+
 ## 4.6 Koncepti koji prožimaju sustav
 
 Paket `hr.fer.artconnect.common` sadrži zajedničke klase za greške, provjeru podataka i straničenje (#8).
