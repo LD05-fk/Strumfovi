@@ -1,19 +1,28 @@
 package hr.fer.artconnect.auth;
 
-import hr.fer.artconnect.common.*;
-import org.springframework.context.*;
-import org.springframework.context.annotation.*;
-import org.springframework.core.env.*;
-import org.springframework.http.*;
-import org.springframework.security.config.annotation.method.configuration.*;
-import org.springframework.security.config.annotation.web.builders.*;
-import org.springframework.security.config.http.*;
-import org.springframework.security.access.hierarchicalroles.*;
-import org.springframework.security.access.expression.method.*;
-import org.springframework.security.web.*;
-import org.springframework.security.web.csrf.*;
-import org.springframework.security.web.access.intercept.*;
-import tools.jackson.databind.*;
+import org.springframework.context.MessageSource;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+
+import hr.fer.artconnect.auth.domain.UserStatus;
+import hr.fer.artconnect.common.SecurityErrorHandler;
+import tools.jackson.databind.ObjectMapper;
 
 @Configuration
 @EnableMethodSecurity
@@ -21,7 +30,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, Environment environment,
-            SecurityErrorHandler errors) throws Exception {
+            SecurityErrorHandler errors, ArtConnectOidcUserService oidcUserService, SecurityContextRepository securityContextRepository) throws Exception {
         // Samo navedene GET rute su javne; ostali zahtjevi traže prijavu.
         http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(HttpMethod.GET,
@@ -38,6 +47,21 @@ public class SecurityConfig {
 
         // Sesiju stvara Spring po potrebi, a Spring Session JDBC sprema je u bazu.
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
+        http.oauth2Login(oauth2 -> oauth2
+            .userInfoEndpoint(userInfo -> userInfo.oidcUserService(oidcUserService))
+            .successHandler((request, response, authentication) -> {
+                Object principal = authentication.getPrincipal();
+
+                if (principal instanceof ArtConnectPrincipal user
+                        && user.getStatus() == UserStatus.ONBOARDING) {
+                    response.sendRedirect("/onboarding");
+                } else {
+                    response.sendRedirect("/");
+                }
+            })
+            .failureHandler((request, response, exception) ->
+                    response.sendRedirect("/?login=error"))
+        );
         // API ne treba spremati zahtjev radi preusmjeravanja nakon prijave.
         http.requestCache(cache -> cache.disable());
 
@@ -62,7 +86,7 @@ public class SecurityConfig {
         // Filter vidi prijavljenog korisnika prije odluke o pristupu ruti.
         // Ne označavamo ga kao @Component, kako se ne bi registrirao i izvan ovog lanca.
         http.addFilterBefore(new UserStatusFilter(), AuthorizationFilter.class);
-
+        http.securityContext(context -> context.securityContextRepository(securityContextRepository));
         return http.build();
     }
 
@@ -83,5 +107,9 @@ public class SecurityConfig {
         var handler = new DefaultMethodSecurityExpressionHandler();
         handler.setRoleHierarchy(hierarchy);
         return handler;
+    }
+    @Bean
+    public SecurityContextRepository securityContextRepository() {
+        return new HttpSessionSecurityContextRepository();
     }
 }

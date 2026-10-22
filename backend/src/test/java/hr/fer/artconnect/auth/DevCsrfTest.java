@@ -9,6 +9,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.*;
 import org.springframework.context.annotation.*;
 import org.springframework.security.test.context.support.*;
 import org.springframework.test.context.*;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.*;
 
 @WebMvcTest(SecurityConfigTest.TestController.class)
@@ -17,6 +18,8 @@ import org.springframework.test.web.servlet.*;
 class DevCsrfTest {
     @Autowired
     MockMvc mvc;
+    @MockitoBean
+    private ArtConnectOidcUserService oidcUserService;
 
     @Test
     @WithMockUser

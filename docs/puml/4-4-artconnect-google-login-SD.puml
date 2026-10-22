@@ -1,0 +1,80 @@
+
+@startuml
+title ArtConnect — Google OIDC prijava i uspostava sesije
+
+autonumber
+
+actor "Korisnik" as User
+participant "Frontend" as FE
+participant "Caddy / Vite proxy" as Proxy
+participant "Spring Security" as Security
+participant "Google OIDC" as Google
+participant "ArtConnectOidcUserService" as OidcService
+database "PostgreSQL\n(users)" as DB
+participant "Spring Session JDBC" as Session
+
+User -> FE: Odabire "Prijava s Googleom"
+FE -> Proxy: GET /oauth2/authorization/google
+Proxy -> Security: Prosljeđuje OAuth zahtjev
+Security -> Google: Preusmjeravanje na Google OIDC
+Google --> User: Prijava i privola
+Google --> Proxy: Povratak na /login/oauth2/code/google
+Proxy -> Security: OIDC callback i authorization code
+Security -> Google: Zamjena koda za tokene\n+ provjera OIDC odgovora
+Google --> Security: ID token i korisnički podaci
+Security -> OidcService: Učitavanje OIDC korisnika
+
+OidcService -> OidcService: Provjera email_verified == true
+
+alt E-mail nije potvrđen
+    OidcService --> Security: OAuth2AuthenticationException
+    Security -> FE: Preusmjeravanje na /?login=error
+else E-mail je potvrđen
+    OidcService -> DB: Traži korisnika prema google_sub
+    alt Postoji korisnik s istim google_sub
+        DB --> OidcService: Postojeći korisnik
+        OidcService -> DB: Ažurira ime, avatar, e-mail\n i last_login_at
+    else Korisnik nije pronađen po google_sub
+        OidcService -> DB: Traži isti e-mail, status INVITED
+        alt Pronađen INVITED korisnik
+            DB --> OidcService: Pozvani korisnik
+            OidcService -> DB: Postavlja google_sub,\nprofil i status ACTIVE
+        else Nije pronađen INVITED korisnik
+            OidcService -> DB: Provjerava postoji li isti e-mail\nu drugom statusu
+            alt E-mail postoji u drugom statusu
+                DB --> OidcService: Sukob računa
+                OidcService --> Security: OAuth2AuthenticationException
+                Security -> FE: Preusmjeravanje na /?login=error
+            else E-mail ne postoji
+                OidcService -> DB: Stvara korisnika\nrole=NULL, status=ONBOARDING
+                DB --> OidcService: Novi korisnik
+            end
+        end
+    end
+
+    DB --> OidcService: ID korisnika i ažurirani podaci
+    OidcService --> Security: ArtConnectPrincipal\ngetName() = users.id
+    Security -> Session: Sprema sigurnosni kontekst\nu poslužiteljsku JDBC sesiju
+    Session -> DB: Sprema sesiju i PRINCIPAL_NAME
+    DB --> Session: Sesija spremljena
+    Security --> Proxy: Uspješna autentikacija
+    alt Status ONBOARDING
+        Proxy --> User: Preusmjeravanje na /onboarding
+    else Ostali dopušteni statusi
+        Proxy --> User: Preusmjeravanje na /
+    end
+end
+
+note over Session,DB
+Sesija istječe nakon 8 sati neaktivnosti.
+Kolačić: SESSION; HttpOnly; SameSite=Lax.
+Secure je uključen u produkciji.
+end note
+
+note over OidcService,DB
+Obrisani korisnici imaju google_sub=NULL
+i email=NULL pa se ne pronalaze.
+Ponovna prijava stvara novi korisnički račun.
+end note
+
+@enduml

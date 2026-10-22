@@ -2,15 +2,15 @@
 
 **Cilj:** Definirati arhitekturni stil, dekompoziciju programa na podsustave i module, organizaciju podataka te dinamičko ponašanje tijekom izvođenja. Arhitektura predstavlja temelj za implementaciju i ažurira se pri svakoj važnijoj promjeni projektnih odluka.
 
-| Arhitekturni pogled | Ključno inženjersko pitanje | Primijenjeni model ili dijagram |
-| :--- | :--- | :--- |
-| **Strategija rješenja** | Koji stil i temeljne odluke određuju program? | Tablica odluka (odjeljak 4.1) |
-| **Struktura podsustava** | Koji su glavni dijelovi i kako komuniciraju? | Dijagram komponenata |
-| **Model podataka** | Kako su strukturirani trajni podaci programa? | Relacijski ER dijagram |
-| **Struktura koda** | Kako su dodijeljene odgovornosti i ključne klase? | Reprezentativni dijagram razreda |
-| **Dinamičko ponašanje** | Kako moduli surađuju pri obradi ključnih transakcija? | sekvencijski dijagram |
-| **Stanja sustava** | Kako ključni domenski objekt mijenja svoja stanja? | Dijagram stanja |
-| **Fizički razmještaj** | Na kojim se izvršnim čvorovima program izvodi? | Dijagram razmještaja (poglavlje 6) |
+| Arhitekturni pogled      | Ključno inženjersko pitanje                           | Primijenjeni model ili dijagram    |
+| :----------------------- | :---------------------------------------------------- | :--------------------------------- |
+| **Strategija rješenja**  | Koji stil i temeljne odluke određuju program?         | Tablica odluka (odjeljak 4.1)      |
+| **Struktura podsustava** | Koji su glavni dijelovi i kako komuniciraju?          | Dijagram komponenata               |
+| **Model podataka**       | Kako su strukturirani trajni podaci programa?         | Relacijski ER dijagram             |
+| **Struktura koda**       | Kako su dodijeljene odgovornosti i ključne klase?     | Reprezentativni dijagram razreda   |
+| **Dinamičko ponašanje**  | Kako moduli surađuju pri obradi ključnih transakcija? | sekvencijski dijagram              |
+| **Stanja sustava**       | Kako ključni domenski objekt mijenja svoja stanja?    | Dijagram stanja                    |
+| **Fizički razmještaj**   | Na kojim se izvršnim čvorovima program izvodi?        | Dijagram razmještaja (poglavlje 6) |
 
 ---
 
@@ -23,8 +23,8 @@ Za svaki UML dijagram čuvajte čitljivu sliku i PlantUML izvor, kako je opisano
 **Cilj:** Objasniti nekoliko arhitekturnih odluka koje najviše utječu na rješenje i navesti njihove projektno specifične razloge.
 
 | Odluka | Razmatrana alternativa | Projektno specifično obrazloženje i kompromis |
-| --- | --- | --- |
-|  |  |  |
+| ------ | ---------------------- | --------------------------------------------- |
+|        |                        |                                               |
 
 Objasnite glavne arhitekturne odluke bez ponavljanja popisa tehnologija. Ako važna odluka ima ADR, dovoljno je u tablici navesti njegov ID.
 
@@ -33,10 +33,10 @@ Objasnite glavne arhitekturne odluke bez ponavljanja popisa tehnologija. Ako va�
 
 **Primjer — CrisisMap:**
 
-| Odluka | Razmatrana alternativa | Projektno specifično obrazloženje i kompromis |
-| --- | --- | --- |
+| Odluka                                           | Razmatrana alternativa                           | Projektno specifično obrazloženje i kompromis                                                                                                                                                                                |
+| ------------------------------------------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Klijent u pregledniku i jedan poslužiteljski API | Više zasebno postavljenih poslužiteljskih usluga | Klijent prikazuje kartu, dok poslužiteljski sustav provjerava i pohranjuje prijave. Jedan poslužiteljski sustav upravljiv je za ovaj opseg; njegov kvar može privremeno prekinuti rad s prijavama. Obrazloženje je u ADR-01. |
-| Relacijska pohrana prijava | Dokumentno orijentirana pohrana | Prijave imaju prepoznatljive veze s korisnicima i lokacijama. Relacijska shema te veze čini eksplicitnima, ali zahtijeva migracije kada se shema promijeni. |
+| Relacijska pohrana prijava                       | Dokumentno orijentirana pohrana                  | Prijave imaju prepoznatljive veze s korisnicima i lokacijama. Relacijska shema te veze čini eksplicitnima, ali zahtijeva migracije kada se shema promijeni.                                                                  |
 
 **Analiza primjera:** Obje odluke navode razlog vezan uz aplikaciju za prijavljivanje kriznih događaja i priznaju kompromis. Odluka o poslužiteljskom sustavu upućuje na ADR-01 umjesto ponavljanja cijele usporedbe. Moduli unutar jedne aplikacije koja se postavlja kao cjelina nisu zasebne mikrousluge. U vlastitoj tablici navedite alternative koje je tim doista razmatrao.
 
@@ -49,41 +49,41 @@ Objasnite glavne arhitekturne odluke bez ponavljanja popisa tehnologija. Ako va�
 **Dijagram komponenata:** [U izradi: DOC-13.]  
 **PlantUML izvor:** [U izradi: DOC-13.]
 
-| Komponenta | Odgovornost | Razlog za ovu granicu |
-| --- | --- | --- |
-| Poslužiteljska aplikacija (`backend/`, Spring Boot 4, Java 25) | REST API pod `/api/v1`, poslovna pravila, prijava i sesija, ovlaštenja, zakazani poslovi | Jedna aplikacija koja se postavlja kao cjelina; moduli su paketi unutar nje, a ne zasebne usluge. |
-| Klijentski dio (`frontend/`, React + Vite + TypeScript) | Korisničko sučelje u pregledniku; poziva API preko `src/api/client.ts`; karte prikazuje pomoću Leafleta. | Prikaz i interakcija odvojeni su od poslovnih pravila; u produkciji ga Caddy servira kao statičke datoteke. |
-| OpenStreetMap Tile Service (vanjski sustav) | Klijentski dio dohvaća pločice putem HTTPS-a s `https://tile.openstreetmap.org/{z}/{x}/{y}.png`; atribucija je uvijek vidljiva. | Karta koristi vanjski izvor kartografskih podataka; pločice se dohvaćaju izravno s klijenta, nisu dio baze podataka aplikacije, a pri neuspjelom učitavanju karta prikazuje upozorenje. |
-| Baza podataka (PostgreSQL 17) | Trajni podaci aplikacije i sesije korisnika (Spring Session JDBC) | Podaci imaju jasne relacijske veze (korisnik, prilika, prijava); shemu verzionira Liquibase. |
+| Komponenta                                                     | Odgovornost                                                                                                                     | Razlog za ovu granicu                                                                                                                                                                   |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Poslužiteljska aplikacija (`backend/`, Spring Boot 4, Java 25) | REST API pod `/api/v1`, poslovna pravila, prijava i sesija, ovlaštenja, zakazani poslovi                                        | Jedna aplikacija koja se postavlja kao cjelina; moduli su paketi unutar nje, a ne zasebne usluge.                                                                                       |
+| Klijentski dio (`frontend/`, React + Vite + TypeScript)        | Korisničko sučelje u pregledniku; poziva API preko `src/api/client.ts`; karte prikazuje pomoću Leafleta.                        | Prikaz i interakcija odvojeni su od poslovnih pravila; u produkciji ga Caddy servira kao statičke datoteke.                                                                             |
+| OpenStreetMap Tile Service (vanjski sustav)                    | Klijentski dio dohvaća pločice putem HTTPS-a s `https://tile.openstreetmap.org/{z}/{x}/{y}.png`; atribucija je uvijek vidljiva. | Karta koristi vanjski izvor kartografskih podataka; pločice se dohvaćaju izravno s klijenta, nisu dio baze podataka aplikacije, a pri neuspjelom učitavanju karta prikazuje upozorenje. |
+| Baza podataka (PostgreSQL 17)                                  | Trajni podaci aplikacije i sesije korisnika (Spring Session JDBC)                                                               | Podaci imaju jasne relacijske veze (korisnik, prilika, prijava); shemu verzionira Liquibase.                                                                                            |
 
 ### Backend: moduli i slojevi
 
 Kod je organiziran **paket po modulu** (`hr.fer.artconnect.<modul>`). Moduli zasad postoje kao kostur (prazni paketi) i pune se uz zadatke svojih epika.
 
-| Modul | Odgovornost |
-| --- | --- |
-| `auth` | Google prijava, sesija, odabir uloge, trenutni korisnik |
-| `artist` | Profil umjetnika i javni portfolio |
-| `artwork` | Djela u portfoliju i njihove slike |
-| `opportunity` | Prilike (natječaji, izložbe, radionice): objava, pretraživanje, statusi |
-| `application` | Prijave umjetnika na prilike i odluke organizatora |
-| `result` | Objava rezultata i sudjelovanja |
-| `file` | Pohrana datoteka na volumenu `/data/uploads` i provjera vrste |
-| `catalog` | Šifrarnici (područja umjetnosti, vrste prilika) |
-| `admin` | Administracija korisnika, uloga, blokiranja i skrivanja sadržaja |
-| `calendar` | Poveznica i događaj u Google kalendaru |
-| `statistics` | Statistika organizatora |
-| `report` | Automatski mjesečni izvještaj |
-| `notification` | Obavijesti u aplikaciji (opcionalno) |
-| `common` | Zajednički dijelovi: omotnica grešaka, straničenje, sigurnosna konfiguracija |
+| Modul          | Odgovornost                                                                  |
+| -------------- | ---------------------------------------------------------------------------- |
+| `auth`         | Google prijava, sesija, odabir uloge, trenutni korisnik                      |
+| `artist`       | Profil umjetnika i javni portfolio                                           |
+| `artwork`      | Djela u portfoliju i njihove slike                                           |
+| `opportunity`  | Prilike (natječaji, izložbe, radionice): objava, pretraživanje, statusi      |
+| `application`  | Prijave umjetnika na prilike i odluke organizatora                           |
+| `result`       | Objava rezultata i sudjelovanja                                              |
+| `file`         | Pohrana datoteka na volumenu `/data/uploads` i provjera vrste                |
+| `catalog`      | Šifrarnici (područja umjetnosti, vrste prilika)                              |
+| `admin`        | Administracija korisnika, uloga, blokiranja i skrivanja sadržaja             |
+| `calendar`     | Poveznica i događaj u Google kalendaru                                       |
+| `statistics`   | Statistika organizatora                                                      |
+| `report`       | Automatski mjesečni izvještaj                                                |
+| `notification` | Obavijesti u aplikaciji (opcionalno)                                         |
+| `common`       | Zajednički dijelovi: omotnica grešaka, straničenje, sigurnosna konfiguracija |
 
 Unutar svakog modula kod je podijeljen u tri sloja:
 
-| Sloj | Paket | Sadržaj | Pravilo |
-| --- | --- | --- | --- |
-| Web | `web` | Kontroleri i DTO-ovi | Prima i vraća DTO; nema poslovnih pravila; entiteti se nikad ne vraćaju iz API-ja. |
+| Sloj   | Paket     | Sadržaj                       | Pravilo                                                                                 |
+| ------ | --------- | ----------------------------- | --------------------------------------------------------------------------------------- |
+| Web    | `web`     | Kontroleri i DTO-ovi          | Prima i vraća DTO; nema poslovnih pravila; entiteti se nikad ne vraćaju iz API-ja.      |
 | Servis | `service` | Poslovna logika i transakcije | Provjerava poslovna pravila i vlasništvo (`CurrentUserProvider`); ovdje su transakcije. |
-| Domena | `domain` | JPA entiteti i repozitoriji | Pristup bazi; bez znanja o HTTP-u. |
+| Domena | `domain`  | JPA entiteti i repozitoriji   | Pristup bazi; bez znanja o HTTP-u.                                                      |
 
 Ovisnosti idu prema dolje: web → servis → domena.
 
@@ -91,17 +91,17 @@ Ovisnosti idu prema dolje: web → servis → domena.
 
 React aplikacija u `frontend/src/`, organizirana po značajkama i zajedničkim komponentama. Router i globalni MUI provider nalaze se u korijenskoj aplikaciji; zajednički izgled, stanja i lokalizacija odvojeni su od funkcionalnih stranica.
 
-| Mjesto | Sadržaj |
-| --- | --- |
-| `main.tsx` | Ulazna točka i globalni MUI provider (`ThemeProvider`, `CssBaseline`) |
-| `App.tsx` | Korijenska aplikacija, React Router i definicije ruta |
-| `app/theme.ts` | MUI tema s dizajnerskim tokenima |
-| `api/client.ts` | `apiFetch`: osnovna adresa `/api/v1`, kolačić sesije, CSRF zaglavlje `X-XSRF-TOKEN` na zahtjevima koji mijenjaju stanje, slanje JSON-a, pretvaranje svake greške (API, mreža, neočekivan odgovor) u `ApiError` |
-| `components/layout/` | `AppLayout`: zaglavlje, navigacija prema ulozi, mobilni Drawer, poveznica za preskok na sadržaj, `<Outlet />`, podnožje i naslov stranice |
-| `components/state/` | Zajedničke komponente učitavanja, praznog i greška stanja; stranice 403/404; statusni chipovi i globalni Snackbar (`useNotify`) |
-| `features/<značajka>/` | Stranice, komponente i hookovi jedne funkcionalnosti, npr. početna stranica u `features/home/` ili `features/opportunities/` |
+| Mjesto                                  | Sadržaj                                                                                                                                                                                                                      |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `main.tsx`                              | Ulazna točka i globalni MUI provider (`ThemeProvider`, `CssBaseline`)                                                                                                                                                        |
+| `App.tsx`                               | Korijenska aplikacija, React Router i definicije ruta                                                                                                                                                                        |
+| `app/theme.ts`                          | MUI tema s dizajnerskim tokenima                                                                                                                                                                                             |
+| `api/client.ts`                         | `apiFetch`: osnovna adresa `/api/v1`, kolačić sesije, CSRF zaglavlje `X-XSRF-TOKEN` na zahtjevima koji mijenjaju stanje, slanje JSON-a, pretvaranje svake greške (API, mreža, neočekivan odgovor) u `ApiError`               |
+| `components/layout/`                    | `AppLayout`: zaglavlje, navigacija prema ulozi, mobilni Drawer, poveznica za preskok na sadržaj, `<Outlet />`, podnožje i naslov stranice                                                                                    |
+| `components/state/`                     | Zajedničke komponente učitavanja, praznog i greška stanja; stranice 403/404; statusni chipovi i globalni Snackbar (`useNotify`)                                                                                              |
+| `features/<značajka>/`                  | Stranice, komponente i hookovi jedne funkcionalnosti, npr. početna stranica u `features/home/` ili `features/opportunities/`                                                                                                 |
 | `features/opportunities/components/map` | Zajednička **MapView** komponenta **(Leaflet + OpenStreetMap)** s podrškom za dinamičko učitavanje **(React.lazy)**, prikaz pojedinačnih/višestrukih oznaka te **DraggableMarkerMap** varijanta za odabir lokacije u obrascu |
-| `i18n/hr.ts` | Zajednički tekstovi sučelja na hrvatskom; značajke mogu imati vlastite tekstove |
+| `i18n/hr.ts`                            | Zajednički tekstovi sučelja na hrvatskom; značajke mogu imati vlastite tekstove                                                                                                                                              |
 
 Dok AUTH-01-FE1 ne isporuči hook za dohvat trenutnog korisnika, izgled prikazuje posjetiteljsku navigaciju. Statusi prilika i prijava definirani su zasebno.
 
@@ -118,17 +118,16 @@ Svi pozivi backenda idu kroz `apiFetch` iz `api/client.ts`, nikad kroz vlastiti 
 
 **PlantUML izvor:** [izvor](https://github.com/VladoSruk/Programsko-inzenjerstvo/blob/main/docs/puml/4-1-crisismap-system-CMP.puml)
 
-| Dio | Odgovornost | Razlog za ovu granicu |
-| --- | --- | --- |
-| Web-klijent | Prikazuje prijave i prikuplja podatke za novu prijavu. | Korisnička interakcija odvojena je od pravila prijave i trajne pohrane. |
-| API za prijave | Prihvaća zahtjeve za rad s prijavama i vraća odgovore. | Odgovornosti izložene putem HTTP-a odvojene su od obrade prijava. |
-| Usluga za prijave | Primjenjuje pravila prijave i pristupa pohranjenim prijavama. | Pravila provjere valjanosti i pohrane prijava imaju jasno mjesto odgovornosti. |
+| Dio                  | Odgovornost                                                                                     | Razlog za ovu granicu                                                          |
+| -------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Web-klijent          | Prikazuje prijave i prikuplja podatke za novu prijavu.                                          | Korisnička interakcija odvojena je od pravila prijave i trajne pohrane.        |
+| API za prijave       | Prihvaća zahtjeve za rad s prijavama i vraća odgovore.                                          | Odgovornosti izložene putem HTTP-a odvojene su od obrade prijava.              |
+| Usluga za prijave    | Primjenjuje pravila prijave i pristupa pohranjenim prijavama.                                   | Pravila provjere valjanosti i pohrane prijava imaju jasno mjesto odgovornosti. |
 | Proces za obavijesti | Određuje korisnike koji trebaju primiti obavijest i traži od vanjskog pružatelja da je pošalje. | Obrada obavijesti odvojena je od odgovaranja na korisnikov zahtjev za prijavu. |
 
 **Analiza primjera:** Vanjska granica odvaja predloženi sustav od pružatelja karte i pružatelja obavijesti. Unutarnja granica grupira API za prijave, uslugu za prijave i proces za obavijesti unutar jedne poslužiteljske aplikacije; njihovi zasebni simboli prikazuju predložene odgovornosti, a ne neovisno postavljene usluge. PostgreSQL pohranjuje podatke aplikacije, dok pružatelj karte osigurava kartografske pločice. Strelice sažimaju ovisnosti, a ne redoslijed transakcije; taj redoslijed prikazuje sekvencijski dijagram. Izostavite proces za obavijesti i Firebase Cloud Messaging ako obavijesti nisu dio odobrenog opsega. Pružatelja prijave u sustav uključite samo ako to zahtijeva odobreni zadatak. Kako implementacija napreduje, ispravite svaku predloženu granicu koja se pokaže netočnom; završni dijagram mora odgovarati onome što je tim izgradio. Jedan koherentan pogled na komponente korisniji je od nekoliko gotovo jednakih inačica s proturječnim vezama.
 
 </details>
-
 
 ## 4.3 Podaci i detaljno oblikovanje
 
@@ -155,7 +154,7 @@ tablice koje trenutno postoje. Stavke šifrarnika se ne brišu nego isključuju 
 <details>
 <summary><strong>Jedna prijava poplave i povezani podaci</strong></summary>
 
-**Primjer — CrisisMap:** Ana putem svojeg korisničkog računa podnosi prijavu poplave `R-104`. Odabire lokaciju na karti i označava razinu ozbiljnosti kao visoku. Građanin može podnijeti više prijava; svaka prijava pripada jednoj kategoriji kriznog događaja, primjerice *Poplava*. Aplikacija pohranjuje prijavu i njezine koordinate. Kartografske pločice dolaze od vanjskog pružatelja i nisu entiteti u modelu podataka aplikacije.
+**Primjer — CrisisMap:** Ana putem svojeg korisničkog računa podnosi prijavu poplave `R-104`. Odabire lokaciju na karti i označava razinu ozbiljnosti kao visoku. Građanin može podnijeti više prijava; svaka prijava pripada jednoj kategoriji kriznog događaja, primjerice _Poplava_. Aplikacija pohranjuje prijavu i njezine koordinate. Kartografske pločice dolaze od vanjskog pružatelja i nisu entiteti u modelu podataka aplikacije.
 
 ![ER dijagram podataka sustava CrisisMap](https://raw.githubusercontent.com/VladoSruk/Programsko-inzenjerstvo/main/docs/assets/diagrams/4-2-crisismap-data-ERD.svg)
 
@@ -163,7 +162,7 @@ tablice koje trenutno postoje. Stavke šifrarnika se ne brišu nego isključuju 
 
 **PlantUML izvor:** [izvor](https://github.com/VladoSruk/Programsko-inzenjerstvo/blob/main/docs/puml/4-2-crisismap-data-ERD.puml)
 
-**Analiza primjera:** `R-104` ima jednog autora i jednu kategoriju; Ana i kategorija *Poplava* mogu biti povezane s više prijava. Dijagram prikazuje veze bez prepisivanja svih stupaca baze podataka ili pisanja drugog tabličnog opisa za svaki entitet. Ako aplikacija prihvaća i **anonimne** prijave, tu mogućnost prikažite u vezi s entitetom `Citizen`. Ako su kategorije fiksne vrijednosti, a ne pohranjeni zapisi, nemojte izmišljati tablicu kategorija. Završni ER dijagram usporedite s modelom trajne pohrane i objasnite samo razlike važne za razumijevanje projekta.
+**Analiza primjera:** `R-104` ima jednog autora i jednu kategoriju; Ana i kategorija _Poplava_ mogu biti povezane s više prijava. Dijagram prikazuje veze bez prepisivanja svih stupaca baze podataka ili pisanja drugog tabličnog opisa za svaki entitet. Ako aplikacija prihvaća i **anonimne** prijave, tu mogućnost prikažite u vezi s entitetom `Citizen`. Ako su kategorije fiksne vrijednosti, a ne pohranjeni zapisi, nemojte izmišljati tablicu kategorija. Završni ER dijagram usporedite s modelom trajne pohrane i objasnite samo razlike važne za razumijevanje projekta.
 
 </details>
 
@@ -192,15 +191,19 @@ tablice koje trenutno postoje. Stavke šifrarnika se ne brišu nego isključuju 
 
 ## 4.4 Ponašanje tijekom izvođenja
 
-**Cilj:** Objasniti jednu važnu interakciju među dijelovima koji se izvode i životni ciklus jednog smislenog objekta. Odaberite primjere koji otkrivaju odluke ili neuspješne putove umjesto izrade dijagrama za svaku CRUD radnju.
+**Cilj:** Prikazati redoslijed poruka za jedan reprezentativni scenarij i odgovore na važne alternative.
 
-### 4.4.1 Reprezentativni UML sekvencijski dijagram
+**Scenarij:** Prijava korisnika putem Google OIDC-a.
 
-**Cilj:** Prikazati redoslijed poruka za jedan reprezentativni scenarij i odgovore na važnu alternativu.
+**PlantUML izvor:** [`docs/puml/4-4-artconnect-google-login-SD.puml`](puml/4-4-artconnect-google-login-SD.puml)
 
-**Scenarij:** [Naziv interakcije; dodajte UC ID ako postoji.]  
-**sekvencijski dijagram:** [Ugradite čitljiv UML sekvencijski dijagram.]  
-**PlantUML izvor:** [Poveznica na odgovarajuću `.puml` datoteku.]
+Korisnik pokreće prijavu putem Googlea. Spring Security obrađuje OIDC povratni poziv i provjerava ID token prije predaje korisničkih podataka komponenti `ArtConnectOidcUserService`. Servis zahtijeva potvrđenu e-mail adresu te u jednoj transakciji pronalazi ili stvara zapis u tablici `users`.
+
+Postojeći korisnik pronalazi se prema Googleovu identifikatoru `sub`, a njegovi se profilni podaci i vrijeme posljednje prijave ažuriraju. Ako korisnik nije pronađen, pokušava se povezivanje pozvanog računa sa statusom `INVITED` prema e-mail adresi. Sukob s računom u drugom statusu odbija prijavu. Ako odgovarajući račun ne postoji, stvara se korisnik sa statusom `ONBOARDING` bez dodijeljene uloge. Obrisani korisnički računi ne pronalaze se prema `google_sub` ili e-mail adresi jer su te vrijednosti poništene.
+
+Nakon uspješne obrade stvara se poslužiteljska sesija putem Spring Session JDBC. `ArtConnectPrincipal.getName()` vraća interni ID korisnika iz tablice `users`, što omogućuje indeksiranje sesija po korisniku. Korisnik sa statusom `ONBOARDING` preusmjerava se na `/onboarding`, a ostali dopušteni korisnici na `/`. Neuspjela autentikacija ili obrada korisnika vodi na `/?login=error`.
+
+**Sigurnosno ponašanje:** API zahtjevi bez valjane sesije vraćaju `401 UNAUTHENTICATED`; ne pokreću OAuth preusmjeravanje. Sesija istječe nakon osam sati neaktivnosti, a kolačić `SESSION` koristi `HttpOnly`, `SameSite=Lax` i `Secure` u produkciji.
 
 <details>
 <summary><strong>Odabir lokacije, provjera valjanosti i podnošenje prijave</strong></summary>
@@ -250,44 +253,44 @@ Napišite nekoliko ADR-a samo za važne odluke čije obrazloženje, alternative 
 
 ### ADR-[ID]: [Naslov odluke]
 
-| Polje | Zapis odluke |
-| --- | --- |
-| Kontekst i cilj | [Koji je arhitekturni problem učinio ovu odluku potrebnom?] |
-| Kriteriji odluke | [Što je timu stvarno bilo važno?] |
-| Razmatrane alternative | [Realne mogućnosti koje je tim razmotrio, ukratko.] |
-| Odluka i obrazloženje | [Odabrana mogućnost, zašto je odabrana i čega se tim odrekao.] |
-| Status | [Predloženo, prihvaćeno ili zamijenjeno; ako je primjenjivo, poveznica na novu odluku.] |
+| Polje                  | Zapis odluke                                                                            |
+| ---------------------- | --------------------------------------------------------------------------------------- |
+| Kontekst i cilj        | [Koji je arhitekturni problem učinio ovu odluku potrebnom?]                             |
+| Kriteriji odluke       | [Što je timu stvarno bilo važno?]                                                       |
+| Razmatrane alternative | [Realne mogućnosti koje je tim razmotrio, ukratko.]                                     |
+| Odluka i obrazloženje  | [Odabrana mogućnost, zašto je odabrana i čega se tim odrekao.]                          |
+| Status                 | [Predloženo, prihvaćeno ili zamijenjeno; ako je primjenjivo, poveznica na novu odluku.] |
 
 ADR pišite samo za odluku čije će obrazloženje ostati važno i nakon promjene implementacije. Značajna promjena odluke može se zabilježiti novim ADR-om koji zamjenjuje stari; rutinski odabiri alata ne trebaju detaljne zapise. Promjene dogovorenog opsega pripadaju zahtjevima i njihovoj povijesti promjena; povratna informacija o zadatku ostaje uz odgovarajući zadatak.
 
 ### ADR-01: Poslužiteljska sesija umjesto JWT-a
 
-| Polje | Zapis odluke |
-| --- | --- |
-| Kontekst i cilj | React aplikacija treba pamtiti prijavu, a backend treba moći poništiti sesije korisnika. |
-| Razmatrane alternative | Poslužiteljska sesija u PostgreSQL-u ili JWT pristupni tokeni. |
-| Odluka i obrazloženje | Koristimo Spring Session JDBC i kolačić `SESSION`. Već imamo PostgreSQL, a sesije možemo dohvatiti po korisniku i obrisati. Ne trebamo uvoditi osvježavanje i opoziv JWT tokena. |
-| Kompromis | Backend pri radu sa sesijom pristupa bazi. Za zahtjeve koji mijenjaju podatke potrebna je CSRF zaštita. |
-| Status | Prihvaćeno u FND-04 (#9). |
+| Polje                  | Zapis odluke                                                                                                                                                                     |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Kontekst i cilj        | React aplikacija treba pamtiti prijavu, a backend treba moći poništiti sesije korisnika.                                                                                         |
+| Razmatrane alternative | Poslužiteljska sesija u PostgreSQL-u ili JWT pristupni tokeni.                                                                                                                   |
+| Odluka i obrazloženje  | Koristimo Spring Session JDBC i kolačić `SESSION`. Već imamo PostgreSQL, a sesije možemo dohvatiti po korisniku i obrisati. Ne trebamo uvoditi osvježavanje i opoziv JWT tokena. |
+| Kompromis              | Backend pri radu sa sesijom pristupa bazi. Za zahtjeve koji mijenjaju podatke potrebna je CSRF zaštita.                                                                          |
+| Status                 | Prihvaćeno u FND-04 (#9).                                                                                                                                                        |
 
 <details>
 <summary><strong>Odabir jednog poslužiteljskog sustava umjesto zasebno postavljenih usluga</strong></summary>
 
 **Primjer — CrisisMap, ADR-01:**
 
-| ID | Datum | Odluka | Razmatrana alternativa | Obrazloženje i kompromis | Status |
-| --- | --- | --- | --- | --- | --- |
+| ID     | Datum          | Odluka                                     | Razmatrana alternativa                          | Obrazloženje i kompromis                                                                                                      | Status     |
+| ------ | -------------- | ------------------------------------------ | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------- |
 | ADR-01 | [Datum odluke] | Jedan poslužiteljski API za obradu prijava | Zasebno postavljene usluge za prijave i resurse | Manji napor postavljanja i integracije za odobreni opseg; kvar poslužiteljskog sustava može utjecati na obje funkcionalnosti. | Prihvaćeno |
 
 ### ADR-01: Jedan poslužiteljski API za obradu prijava
 
-| Polje | Zapis odluke |
-| --- | --- |
-| Kontekst i cilj | Tim tijekom jednog semestra mora izraditi i javno postaviti prijavljivanje kriznih događaja i prikaz usmjeren na kartu. |
-| Kriteriji odluke | Tim može izraditi, integrirati, postaviti i objasniti rješenje; komponente i dalje imaju prepoznatljive odgovornosti. |
-| Razmatrane alternative | **Jedan poslužiteljski sustav:** moduli dijele aplikaciju koja se postavlja kao cjelina. **Zasebne usluge:** svaka se može izvoditi neovisno, ali zahtijeva dodatni rad na integraciji i postavljanju. |
-| Odluka i obrazloženje | Odabrati jedan poslužiteljski sustav s jasno odvojenim odgovornostima vezanim uz prijave. Time se smanjuje rad na postavljanju, uz prihvaćanje da kvar tog sustava može istodobno utjecati na rad s prijavama. |
-| Status | Prihvaćeno. |
+| Polje                  | Zapis odluke                                                                                                                                                                                                   |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Kontekst i cilj        | Tim tijekom jednog semestra mora izraditi i javno postaviti prijavljivanje kriznih događaja i prikaz usmjeren na kartu.                                                                                        |
+| Kriteriji odluke       | Tim može izraditi, integrirati, postaviti i objasniti rješenje; komponente i dalje imaju prepoznatljive odgovornosti.                                                                                          |
+| Razmatrane alternative | **Jedan poslužiteljski sustav:** moduli dijele aplikaciju koja se postavlja kao cjelina. **Zasebne usluge:** svaka se može izvoditi neovisno, ali zahtijeva dodatni rad na integraciji i postavljanju.         |
+| Odluka i obrazloženje  | Odabrati jedan poslužiteljski sustav s jasno odvojenim odgovornostima vezanim uz prijave. Time se smanjuje rad na postavljanju, uz prihvaćanje da kvar tog sustava može istodobno utjecati na rad s prijavama. |
+| Status                 | Prihvaćeno.                                                                                                                                                                                                    |
 
 **Analiza primjera:** Strategija rješenja navodi trenutačni pristup; ADR-01 čuva alternative i kriterije koji su do njega doveli. Dijagrami komponenata i razmještaja trebaju odražavati odabrani pristup kako se sustav razvija. Zaseban ADR koristan je za važnu odluku, a ne za svaki odabir alata.
 
@@ -295,13 +298,13 @@ ADR pišite samo za odluku čije će obrazloženje ostati važno i nakon promjen
 
 ### ADR-02: OpenStreetMap + Leaflet umjesto Google Mapsa
 
-| Polje | Zapis odluke |
-| --- | --- |
-| Kontekst i cilj | Prikaz lokacija prilika i odabir lokacije zahtijevaju interaktivnu kartu u React klijentskoj aplikaciji. Za projektni opseg i očekivano opterećenje rješenje treba biti jednostavno za postavljanje bez uspostavljanja računa za naplatu kod kartografskog pružatelja. |
-| Kriteriji odluke | Rješenje mora podržavati oznake i odabir lokacije, integrirati se s Reactom te prikazivati izvor podataka. Prednost ima rješenje koje ne zahtijeva API ključ ni račun s omogućenim obračunom po korištenju i čije postavljanje ne uvodi dodatnu kartografsku naplatu u projektnom opsegu. |
-| Razmatrane alternative | **Google Maps** kao kartografski servis te **OpenStreetMapove** pločice prikazane pomoću **Leafleta**. |
-| Odluka i obrazloženje | Odabrati **Leaflet** s javnim pločicama **OpenStreetMapa**. Leaflet je klijentska biblioteka bez kartografskog API ključa, a javni OSM Tile Service za ovaj opseg ne zahtijeva projektni račun za naplatu ni obračun po korištenju kao Google Maps Platform. Time se pojednostavljuje postavljanje i izbjegava konfiguracija Googleovih vjerodajnica i naplate; Leaflet se učitava lijeno kako ne bi ulazio u početni paket. Pločice se dohvaćaju s `https://tile.openstreetmap.org/{z}/{x}/{y}.png`, uz vidljivu atribuciju. Kompromis je ovisnost o javnom servisu bez jamstva dostupnosti, uz obvezu poštivanja njegove politike korištenja pločica; za veće opterećenje treba ponovno procijeniti pružatelja. |
-| Status | Prihvaćeno. |
+| Polje                  | Zapis odluke                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Kontekst i cilj        | Prikaz lokacija prilika i odabir lokacije zahtijevaju interaktivnu kartu u React klijentskoj aplikaciji. Za projektni opseg i očekivano opterećenje rješenje treba biti jednostavno za postavljanje bez uspostavljanja računa za naplatu kod kartografskog pružatelja.                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Kriteriji odluke       | Rješenje mora podržavati oznake i odabir lokacije, integrirati se s Reactom te prikazivati izvor podataka. Prednost ima rješenje koje ne zahtijeva API ključ ni račun s omogućenim obračunom po korištenju i čije postavljanje ne uvodi dodatnu kartografsku naplatu u projektnom opsegu.                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Razmatrane alternative | **Google Maps** kao kartografski servis te **OpenStreetMapove** pločice prikazane pomoću **Leafleta**.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Odluka i obrazloženje  | Odabrati **Leaflet** s javnim pločicama **OpenStreetMapa**. Leaflet je klijentska biblioteka bez kartografskog API ključa, a javni OSM Tile Service za ovaj opseg ne zahtijeva projektni račun za naplatu ni obračun po korištenju kao Google Maps Platform. Time se pojednostavljuje postavljanje i izbjegava konfiguracija Googleovih vjerodajnica i naplate; Leaflet se učitava lijeno kako ne bi ulazio u početni paket. Pločice se dohvaćaju s `https://tile.openstreetmap.org/{z}/{x}/{y}.png`, uz vidljivu atribuciju. Kompromis je ovisnost o javnom servisu bez jamstva dostupnosti, uz obvezu poštivanja njegove politike korištenja pločica; za veće opterećenje treba ponovno procijeniti pružatelja. |
+| Status                 | Prihvaćeno.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ## 4.6 Koncepti koji prožimaju sustav
 
@@ -374,24 +377,24 @@ Pristupačnost: sučelje je na hrvatskom (`<html lang="hr">`), postoji poveznica
 **Tehnički rizici i dug**
 
 | Rizik ili kompromis | Posljedica | Trenutačni pristup |
-| --- | --- | --- |
-|  |  |  |
+| ------------------- | ---------- | ------------------ |
+|                     |            |                    |
 
 **Poslovni ili domenski rizici, ako su značajni**
 
 | Rizik | Posljedica | Trenutačni pristup |
-| --- | --- | --- |
-|  |  |  |
+| ----- | ---------- | ------------------ |
+|       |            |                    |
 
 <details>
 <summary><strong>Prepoznavanje ograničenja bez izmišljanja produkcijske infrastrukture</strong></summary>
 
 **Primjer — CrisisMap, tehnički rizici:**
 
-| Rizik ili kompromis | Posljedica | Trenutačni pristup |
-| --- | --- | --- |
-| Jedna instanca aplikacije obrađuje podnošenje prijava. | Kvar smještaja aplikacije privremeno onemogućuje nove prijave. | Prihvaćeno u okviru projekta kolegija; tim ne tvrdi da postoji automatsko prebacivanje na pričuvni sustav. |
-| Vanjske kartografske pločice nisu dostupne. | Prikaz karte može prestati raditi iako su pohranjene prijave i dalje dostupne. | Objasnite korisniku vidljivu pogrešku ili alternativu koju implementirana aplikacija stvarno pruža. |
+| Rizik ili kompromis                                    | Posljedica                                                                     | Trenutačni pristup                                                                                         |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Jedna instanca aplikacije obrađuje podnošenje prijava. | Kvar smještaja aplikacije privremeno onemogućuje nove prijave.                 | Prihvaćeno u okviru projekta kolegija; tim ne tvrdi da postoji automatsko prebacivanje na pričuvni sustav. |
+| Vanjske kartografske pločice nisu dostupne.            | Prikaz karte može prestati raditi iako su pohranjene prijave i dalje dostupne. | Objasnite korisniku vidljivu pogrešku ili alternativu koju implementirana aplikacija stvarno pruža.        |
 
 **Primjer — CrisisMap, domenski rizik:** Čitatelji mogu neprovjerenu prijavu građanina zamijeniti za službeno upozorenje. Tim može u sučelju jasno razlikovati status provjere prijave i uputiti korisnike na službene izvore.
 

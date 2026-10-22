@@ -1,13 +1,14 @@
 package hr.fer.artconnect.auth;
 
-import hr.fer.artconnect.auth.domain.User;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import hr.fer.artconnect.auth.domain.User;
 import hr.fer.artconnect.auth.domain.UserRepository;
 import hr.fer.artconnect.auth.domain.UserStatus;
 
@@ -23,6 +24,10 @@ public class ArtConnectOidcUserService extends OidcUserService {
     @Transactional
     public ArtConnectPrincipal loadUser(OidcUserRequest userRequest) {
         var oidcUser = super.loadUser(userRequest);
+        return processOidcUser(oidcUser);
+    }
+    @Transactional
+    ArtConnectPrincipal processOidcUser(OidcUser oidcUser) {
         if (!Boolean.TRUE.equals(oidcUser.getEmailVerified())) {
             throw new OAuth2AuthenticationException(new OAuth2Error("email_not_verified"),
                     "Google račun nema potvrđenu e-mail adresu.");
@@ -40,6 +45,7 @@ public class ArtConnectOidcUserService extends OidcUserService {
         }
         String email = rawEmail.toLowerCase(java.util.Locale.ROOT);
 
+        //ako nema imena umjesto njega se stavlja email
         if (displayName == null || displayName.isBlank()) {
             displayName = email;
         }
@@ -51,17 +57,37 @@ public class ArtConnectOidcUserService extends OidcUserService {
 
         if (existingUser.isPresent()) {
             var user = existingUser.get();
+
+            if (user.getStatus() == UserStatus.BLOCKED) {
+            throw new OAuth2AuthenticationException(
+                    new OAuth2Error("account_disabled"),
+                    "Ovaj korisnički račun ne može se koristiti.");
+            }
+
+            if (user.getStatus() == UserStatus.DELETED) {
+                throw new OAuth2AuthenticationException(
+                        new OAuth2Error("account_deleted"),
+                        "Ovaj korisnički račun više nije dostupan.");
+            }
+
             user.updateGoogleProfile(email, displayName, avatarUrl);
             return new ArtConnectPrincipal(user, oidcUser);
         }
-
         var userByEmail = userRepository.findByEmailIgnoreCase(email);
         if (userByEmail.isPresent()) {
             var user = userByEmail.get();
+
+            if (user.getStatus() == UserStatus.BLOCKED || user.getStatus() == UserStatus.DELETED) {
+                throw new OAuth2AuthenticationException(
+                        new OAuth2Error("account_disabled"),
+                        "Ovaj korisnički račun ne može se koristiti.");
+            }
+
             if (user.getStatus() != UserStatus.INVITED) {
                 throw new OAuth2AuthenticationException(new OAuth2Error("account_conflict"),
                         "Postoji račun s ovom e-mail adresom koji nije pozvan.");
             }
+            
             user.activateInvitedGoogleAccount(sub, email, displayName, avatarUrl);
             return new ArtConnectPrincipal(user, oidcUser);
         }

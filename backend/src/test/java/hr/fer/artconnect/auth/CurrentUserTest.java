@@ -1,24 +1,33 @@
 package hr.fer.artconnect.auth;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import java.util.List;
+import java.util.UUID;
 
-import hr.fer.artconnect.common.*;
-import java.util.*;
-import org.junit.jupiter.api.*;
-import org.junit.jupiter.params.*;
-import org.junit.jupiter.params.provider.*;
-import org.springframework.beans.factory.annotation.*;
-import org.springframework.boot.webmvc.test.autoconfigure.*;
-import org.springframework.context.annotation.*;
-import org.springframework.security.authentication.*;
-import org.springframework.security.core.annotation.*;
-import org.springframework.security.core.authority.*;
-import org.springframework.security.core.context.*;
-import org.springframework.test.web.servlet.*;
-import org.springframework.web.bind.annotation.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import hr.fer.artconnect.common.ApiException;
+import hr.fer.artconnect.common.ErrorCode;
 
 @WebMvcTest(CurrentUserTest.TestController.class)
 @Import({SecurityConfig.class, CurrentUserProvider.class, CurrentUserTest.TestController.class})
@@ -27,6 +36,8 @@ class CurrentUserTest {
     MockMvc mvc;
     @Autowired
     CurrentUserProvider provider;
+    @MockitoBean
+    ArtConnectOidcUserService oidcUserService;
 
     @AfterEach
     void clearContext() {

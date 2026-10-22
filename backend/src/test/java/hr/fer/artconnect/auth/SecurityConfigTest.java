@@ -1,21 +1,27 @@
 package hr.fer.artconnect.auth;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import hr.fer.artconnect.auth.web.*;
-import jakarta.servlet.http.*;
-import org.junit.jupiter.api.*;
-import org.junit.jupiter.params.*;
-import org.junit.jupiter.params.provider.*;
-import org.springframework.beans.factory.annotation.*;
-import org.springframework.boot.webmvc.test.autoconfigure.*;
-import org.springframework.context.annotation.*;
-import org.springframework.security.access.prepost.*;
-import org.springframework.security.test.context.support.*;
-import org.springframework.test.web.servlet.*;
-import org.springframework.web.bind.annotation.*;
+import hr.fer.artconnect.auth.web.CsrfController;
+import jakarta.servlet.http.Cookie;
 
 // Testni kontroler potvrđuje prolazak kroz filtre i za rute koje još nisu implementirane.
 @WebMvcTest(SecurityConfigTest.TestController.class)
@@ -23,6 +29,8 @@ import org.springframework.web.bind.annotation.*;
 class SecurityConfigTest {
     @Autowired
     MockMvc mvc;
+    @MockitoBean
+    ArtConnectOidcUserService oidcUserService;
 
     @ParameterizedTest
     @ValueSource(strings = {
