@@ -334,9 +334,9 @@ ADR pišite samo za odluku čije će obrazloženje ostati važno i nakon promjen
 | Kontekst i cilj | Slike djela i budući prilozi prijava moraju biti pohranjeni odvojeno od poslovne logike i opstati pri zamjeni backend kontejnera. |
 | Kriteriji odluke | Pohrana treba imati jedinstvene ključeve, metapodatke u `stored_files`, sigurne putanje, očuvanje nakon ponovnog pokretanja i provjeru stvarnog tipa datoteke bez povjerenja u klijentska zaglavlja. |
 | Razmatrane alternative | Datoteke kao binarni podaci u PostgreSQL-u, lokalna putanja unutar kontejnera ili zajednički direktorij na trajnom Docker volumenu. |
-| Odluka i obrazloženje | Koristiti `FileStorageService` s korijenom `artconnect.storage.root`, UUID nazivima i metapodacima u `stored_files`; u produkciji montirati imenovani volumen `uploads` na `/data/uploads`. Lokalni backend izvan Dockera koristi `./data/uploads`. Tip se određuje po JPEG, PNG ili PDF magic bytes. |
+| Odluka i obrazloženje | Koristiti `FileStorageService` s korijenom `artconnect.storage.root`, UUID nazivima i metapodacima u `stored_files`; u produkciji montirati imenovani volumen `uploads` na `/data/uploads`. Binarne podatke ne spremati u PostgreSQL jer bi povećavali bazu i sigurnosne kopije te opteretili bazu pohranom i dohvatom sadržaja datoteka. Lokalna putanja unutar kontejnera nije dovoljna jer bi se datoteke izgubile pri zamjeni kontejnera. Imenovani Docker volumen opstaje neovisno o životnom vijeku kontejnera. Lokalni backend izvan Dockera koristi `./data/uploads`. Tip se određuje po JPEG, PNG ili PDF magic bytes. |
 | Kompromis | Baza i datotečni sustav ne dijele jednu atomsku transakciju; privremene datoteke, atomsko premještanje i callbackovi transakcije ograničavaju rizik nekonzistentnosti. Docker volumen opstaje nakon zamjene kontejnera, ali zahtijeva zasebnu sigurnosnu kopiju i oporavak. |
-| Status | Prihvaćeno u PORT-04-BE2/BE3/BE4. |
+| Status | Prihvaćeno u PORT-04-BE1 (#104). |
 
 ## 4.6 Koncepti koji prožimaju sustav
 
