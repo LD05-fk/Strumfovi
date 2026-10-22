@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import hr.fer.artconnect.auth.domain.*;
+import hr.fer.artconnect.support.*;
 import jakarta.servlet.http.*;
 import java.nio.charset.*;
 import java.time.*;
@@ -46,13 +48,16 @@ class SessionIntegrationTest {
     FindByIndexNameSessionRepository<?> indexedSessions;
     @Autowired
     MockMvc mvc;
+    @Autowired
+    UserRepository users;
 
     @Test
     void prijavaIzBazeDostupnaJePrekoSessionKolacica() throws Exception {
         var jdbcSession = sessions.createSession();
         // JDBC klasa je interna pa atributima pristupamo preko javnog Session sučelja.
         Session session = jdbcSession;
-        var user = new CurrentUser(UUID.randomUUID(), CurrentUser.Role.ARTIST, CurrentUser.Status.ACTIVE);
+        var user = TestPrincipals.principal(users.save(User.createOnboardingUser(
+                "google-session-test", "sesija@artconnect.test", "Sesija", null)));
         var authentication = UsernamePasswordAuthenticationToken.authenticated(user, null, user.getAuthorities());
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 new SecurityContextImpl(authentication));
@@ -80,6 +85,7 @@ class SessionIntegrationTest {
             assertThat((Session) sessions.findById(session.getId())).isNull();
         } finally {
             sessions.deleteById(session.getId());
+            users.deleteById(user.getUserId());
         }
     }
 
@@ -114,7 +120,7 @@ class SessionIntegrationTest {
         }
 
         @GetMapping("/api/v1/auth/session-test")
-        public String protectedEndpoint(@AuthenticationPrincipal CurrentUser user) {
+        public String protectedEndpoint(@AuthenticationPrincipal ArtConnectPrincipal user) {
             return user.getName();
         }
     }

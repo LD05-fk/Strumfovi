@@ -54,6 +54,9 @@ services:
       ARTCONNECT_GEOCODING_MAX_WAIT: ${ARTCONNECT_GEOCODING_MAX_WAIT:-2s}
       # e-mail prvog administratora; prazno = ne stvara se nitko
       ARTCONNECT_ADMIN_EMAIL: ${ARTCONNECT_ADMIN_EMAIL:-}
+      # OAuth klijent za Google prijavu (AUTH-01-BE1)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
     volumes:
       - uploads:/data/uploads
     # port se namjerno ne izlaže prema van, dostupan je samo Caddyju
