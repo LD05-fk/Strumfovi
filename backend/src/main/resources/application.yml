@@ -63,3 +63,12 @@ management:
   endpoint:
     health:
       show-details: never
+artconnect:
+  storage:
+    root: ${ARTCONNECT_STORAGE_ROOT:./data/uploads}
+  geocoding:
+    # Local development must opt in explicitly before contacting the public service.
+    base-url: ${ARTCONNECT_GEOCODING_BASE_URL:http://127.0.0.1:9099}
+    user-agent: ${ARTCONNECT_GEOCODING_USER_AGENT:ArtConnect/1.0 (+https://artconnect-fer.duckdns.org)}
+    min-interval: ${ARTCONNECT_GEOCODING_MIN_INTERVAL:1s}
+    max-wait: ${ARTCONNECT_GEOCODING_MAX_WAIT:2s}

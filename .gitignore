@@ -9,6 +9,7 @@
 target/
 *.class
 HELP.md
+**/data/uploads/
 
 # Node / Vite
 node_modules/
@@ -20,7 +21,13 @@ coverage/
 *.iml
 .vscode/
 backend/.mcp.json
+frontend/.mcp.json
 
 # Datoteke operacijskog sustava
 .DS_Store
 Thumbs.db
+
+#Test
+report.html
+__pycache__/
+.pytest_cache/

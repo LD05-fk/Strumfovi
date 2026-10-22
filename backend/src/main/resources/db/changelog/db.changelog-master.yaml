@@ -20,3 +20,12 @@ databaseChangeLog:
   - include:
       file: changes/007-organizer-profiles.yaml
       relativeToChangelogFile: true
+  - include:
+      file: changes/008-opportunities.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/009-artist-profiles.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/021-artworks-and-files.yaml
+      relativeToChangelogFile: true
