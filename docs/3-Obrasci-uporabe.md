@@ -27,3 +27,34 @@
 Ovdje je opisan obrazac uporabe. Backend dio implementiran je u ADM-01-BE2;
 administratorsko sučelje, promjena uloga, blokiranje i odobravanje zasebni su zadaci.
 Detalji parametara i odgovora nalaze se u [API dokumentaciji administracije](api/admin.md).
+
+## Uređivanje šifrarnika
+
+- **Primarni sudionik:** administrator.
+- **Cilj:** održavati popise područja umjetnosti i vrsta prilika.
+- **Preduvjet:** valjana administratorska sesija; za promjene valjan CSRF token.
+- **Rezultat:** stavka je dodana, uređena, deaktivirana, ponovno aktivirana ili obrisana.
+
+### Osnovni tijek
+
+1. Administrator otvara upravljanje šifrarnicima.
+2. Sučelje dohvaća aktivne i neaktivne stavke odgovarajućeg šifrarnika.
+3. Administrator dodaje novu stavku ili uređuje šifru, naziv, aktivnost i poziciju postojeće.
+4. Sustav provjerava obavezna polja, ograničenja i jedinstvenost šifre i naziva.
+5. Sustav sprema izmjenu i vraća spremljenu stavku.
+6. Aktivne stavke prikazuju se u javnim popisima za odabir.
+
+### Alternativni tijekovi
+
+- Administrator deaktivira stavku: ona nestaje iz javnog popisa, a postojeći profili i prilike zadržavaju veze.
+- Administrator ponovno aktivira stavku: ona se vraća u javni popis.
+- Administrator briše nekorištenu stavku: sustav je briše i vraća 204.
+- Ako se stavka koristi u profilu ili prilici, brisanje vraća 409 `IN_USE`; administrator je može deaktivirati.
+- Ako šifra ili naziv već postoji u istom šifrarniku, spremanje vraća 409 `DUPLICATE_CODE`.
+- Neispravna polja vraćaju 400 `VALIDATION_ERROR` s detaljima po polju.
+- Ako stavka više ne postoji, uređivanje i brisanje vraćaju 404 `NOT_FOUND`.
+- Bez sesije sustav vraća 401; bez administratorske uloge ili valjanog CSRF tokena za promjenu vraća 403.
+
+Backend dio pripada ADM-04-BE1 (#218), a administratorsko sučelje zasebnom
+zadatku. Detalji ruta i ograničenja nalaze se u
+[API dokumentaciji administracije](api/admin.md#administracija-šifrarnika).
