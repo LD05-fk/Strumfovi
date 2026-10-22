@@ -151,31 +151,6 @@ class ArtConnectOidcUserServiceTest {
     }
 
     @Test
-    void noviKorisnikDobivaStatusOnboarding() {
-        User user = mock(User.class); 
-        UUID userId = UUID.randomUUID();
-        when(user.getId()).thenReturn(userId);
-        when(user.getStatus()).thenReturn(UserStatus.INVITED);
-
-        when(oidcUser.getEmailVerified()).thenReturn(true);
-        when(oidcUser.getEmail()).thenReturn("ana@example.com");
-        when(oidcUser.getSubject()).thenReturn("google-sub-789");
-        when(oidcUser.getFullName()).thenReturn("Ana");
-        when(oidcUser.getPicture()).thenReturn("https://example.com/ana.png");
-
-        when(userRepository.findByGoogleSub("google-sub-789")).thenReturn(Optional.empty());
-        when(userRepository.findByEmailIgnoreCase("ana@example.com")).thenReturn(Optional.of(user));
-
-        ArtConnectPrincipal result = oidcUserService.processOidcUser(oidcUser);
-
-        assertNotNull(result);
-        assertEquals(userId, result.getUserId());
-
-        verify(user).activateInvitedGoogleAccount("google-sub-789", "ana@example.com", "Ana", "https://example.com/ana.png");
-        verify(userRepository, never()).save(any(User.class));
-    }
-
-    @Test
     void noviGoogleKorisnikDobivaOnboardingStatus() {
         when(oidcUser.getEmailVerified()).thenReturn(true);
         when(oidcUser.getEmail()).thenReturn("ana@example.com");

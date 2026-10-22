@@ -1,6 +1,7 @@
 package hr.fer.artconnect.auth;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -9,6 +10,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -26,8 +29,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import hr.fer.artconnect.auth.domain.User;
+import hr.fer.artconnect.auth.domain.UserRepository;
+import hr.fer.artconnect.auth.domain.UserRole;
+import hr.fer.artconnect.auth.domain.UserStatus;
 import hr.fer.artconnect.common.ApiException;
 import hr.fer.artconnect.common.ErrorCode;
+import hr.fer.artconnect.support.TestPrincipals;
 
 @WebMvcTest(CurrentUserTest.TestController.class)
 @Import({SecurityConfig.class, CurrentUserProvider.class, CurrentUserTest.TestController.class})
@@ -38,6 +46,8 @@ class CurrentUserTest {
     CurrentUserProvider provider;
     @MockitoBean
     ArtConnectOidcUserService oidcUserService;
+    @MockitoBean
+    UserRepository userRepository;
 
     @AfterEach
     void clearContext() {
@@ -47,11 +57,10 @@ class CurrentUserTest {
     @ParameterizedTest
     @ValueSource(strings = {"principal", "provider"})
     void kontrolerIServisDohvacajuIstogKorisnika(String path) throws Exception {
-        var user = new CurrentUser(UUID.randomUUID(), CurrentUser.Role.ARTIST, CurrentUser.Status.ACTIVE);
-        var auth = UsernamePasswordAuthenticationToken.authenticated(user, null, user.getAuthorities());
-        mvc.perform(get("/api/v1/test/current-user/" + path).with(authentication(auth)))
+        var user = user(UserRole.ARTIST, UserStatus.ACTIVE);
+        mvc.perform(get("/api/v1/test/current-user/" + path).with(authentication(TestPrincipals.authentication(user))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(user.id().toString()))
+                .andExpect(jsonPath("$.id").value(user.getId().toString()))
                 .andExpect(jsonPath("$.role").value("ARTIST"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
@@ -67,6 +76,17 @@ class CurrentUserTest {
         provjeriNeprijavljenog();
     }
 
+    @Test
+    void providerOdbijaPrincipalaBezRedaUBazi() {
+        var user = mock(User.class);
+        when(user.getId()).thenReturn(UUID.randomUUID());
+        when(user.getStatus()).thenReturn(UserStatus.ACTIVE);
+        when(user.getRole()).thenReturn(UserRole.ARTIST);
+        // Korisnik je u sesiji, ali u bazi ga više nema.
+        SecurityContextHolder.getContext().setAuthentication(TestPrincipals.authentication(user));
+        provjeriNeprijavljenog();
+    }
+
     private void provjeriNeprijavljenog() {
         assertThatThrownBy(provider::getCurrentUser).isInstanceOfSatisfying(ApiException.class,
                 error -> assertThat(error.getCode()).isEqualTo(ErrorCode.UNAUTHENTICATED));
@@ -74,12 +94,25 @@ class CurrentUserTest {
 
     @Test
     void onboardingNemaUloguAFilterJosNeOgranicavaStatus() throws Exception {
-        var user = new CurrentUser(UUID.randomUUID(), null, CurrentUser.Status.ONBOARDING);
-        assertThat(user.getAuthorities()).isEmpty();
-        var auth = UsernamePasswordAuthenticationToken.authenticated(user, null, user.getAuthorities());
+        var user = user(null, UserStatus.ONBOARDING);
+        var auth = TestPrincipals.authentication(user);
+        assertThat(auth.getAuthorities()).isEmpty();
         mvc.perform(get("/api/v1/test/current-user/provider").with(authentication(auth)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ONBOARDING"));
+    }
+
+    private User user(UserRole role, UserStatus status) {
+        var user = mock(User.class);
+        var id = UUID.randomUUID();
+        when(user.getId()).thenReturn(id);
+        when(user.getRole()).thenReturn(role);
+        when(user.getStatus()).thenReturn(status);
+        when(userRepository.findById(id)).thenReturn(Optional.of(user));
+        return user;
+    }
+
+    record CurrentUserResponse(UUID id, UserRole role, UserStatus status) {
     }
 
     @RestController
@@ -91,13 +124,14 @@ class CurrentUserTest {
         }
 
         @GetMapping("/api/v1/test/current-user/principal")
-        public CurrentUser principal(@AuthenticationPrincipal CurrentUser user) {
-            return user;
+        public CurrentUserResponse principal(@AuthenticationPrincipal ArtConnectPrincipal principal) {
+            return new CurrentUserResponse(principal.getUserId(), principal.getRole(), principal.getStatus());
         }
 
         @GetMapping("/api/v1/test/current-user/provider")
-        public CurrentUser provider() {
-            return provider.getCurrentUser();
+        public CurrentUserResponse provider() {
+            var user = provider.getCurrentUser();
+            return new CurrentUserResponse(user.getId(), user.getRole(), user.getStatus());
         }
     }
 }

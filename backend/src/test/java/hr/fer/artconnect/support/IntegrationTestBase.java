@@ -2,7 +2,7 @@ package hr.fer.artconnect.support;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
-import hr.fer.artconnect.auth.CurrentUser;
+import hr.fer.artconnect.auth.domain.UserRepository;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -14,7 +14,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.test.context.TestSecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -48,6 +47,9 @@ public abstract class IntegrationTestBase {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private UserRepository userRepository;
+
     // Tablice na koje upućuje neka zadržana tablica (system_settings.updated_by ->
     // users).
     // TRUNCATE ... CASCADE bi preko stranog ključa ispraznio i zadržanu tablicu,
@@ -75,14 +77,17 @@ public abstract class IntegrationTestBase {
         TestSecurityContextHolder.clearContext();
     }
 
-    protected void loginAs(String role) {
-        CurrentUser principal = new CurrentUser(
-                UUID.randomUUID(),
-                CurrentUser.Role.valueOf(role),
-                CurrentUser.Status.ACTIVE);
-        var authentication = new UsernamePasswordAuthenticationToken(
-                principal, null, principal.getAuthorities());
-        TestSecurityContextHolder.setAuthentication(authentication);
+    // CurrentUserProvider čita korisnika iz baze, pa prijavljeni korisnik mora imati svoj red u users.
+    protected UUID loginAs(String role) {
+        UUID id = UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO users (id, email, display_name, role, status, organizer_approval) "
+                        + "VALUES (?, ?, ?, ?, 'ACTIVE', ?)",
+                id, id + "@artconnect.test", "Test " + role, role,
+                "ORGANIZER".equals(role) ? "APPROVED" : null);
+        var user = userRepository.findById(id).orElseThrow();
+        TestSecurityContextHolder.setAuthentication(TestPrincipals.authentication(user));
+        return id;
     }
 
     protected RequestPostProcessor withCsrf() {

@@ -23,13 +23,8 @@ Za svaki UML dijagram čuvajte čitljivu sliku i PlantUML izvor, kako je opisano
 **Cilj:** Objasniti nekoliko arhitekturnih odluka koje najviše utječu na rješenje i navesti njihove projektno specifične razloge.
 
 | Odluka | Razmatrana alternativa | Projektno specifično obrazloženje i kompromis |
-<<<<<<< HEAD
-| ------ | ---------------------- | --------------------------------------------- |
-|        |                        |                                               |
-=======
 | --- | --- | --- |
 | Geokodiranje preko backenda (ADR-03) | Nominatim poziv izravno iz preglednika | Backend centralno provodi ograničenje korištenja i skriva vanjsku integraciju od klijenta; zahtjevi se mogu odbiti ako slobodan termin nije dostupan unutar dvije sekunde. |
->>>>>>> c5ff1461d6163c1e5ce53442b258ffb288e5aa07
 
 Objasnite glavne arhitekturne odluke bez ponavljanja popisa tehnologija. Ako važna odluka ima ADR, dovoljno je u tablici navesti njegov ID.
 
@@ -54,14 +49,6 @@ Objasnite glavne arhitekturne odluke bez ponavljanja popisa tehnologija. Ako va�
 **Dijagram komponenata:** [U izradi: DOC-13.]  
 **PlantUML izvor:** [U izradi: DOC-13.]
 
-<<<<<<< HEAD
-| Komponenta                                                     | Odgovornost                                                                                                                     | Razlog za ovu granicu                                                                                                                                                                   |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Poslužiteljska aplikacija (`backend/`, Spring Boot 4, Java 25) | REST API pod `/api/v1`, poslovna pravila, prijava i sesija, ovlaštenja, zakazani poslovi                                        | Jedna aplikacija koja se postavlja kao cjelina; moduli su paketi unutar nje, a ne zasebne usluge.                                                                                       |
-| Klijentski dio (`frontend/`, React + Vite + TypeScript)        | Korisničko sučelje u pregledniku; poziva API preko `src/api/client.ts`; karte prikazuje pomoću Leafleta.                        | Prikaz i interakcija odvojeni su od poslovnih pravila; u produkciji ga Caddy servira kao statičke datoteke.                                                                             |
-| OpenStreetMap Tile Service (vanjski sustav)                    | Klijentski dio dohvaća pločice putem HTTPS-a s `https://tile.openstreetmap.org/{z}/{x}/{y}.png`; atribucija je uvijek vidljiva. | Karta koristi vanjski izvor kartografskih podataka; pločice se dohvaćaju izravno s klijenta, nisu dio baze podataka aplikacije, a pri neuspjelom učitavanju karta prikazuje upozorenje. |
-| Baza podataka (PostgreSQL 17)                                  | Trajni podaci aplikacije i sesije korisnika (Spring Session JDBC)                                                               | Podaci imaju jasne relacijske veze (korisnik, prilika, prijava); shemu verzionira Liquibase.                                                                                            |
-=======
 | Komponenta | Odgovornost | Razlog za ovu granicu |
 | --- | --- | --- |
 | Poslužiteljska aplikacija (`backend/`, Spring Boot 4, Java 25) | REST API pod `/api/v1`, poslovna pravila, prijava i sesija, ovlaštenja, zakazani poslovi | Jedna aplikacija koja se postavlja kao cjelina; moduli su paketi unutar nje, a ne zasebne usluge. |
@@ -69,30 +56,11 @@ Objasnite glavne arhitekturne odluke bez ponavljanja popisa tehnologija. Ako va�
 | OpenStreetMap Tile Service (vanjski sustav) | Klijentski dio dohvaća pločice putem HTTPS-a s `https://tile.openstreetmap.org/{z}/{x}/{y}.png`; atribucija je uvijek vidljiva. | Karta koristi vanjski izvor kartografskih podataka; pločice se dohvaćaju izravno s klijenta, nisu dio baze podataka aplikacije, a pri neuspjelom učitavanju karta prikazuje upozorenje. |
 | Nominatim (vanjski sustav) | Backend prima adresu preko `GET /api/v1/geocoding/search`, ograničava odlazne zahtjeve na jedan u sekundi i vraća koordinate organizatoru. | Adresa se geokodira na backendu kako klijent ne bi zaobilazio globalno ograničenje Nominatima; backend postavlja prepoznatljiv `User-Agent`, a neuspjeh vanjske usluge ne sprema se u bazu. |
 | Baza podataka (PostgreSQL 17) | Trajni podaci aplikacije i sesije korisnika (Spring Session JDBC) | Podaci imaju jasne relacijske veze (korisnik, prilika, prijava); shemu verzionira Liquibase. |
->>>>>>> c5ff1461d6163c1e5ce53442b258ffb288e5aa07
 
 ### Backend: moduli i slojevi
 
 Kod je organiziran **paket po modulu** (`hr.fer.artconnect.<modul>`). Moduli zasad postoje kao kostur (prazni paketi) i pune se uz zadatke svojih epika.
 
-<<<<<<< HEAD
-| Modul          | Odgovornost                                                                  |
-| -------------- | ---------------------------------------------------------------------------- |
-| `auth`         | Google prijava, sesija, odabir uloge, trenutni korisnik                      |
-| `artist`       | Profil umjetnika i javni portfolio                                           |
-| `artwork`      | Djela u portfoliju i njihove slike                                           |
-| `opportunity`  | Prilike (natječaji, izložbe, radionice): objava, pretraživanje, statusi      |
-| `application`  | Prijave umjetnika na prilike i odluke organizatora                           |
-| `result`       | Objava rezultata i sudjelovanja                                              |
-| `file`         | Pohrana datoteka na volumenu `/data/uploads` i provjera vrste                |
-| `catalog`      | Šifrarnici (područja umjetnosti, vrste prilika)                              |
-| `admin`        | Administracija korisnika, uloga, blokiranja i skrivanja sadržaja             |
-| `calendar`     | Poveznica i događaj u Google kalendaru                                       |
-| `statistics`   | Statistika organizatora                                                      |
-| `report`       | Automatski mjesečni izvještaj                                                |
-| `notification` | Obavijesti u aplikaciji (opcionalno)                                         |
-| `common`       | Zajednički dijelovi: omotnica grešaka, straničenje, sigurnosna konfiguracija |
-=======
 | Modul | Odgovornost |
 | --- | --- |
 | `auth` | Google prijava, sesija, odabir uloge, trenutni korisnik |
@@ -110,7 +78,6 @@ Kod je organiziran **paket po modulu** (`hr.fer.artconnect.<modul>`). Moduli zas
 | `report` | Automatski mjesečni izvještaj |
 | `notification` | Obavijesti u aplikaciji (opcionalno) |
 | `common` | Zajednički dijelovi: omotnica grešaka, straničenje, sigurnosna konfiguracija |
->>>>>>> c5ff1461d6163c1e5ce53442b258ffb288e5aa07
 
 Unutar svakog modula kod je podijeljen u tri sloja:
 
@@ -237,11 +204,21 @@ Indeksi: `ix_stored_files_owner (owner_id)`, `ix_artworks_artist_visibility (art
 
 ## 4.4 Ponašanje tijekom izvođenja
 
+**Cilj:** Objasniti jednu važnu interakciju među dijelovima koji se izvode i životni ciklus jednog smislenog objekta. Odaberite primjere koji otkrivaju odluke ili neuspješne putove umjesto izrade dijagrama za svaku CRUD radnju.
+
+### 4.4.1 Reprezentativni UML sekvencijski dijagram
+
 **Cilj:** Prikazati redoslijed poruka za jedan reprezentativni scenarij i odgovore na važne alternative.
 
-**Scenarij:** Prijava korisnika putem Google OIDC-a.
+**Scenarij:** Prijava korisnika putem Google OIDC-a (AUTH-01).
 
-**PlantUML izvor:** [`docs/puml/4-4-artconnect-google-login-SD.puml`](puml/4-4-artconnect-google-login-SD.puml)
+**Sekvencijski dijagram:**
+
+![Sekvencijski dijagram Google prijave sustava ArtConnect](assets/diagrams/4-4-artconnect-google-login-SD.svg)
+
+**Slika 4.4. Sekvencijski dijagram prijave Googleom i uspostave sesije**
+
+**Izvor dijagrama:** [`docs/puml/4-4-artconnect-google-login-SD.puml`](puml/4-4-artconnect-google-login-SD.puml)
 
 Korisnik pokreće prijavu putem Googlea. Spring Security obrađuje OIDC povratni poziv i provjerava ID token prije predaje korisničkih podataka komponenti `ArtConnectOidcUserService`. Servis zahtijeva potvrđenu e-mail adresu te u jednoj transakciji pronalazi ili stvara zapis u tablici `users`.
 
@@ -382,7 +359,7 @@ Paket `hr.fer.artconnect.common` sadrži zajedničke klase za greške, provjeru 
 
 `SecurityConfig` dopušta anonimne GET zahtjeve na prilike, umjetnike, djela, datoteke, šifrarnike, javne postavke, `/api/v1/auth/csrf` i `/actuator/health`. Ostali zahtjevi traže prijavu. `@EnableMethodSecurity` uključuje provjere `@PreAuthorize`; privatnost pojedinog djela ili datoteke mora dodatno provjeriti odgovarajuća metoda.
 
-`CurrentUser(UUID id, Role role, Status status)` je zajednički principal prijavljenog korisnika. Serijalizira se u JDBC sesiju, a `getName()` vraća ID korisnika za dohvat njegovih sesija. `role` može biti `null` tijekom onboardinga. Ovo nije DTO odgovora `GET /me`; podatke profila dodat će AUTH zadaci. Kontroler prima `@AuthenticationPrincipal CurrentUser user`, a servis poziva `currentUserProvider.getCurrentUser()`. Bez valjanog principala provider javlja 401 `UNAUTHENTICATED`.
+`ArtConnectPrincipal` je principal prijavljenog korisnika. Nastaje nakon Google prijave u `ArtConnectOidcUserService`, a nakon promjene uloge ili statusa gradi ga `SessionAuthenticationUpdater` iz reda `users`. Implementira `OidcUser` i `Serializable`, jer ga Spring Session JDBC serijalizira u sesiju zajedno sa `SecurityContextom`. `getName()` vraća `users.id`, pa se sesije mogu dohvatiti i poništiti po korisniku. Ovlasti su `ROLE_<role>` iz baze; korisnik u statusu `ONBOARDING` još nema ulogu ni ovlasti. Kontroler prima `@AuthenticationPrincipal ArtConnectPrincipal principal`. Servis poziva `currentUserProvider.getCurrentUser()`, koji vraća entitet `User` iz baze za ID iz principala. Bez valjanog principala ili ako korisnik više ne postoji u bazi, provider javlja 401 `UNAUTHENTICATED`.
 
 `RoleHierarchy` je spojen na provjere `@PreAuthorize`. Prema dogovoru, uloge ostaju odvojene: `ADMIN` ne nasljeđuje automatski prava `ARTIST` i `ORGANIZER`. `UserStatusFilter` je uključen u sigurnosni lanac prije odluke o pristupu, ali zasad samo propušta zahtjev. Provjere `ONBOARDING_REQUIRED` i `USER_BLOCKED` pripadaju kasnijim zadacima EPIC-01 i EPIC-08.
 
@@ -392,7 +369,7 @@ Frontend prvo poziva `GET /api/v1/auth/csrf`. Odgovor sadrži `headerName` i `to
 
 `SecurityErrorHandler` obrađuje greške u filtrima. Zajedno s `GlobalExceptionHandlerom` koristi istu JSON omotnicu i hrvatske poruke: anonimnom korisniku bez pristupa vraća 401 `UNAUTHENTICATED`, a prijavljenom bez ovlasti 403 `FORBIDDEN`. Izostavljen ili nevaljan CSRF token uvijek vraća 403 `FORBIDDEN`.
 
-Testovi u paketu `auth` uključuju sigurnosne filtre i provjeravaju tok CSRF kolačića i zaglavlja, odvojene uloge, razvojni izuzetak te dohvat principala u kontroleru i servisu. `SessionIntegrationTest` uz Testcontainers PostgreSQL provjerava učitavanje `CurrentUser` principala iz baze, dohvat sesija po ID-u korisnika, postavljeno trajanje od 8 sati, odbijanje istekle sesije i produkcijske kolačiće. Dodatna lokalna provjera 18. 10. 2026. potvrdila je da isti kolačić sesije vrijedi nakon gašenja i ponovnog pokretanja procesa backenda uz istu bazu. Postupak i rezultati zapisani su u [poglavlju o ispitivanju](5-Ispitivanje.md#provjera-fnd-04--18-10-2026).
+Testovi u paketu `auth` uključuju sigurnosne filtre i provjeravaju tok CSRF kolačića i zaglavlja, odvojene uloge, razvojni izuzetak te dohvat principala u kontroleru i servisu. `SessionIntegrationTest` uz Testcontainers PostgreSQL provjerava učitavanje `ArtConnectPrincipal` principala iz baze, dohvat sesija po ID-u korisnika, postavljeno trajanje od 8 sati, odbijanje istekle sesije i produkcijske kolačiće. `GoogleLoginSessionIntegrationTest` simulira prijavu s `oidcLogin()`. Zatim provjerava da `SessionAuthenticationUpdater` sprema `ArtConnectPrincipal` u `spring_session`, da `findByPrincipalName(users.id)` pronalazi tu sesiju i da sljedeći zahtjev sa samim kolačićem dobiva istog korisnika preko `CurrentUserProvider`. Dodatna lokalna provjera 18. 10. 2026. potvrdila je da isti kolačić sesije vrijedi nakon gašenja i ponovnog pokretanja procesa backenda uz istu bazu. Postupak i rezultati zapisani su u [poglavlju o ispitivanju](5-Ispitivanje.md#provjera-fnd-04--18-10-2026).
 
 ### Greške i provjera podataka
 
