@@ -113,7 +113,9 @@ class CatalogAdminIntegrationTest {
 
         for (String body : new String[]{
                 input("keramika", "Drugi naziv", true, 1),
-                input("druga-sifra", "Keramika", true, 1)}) {
+                input("druga-sifra", "Keramika", true, 1),
+                input("druga-sifra", "Keramika ", true, 1),
+                input("druga-sifra", " Keramika", true, 1)}) {
             for (var request : new MockHttpServletRequestBuilder[]{post(adminPath(path)), put(second)}) {
                 mvc.perform(request.with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
                         .andExpect(status().isConflict())
@@ -122,8 +124,9 @@ class CatalogAdminIntegrationTest {
         }
         // Vlastita šifra i naziv nisu duplikati.
         mvc.perform(put(second).with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                        .content(input("slikarstvo", "Slikarstvo", true, 0)))
-                .andExpect(status().isOk());
+                        .content(input("slikarstvo", " Slikarstvo ", true, 0)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Slikarstvo"));
     }
 
     @ParameterizedTest
@@ -136,6 +139,7 @@ class CatalogAdminIntegrationTest {
                 {input("a", "Valjano", true, 0), "code"},
                 {input("a".repeat(41), "Valjano", true, 0), "code"},
                 {input("valjano", " ", true, 0), "name"},
+                {input("valjano", " a ", true, 0), "name"},
                 {input("valjano", "a".repeat(81), true, 0), "name"},
                 {input("valjano", "Valjano", true, -1), "position"},
                 {input("valjano", "Valjano", true, 1000), "position"},

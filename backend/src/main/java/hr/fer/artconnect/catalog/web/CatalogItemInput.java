@@ -16,4 +16,7 @@ public record CatalogItemInput(
         @Min(value = 0, message = "Pozicija mora biti najmanje 0.")
         @Max(value = 999, message = "Pozicija smije biti najviše 999.")
         Integer position) {
+    public CatalogItemInput {
+        name = name == null ? null : name.strip();
+    }
 }

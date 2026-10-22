@@ -146,6 +146,10 @@ POST i PUT primaju sva četiri obavezna polja:
 | active | boolean | `true` ili `false` |
 | position | integer | 0–999 |
 
+Bjeline na početku i kraju naziva `name` uklanjaju se metodom `strip()` prije
+validacije, provjere duplikata i spremanja. Primjerice, `"Keramika "`
+i `"Keramika"` smatraju se istim nazivom.
+
 Decimalni unos za `position` vraća 400 `VALIDATION_ERROR`. Zajednička
 Jackson postavka `accept-float-as-int: false` sprječava skraćivanje decimalnih
 JSON brojeva pri čitanju cjelobrojnih polja.
