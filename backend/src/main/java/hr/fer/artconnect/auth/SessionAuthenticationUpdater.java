@@ -2,6 +2,8 @@ package hr.fer.artconnect.auth;
 
 import java.util.UUID;
 
+import org.jspecify.annotations.Nullable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -38,24 +40,14 @@ public class SessionAuthenticationUpdater {
                 .orElseThrow(() ->
                         new IllegalArgumentException("Korisnik ne postoji: " + userId));
 
-        Authentication currentAuthentication =
-                SecurityContextHolder.getContext().getAuthentication();
+        // Principal se uvijek gradi iz reda users; trenutna prijava nije uvjet (POST /dev/login-as je anoniman).
+        OidcUser googleUser = currentGoogleUser(userId);
+        ArtConnectPrincipal principal = googleUser != null
+                ? new ArtConnectPrincipal(user, googleUser)
+                : new ArtConnectPrincipal(user);
 
-        if (currentAuthentication == null
-                || !(currentAuthentication.getPrincipal() instanceof OidcUser oidcUser)) {
-            throw new IllegalStateException(
-                    "U trenutnom SecurityContextu nema OIDC korisnika.");
-        }
-
-        ArtConnectPrincipal principal =
-                new ArtConnectPrincipal(user, oidcUser);
-
-        Authentication updatedAuthentication =
-                new org.springframework.security.authentication
-                        .UsernamePasswordAuthenticationToken(
-                                principal,
-                                null,
-                                principal.getAuthorities());
+        Authentication updatedAuthentication = UsernamePasswordAuthenticationToken.authenticated(
+                principal, null, principal.getAuthorities());
 
         SecurityContext context =
                 SecurityContextHolder.createEmptyContext();
@@ -65,5 +57,17 @@ public class SessionAuthenticationUpdater {
         securityContextRepository.saveContext(context, request, response);
 
         return principal;
+    }
+
+    // Googleove podatke zadržavamo samo kad sesija već pripada istom korisniku (npr. odabir uloge).
+    // Omotavamo izvornog Googleova korisnika, a ne stari principal, da se lanac ne produljuje.
+    private static @Nullable OidcUser currentGoogleUser(UUID userId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null
+                && authentication.getPrincipal() instanceof ArtConnectPrincipal current
+                && current.getUserId().equals(userId)) {
+            return current.getOidcUser();
+        }
+        return null;
     }
 }

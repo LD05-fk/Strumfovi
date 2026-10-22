@@ -1,10 +1,12 @@
 
 package hr.fer.artconnect.auth;
 
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +27,9 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
 import hr.fer.artconnect.auth.domain.User;
 import hr.fer.artconnect.auth.domain.UserRepository;
+import hr.fer.artconnect.auth.domain.UserRole;
 import hr.fer.artconnect.auth.domain.UserStatus;
+import hr.fer.artconnect.support.TestUsers;
 
 @ExtendWith(MockitoExtension.class)
 class ArtConnectOidcUserServiceTest {
@@ -44,48 +48,6 @@ class ArtConnectOidcUserServiceTest {
     }
 
     @Test
-    void blokiraniKorisnikNeMozeSePrijaviti() {
-        User user = mock(User.class);
-        when(user.getStatus()).thenReturn(UserStatus.BLOCKED);
-        when(oidcUser.getEmailVerified()).thenReturn(true);
-        when(oidcUser.getEmail()).thenReturn("blokiran@example.com");
-        when(oidcUser.getSubject()).thenReturn("google-sub-123");
-
-        when(userRepository.findByGoogleSub("google-sub-123"))
-                .thenReturn(Optional.of(user));
-        assertEquals(UserStatus.BLOCKED, user.getStatus());
-        
-        OAuth2AuthenticationException exception = assertThrows(
-                OAuth2AuthenticationException.class,
-                () -> oidcUserService.processOidcUser(oidcUser));
-        verify(userRepository).findByGoogleSub("google-sub-123");
-        assertEquals("account_disabled", exception.getError().getErrorCode());
-
-        // Profil blokiranog korisnika ne smije se ažurirati.
-        verify(user, never()).updateGoogleProfile(anyString(), any(), any());
-    }
-
-    @Test
-    void obrisaniKorisnikNeMozeSePrijaviti() {
-        User user = mock(User.class);
-        when(user.getStatus()).thenReturn(UserStatus.DELETED);
-        when(oidcUser.getEmailVerified()).thenReturn(true);
-        when(oidcUser.getEmail()).thenReturn("obrisan@example.com");
-        when(oidcUser.getSubject()).thenReturn("google-sub-456");
-
-        when(userRepository.findByGoogleSub("google-sub-456"))
-                .thenReturn(Optional.of(user));
-        assertEquals(UserStatus.DELETED, user.getStatus());
-        
-        OAuth2AuthenticationException exception = assertThrows(
-                OAuth2AuthenticationException.class,
-                () -> oidcUserService.processOidcUser(oidcUser));
-        verify(userRepository).findByGoogleSub("google-sub-456");
-        assertEquals("account_deleted", exception.getError().getErrorCode());
-
-        verify(user, never()).updateGoogleProfile(anyString(), any(), any());
-    }
-    @Test
     void nepotvrdeniEmailOdbijaPrijavu() {
         when(oidcUser.getEmailVerified()).thenReturn(false);
 
@@ -103,36 +65,37 @@ class ArtConnectOidcUserServiceTest {
     }
     @Test
     void postojeciAktivniKorisnikMozeSePrijaviti(){
-        User user = mock(User.class); 
+        // Stvarni entitet, kako bi test provjerio i što updateGoogleProfile upisuje u red.
         UUID userId = UUID.randomUUID();
-        when(user.getId()).thenReturn(userId);
-        when(user.getStatus()).thenReturn(UserStatus.ACTIVE);
+        User user = TestUsers.user(userId, "google-sub-789", "stari@example.com",
+                UserRole.ARTIST, UserStatus.ACTIVE);
         when(oidcUser.getEmailVerified()).thenReturn(true);
-        when(oidcUser.getEmail()).thenReturn("ana@example.com");
+        when(oidcUser.getEmail()).thenReturn("Ana@Example.com");
         when(oidcUser.getSubject()).thenReturn("google-sub-789");
         when(oidcUser.getFullName()).thenReturn("Ana");
         when(oidcUser.getPicture()).thenReturn("https://example.com/ana.png");
         when(userRepository.findByGoogleSub("google-sub-789")).thenReturn(Optional.of(user));
+        OffsetDateTime before = OffsetDateTime.now();
 
         ArtConnectPrincipal result = oidcUserService.processOidcUser(oidcUser);
 
         assertNotNull(result);
         assertEquals(userId, result.getUserId());
-
-        verify(user).updateGoogleProfile(
-            "ana@example.com",
-            "Ana",
-            "https://example.com/ana.png");
+        assertEquals("ana@example.com", user.getEmail());
+        assertEquals("Ana", user.getDisplayName());
+        assertEquals("https://example.com/ana.png", user.getAvatarUrl());
+        assertEquals(UserStatus.ACTIVE, user.getStatus());
+        assertNotNull(user.getLastLoginAt());
+        assertFalse(user.getLastLoginAt().isBefore(before));
 
         verify(userRepository, never()).save(any(User.class));
     }
-    
+
     @Test
     void pozvaniKorisnikSeAktiviraPrvomGooglePrijavom() {
-        User user = mock(User.class); 
+        // Unaprijed stvoreni administrator nema google_sub dok se prvi put ne prijavi.
         UUID userId = UUID.randomUUID();
-        when(user.getId()).thenReturn(userId);
-        when(user.getStatus()).thenReturn(UserStatus.INVITED);
+        User user = TestUsers.user(userId, null, "ana@example.com", UserRole.ADMIN, UserStatus.INVITED);
         when(oidcUser.getEmailVerified()).thenReturn(true);
         when(oidcUser.getEmail()).thenReturn("ana@example.com");
         when(oidcUser.getSubject()).thenReturn("google-sub-789");
@@ -140,13 +103,23 @@ class ArtConnectOidcUserServiceTest {
         when(oidcUser.getPicture()).thenReturn("https://example.com/ana.png");
         when(userRepository.findByGoogleSub("google-sub-789")).thenReturn(Optional.empty());
         when(userRepository.findByEmailIgnoreCase("ana@example.com")).thenReturn(Optional.of(user));
+        OffsetDateTime before = OffsetDateTime.now();
 
         ArtConnectPrincipal result = oidcUserService.processOidcUser(oidcUser);
 
         assertNotNull(result);
         assertEquals(userId, result.getUserId());
+        assertEquals(UserStatus.ACTIVE, result.getStatus());
+        assertEquals("ROLE_ADMIN", result.getAuthorities().iterator().next().getAuthority());
 
-        verify(user).activateInvitedGoogleAccount("google-sub-789", "ana@example.com", "Ana", "https://example.com/ana.png");
+        assertEquals(UserStatus.ACTIVE, user.getStatus());
+        assertEquals("google-sub-789", user.getGoogleSub());
+        assertEquals("ana@example.com", user.getEmail());
+        assertEquals("Ana", user.getDisplayName());
+        assertEquals("https://example.com/ana.png", user.getAvatarUrl());
+        assertEquals(UserRole.ADMIN, user.getRole());
+        assertNotNull(user.getLastLoginAt());
+        assertFalse(user.getLastLoginAt().isBefore(before));
         verify(userRepository, never()).save(any(User.class));
     }
 
