@@ -1,7 +1,6 @@
 package hr.fer.artconnect.auth.web;
 
 import org.springframework.context.annotation.Profile;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,7 +27,7 @@ public class DevAuthController {
     }
 
     @PostMapping("/login-as")
-    public DevLoginResponse loginAs(
+    public CurrentUserDto loginAs(
             @Valid @RequestBody DevLoginRequest loginRequest,
             HttpServletRequest request,
             HttpServletResponse response) {
@@ -39,6 +38,6 @@ public class DevAuthController {
         }
         sessionAuthenticationUpdater.update(user.getId(), request, response);
 
-        return DevLoginResponse.from(user);
+        return CurrentUserDto.from(user);
     }
 }

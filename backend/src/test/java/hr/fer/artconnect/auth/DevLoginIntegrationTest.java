@@ -3,7 +3,6 @@ package hr.fer.artconnect.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -56,9 +55,13 @@ class DevLoginIntegrationTest extends IntegrationTestBase {
                 "SELECT last_login_at IS NOT NULL FROM users WHERE id = ?", Boolean.class, userId))
                 .isTrue();
 
-        mockMvc.perform(get("/api/v1/dev/test/current-user").cookie(newSession))
+        mockMvc.perform(get("/api/v1/me").cookie(newSession))
                 .andExpect(status().isOk())
-                .andExpect(content().string(userId.toString()));
+                .andExpect(jsonPath("$.id").value(userId.toString()))
+                .andExpect(jsonPath("$.displayName").value("Test korisnik"))
+                .andExpect(jsonPath("$.email").value("umjetnik@artconnect.test"))
+                .andExpect(jsonPath("$.role").value("ARTIST"))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
 
     @Test
@@ -144,21 +147,10 @@ class DevLoginIntegrationTest extends IntegrationTestBase {
 
     @RestController
     public static class TestController {
-        private final CurrentUserProvider currentUserProvider;
-
-        public TestController(CurrentUserProvider currentUserProvider) {
-            this.currentUserProvider = currentUserProvider;
-        }
-
         @GetMapping("/api/v1/dev/test/session")
         public String createSession(jakarta.servlet.http.HttpSession session) {
             session.setAttribute("test", "value");
             return "OK";
-        }
-
-        @GetMapping("/api/v1/dev/test/current-user")
-        public String currentUser() {
-            return currentUserProvider.getCurrentUser().getId().toString();
         }
     }
 }
