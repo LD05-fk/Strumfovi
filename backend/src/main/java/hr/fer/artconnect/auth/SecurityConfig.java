@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
@@ -19,6 +20,7 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 
 import hr.fer.artconnect.auth.domain.UserStatus;
 import hr.fer.artconnect.common.SecurityErrorHandler;
@@ -65,6 +67,12 @@ public class SecurityConfig {
         );
         // API ne treba spremati zahtjev radi preusmjeravanja nakon prijave.
         http.requestCache(cache -> cache.disable());
+
+        // LogoutFilter poništava sesiju i čisti sigurnosni kontekst i bez aktivne prijave.
+        http.logout(logout -> logout
+                .logoutUrl("/api/v1/auth/logout")
+                .deleteCookies("SESSION")
+                .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)));
 
         // Frontend čita XSRF-TOKEN kolačić i šalje ga u zaglavlju X-XSRF-TOKEN.
         var tokens = CookieCsrfTokenRepository.withHttpOnlyFalse();
