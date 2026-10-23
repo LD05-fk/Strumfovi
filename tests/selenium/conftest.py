@@ -58,3 +58,28 @@ def cleanup():
             undo()
         except Exception as error:
             print(f"Čišćenje nije uspjelo: {error}")
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
+
+    if report.when not in ("setup", "call") or not report.failed:
+        return
+
+    driver = item.funcargs.get("driver")
+    if driver is None:
+        return
+
+    try:
+        from pytest_html import extras
+
+        report.extras = getattr(report, "extras", [])
+        report.extras.append(extras.url(driver.current_url, name="Stranica"))
+        report.extras.append(
+            extras.png(driver.get_screenshot_as_base64(),
+                       name="Snimka zaslona")
+        )
+    except Exception as error:
+        print(f"Snimka zaslona nije uspjela: {error}")
