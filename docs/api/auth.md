@@ -61,6 +61,37 @@ Bez valjane prijave ili kada korisnik iz sesije više ne postoji u bazi, vraća
 }
 ```
 
+## POST /me/role
+
+Prijavljeni korisnik u statusu `ONBOARDING` jednom odabire ulogu. Zahtjev šalje
+sesijski kolačić i valjan CSRF token u zaglavlju `X-XSRF-TOKEN`.
+
+```json
+{ "role": "ORGANIZER" }
+```
+
+Dopuštene su vrijednosti `ARTIST` i `ORGANIZER`. Uspjeh vraća `200` i isti oblik
+podataka kao `GET /me`, s odabranom ulogom i statusom `ACTIVE`.
+Za umjetnika `organizerApproval` ostaje `null`; profil umjetnika ovdje se ne stvara.
+Za organizatora postaje `APPROVED` i stvara se prazan red u `organizer_profiles`
+bez naziva organizacije. Zadano odobrenje određuje
+`OrganizerApprovalPolicy.defaultForNewOrganizer()`.
+
+Promjena korisnika i stvaranje profila izvršavaju se u jednoj transakciji.
+Ažuriranje uspijeva samo dok je status u bazi `ONBOARDING`, pa i kod istodobnih
+zahtjeva samo jedan može uspjeti.
+
+| Status | Kod | Razlog |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | Prazno ili neispravno tijelo, nedostajuća ili nedopuštena uloga, uključujući `ADMIN` |
+| 401 | `UNAUTHENTICATED` | Nema valjane prijave |
+| 403 | `FORBIDDEN` | Nedostaje valjan CSRF token |
+| 409 | `ROLE_ALREADY_CHOSEN` | Status u bazi više nije `ONBOARDING` |
+
+Trenutno su implementirani endpoint i spremanje izbora u bazu. Osvježavanje
+ovlasti u postojećoj sesiji i zabrana ostalih ruta kodom `ONBOARDING_REQUIRED`
+preostali su dijelovi zadatka [#75](https://github.com/LD05-fk/Strumfovi/issues/75).
+
 ## POST /auth/logout
 
 Zahtjev nema tijelo. Preglednik šalje `SESSION`, kolačić `XSRF-TOKEN` i njegovu

@@ -22,6 +22,12 @@ public class OrganizerProfile {
 
     protected OrganizerProfile() {}
 
+    public static OrganizerProfile createFor(User user) {
+        OrganizerProfile profile = new OrganizerProfile();
+        profile.user = user;
+        return profile;
+    }
+
     @PrePersist
     void onCreate() {
         updatedAt = OffsetDateTime.now();
