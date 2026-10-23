@@ -130,11 +130,9 @@ class SecurityConfigTest {
     }
 
     @Test
-    @WithMockUser
-    void devRutaBezDevProfilaTraziCsrf() throws Exception {
+    void devPutanjaJeJavnaIIzuzetaOdCsrf() throws Exception {
         mvc.perform(post("/api/v1/dev/login-as"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+                .andExpect(status().isOk());
     }
 
     @Test

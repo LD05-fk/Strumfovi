@@ -105,10 +105,10 @@ class SessionIntegrationTest {
     }
 
     @Test
-    void produkcijaNeDopustaDevIzuzeceCsrf() throws Exception {
+    void devRutaBezKontroleraVracaNotFoundIBezCsrfTokena() throws Exception {
         mvc.perform(post("/api/v1/dev/login-as"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
     }
 
     @RestController

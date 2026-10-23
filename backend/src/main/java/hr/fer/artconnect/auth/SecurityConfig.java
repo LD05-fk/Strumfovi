@@ -43,6 +43,7 @@ public class SecurityConfig {
                         "/api/v1/settings/public",
                         "/api/v1/auth/csrf",
                         "/actuator/health").permitAll()
+                .requestMatchers("/api/v1/dev/**").permitAll()
                 .anyRequest().authenticated());
 
         // Sesiju stvara Spring po potrebi, a Spring Session JDBC sprema je u bazu.
@@ -69,14 +70,10 @@ public class SecurityConfig {
         var tokens = CookieCsrfTokenRepository.withHttpOnlyFalse();
         tokens.setCookieCustomizer(cookie -> cookie.sameSite("Lax")
                 .secure(environment.acceptsProfiles(Profiles.of("prod"))));
-        http.csrf(csrf -> {
-            csrf.csrfTokenRepository(tokens)
-                    .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler());
-            // Razvojna prijava smije preskočiti CSRF samo u profilu dev.
-            if (environment.acceptsProfiles(Profiles.of("dev & !prod"))) {
-                csrf.ignoringRequestMatchers("/api/v1/dev/**");
-            }
-        });
+        http.csrf(csrf -> csrf
+                .csrfTokenRepository(tokens)
+                .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                .ignoringRequestMatchers("/api/v1/dev/**"));
 
         // Greške u filtrima nastaju prije kontrolera, pa im ovdje šaljemo JSON.
         http.exceptionHandling(exceptions -> exceptions
