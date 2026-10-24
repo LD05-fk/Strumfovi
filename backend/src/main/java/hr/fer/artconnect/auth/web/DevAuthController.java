@@ -10,10 +10,11 @@ import hr.fer.artconnect.auth.SessionAuthenticationUpdater;
 import hr.fer.artconnect.auth.service.DevLoginService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import hr.fer.artconnect.common.ApiPaths;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/v1/dev")
+@RequestMapping(ApiPaths.V1 + "/dev")
 @Profile("dev & !prod")
 public class DevAuthController {
     private final DevLoginService devLoginService;
