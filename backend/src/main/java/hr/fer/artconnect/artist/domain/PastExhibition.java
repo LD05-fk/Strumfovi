@@ -53,4 +53,13 @@ public class PastExhibition {
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
+
+    public static PastExhibition create(ArtistProfile artistProfile, String title, short year, String place) {
+        PastExhibition exhibition = new PastExhibition();
+        exhibition.artistProfile = artistProfile;
+        exhibition.title = title;
+        exhibition.year = year;
+        exhibition.place = place;
+        return exhibition;
+    }
 }
