@@ -60,18 +60,26 @@ class PastExhibitionServiceTest {
         assertThat(dto.title()).isEqualTo("Gradski motivi");
         assertThat(dto.year()).isEqualTo(2024);
         assertThat(dto.place()).isEqualTo("Galerija Nova, Zagreb");
+        verify(artistProfiles, never()).save(any());
     }
 
     @Test
-    void bezProfilaUmjetnikaTraziDovrsetakOnboardinga() {
+    void bezProfilaUmjetnikaStvaraPrazanProfilISpremaIzlozbuNaNjega() {
         when(currentUserProvider.getCurrentUser()).thenReturn(artist());
         when(artistProfiles.findById(ARTIST_ID)).thenReturn(Optional.empty());
+        when(artistProfiles.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(pastExhibitions.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertThatThrownBy(() -> service().create(new PastExhibitionRequest("Gradski motivi", 2024, "Zagreb")))
-                .isInstanceOf(ApiException.class)
-                .extracting(exception -> ((ApiException) exception).getCode())
-                .isEqualTo(ErrorCode.ONBOARDING_REQUIRED);
-        verify(pastExhibitions, never()).save(any());
+        service().create(new PastExhibitionRequest("Gradski motivi", 2024, "Zagreb"));
+
+        var savedProfile = ArgumentCaptor.forClass(ArtistProfile.class);
+        verify(artistProfiles).save(savedProfile.capture());
+        assertThat(savedProfile.getValue().getBiography()).isNull();
+        assertThat(savedProfile.getValue().getArtistStatement()).isNull();
+        assertThat(savedProfile.getValue().getArtFields()).isEmpty();
+        var saved = ArgumentCaptor.forClass(PastExhibition.class);
+        verify(pastExhibitions).save(saved.capture());
+        assertThat(saved.getValue().getArtistProfile()).isSameAs(savedProfile.getValue());
     }
 
     @Test

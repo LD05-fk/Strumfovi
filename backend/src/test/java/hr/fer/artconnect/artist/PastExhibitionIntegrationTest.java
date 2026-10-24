@@ -134,12 +134,19 @@ class PastExhibitionIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void umjetnikuBezProfilaVracaOnboardingRequired() throws Exception {
-        loginAs("ARTIST");
+    void umjetnikuBezProfilaStvaraPrazanProfilIDodajeIzlozbu() throws Exception {
+        UUID artistId = loginAs("ARTIST");
 
-        send(body("Gradski motivi", 2024, "Zagreb"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error.code").value("ONBOARDING_REQUIRED"));
+        send(body("Gradski motivi", 2024, "Zagreb")).andExpect(status().isCreated());
+
+        Map<String, Object> profile = jdbc.queryForMap(
+                "SELECT * FROM artist_profiles WHERE user_id = ?", artistId);
+        assertThat(profile.get("biography")).isNull();
+        assertThat(profile.get("artist_statement")).isNull();
+        assertThat(profile.get("updated_at")).isNotNull();
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM past_exhibitions WHERE artist_id = ?", Long.class, artistId))
+                .isEqualTo(1);
     }
 
     private ResultActions send(String body) throws Exception {
@@ -147,7 +154,8 @@ class PastExhibitionIntegrationTest extends IntegrationTestBase {
                 .contentType(MediaType.APPLICATION_JSON).content(body));
     }
 
-    // Onboarding još ne stvara profil umjetnika, pa ga test ubacuje sam.
+    // Umjetnik koji je već spremio profil ima svoj red u artist_profiles; endpoint ga tada
+    // samo dohvaća, pa ga test ubacuje sam.
     private UUID loginAsArtistWithProfile() {
         UUID artistId = loginAs("ARTIST");
         jdbc.update("INSERT INTO artist_profiles (user_id) VALUES (?)", artistId);

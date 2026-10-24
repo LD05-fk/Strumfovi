@@ -8,8 +8,6 @@ import hr.fer.artconnect.artist.web.PastExhibitionDto;
 import hr.fer.artconnect.artist.web.PastExhibitionRequest;
 import hr.fer.artconnect.auth.CurrentUserProvider;
 import hr.fer.artconnect.auth.domain.User;
-import hr.fer.artconnect.common.ApiException;
-import hr.fer.artconnect.common.ErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,9 +27,10 @@ public class PastExhibitionService {
     @Transactional
     public PastExhibitionDto create(PastExhibitionRequest request) {
         User user = currentUserProvider.getCurrentUser();
+        // Umjetnik koji još nije spremio profil nema zapis u artist_profiles,
+        // a strani ključ izložbe upućuje na njega, pa se prazan profil stvara pri prvom unosu.
         ArtistProfile profile = artistProfiles.findById(user.getId())
-            .orElseThrow(() -> new ApiException(ErrorCode.ONBOARDING_REQUIRED,
-                "Prije dodavanja prethodnih izložbi potrebno je dovršiti profil umjetnika."));
+            .orElseGet(() -> artistProfiles.save(ArtistProfile.forUser(user)));
         PastExhibition saved = pastExhibitions.save(PastExhibition.create(
             profile, request.title(), request.year().shortValue(), request.place()));
         return toDto(saved);

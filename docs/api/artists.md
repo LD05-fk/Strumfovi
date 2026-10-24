@@ -6,8 +6,10 @@ Zahtjevi traže prijavu i ulogu `ARTIST`, a nesigurne metode i CSRF zaglavlje
 `X-XSRF-TOKEN` iz kolačića `XSRF-TOKEN`. Vlasnik zapisa uvijek je prijavljeni
 korisnik — `artist_id` se ne prima iz tijela zahtjeva i ne može se proturiti.
 
-Zapisi se vežu na profil umjetnika, pa korisnik koji još nije dovršio onboarding
-dobiva `403 ONBOARDING_REQUIRED`.
+Zapisi se vežu na profil umjetnika. Red u `artist_profiles` ne nastaje pri odabiru
+uloge, pa ga prvi unos u portfolio stvara kao prazan profil — umjetnik ne mora
+prvo spremiti biografiju. `403 ONBOARDING_REQUIRED` dobiva korisnik koji je još u
+statusu `ONBOARDING`, odnosno nije odabrao ulogu.
 
 ## POST /past-exhibitions
 
@@ -58,7 +60,9 @@ Odgovor `201 Created` (`PastExhibition`), uz zaglavlje
 | `place` | string | obrezano mjesto |
 
 Nuspojava uspješnog zahtjeva je novi red u tablici `past_exhibitions`,
-vezan na profil prijavljenog umjetnika.
+vezan na profil prijavljenog umjetnika. Ako umjetnik još nema red u
+`artist_profiles`, stvara se prazan (`biography` i `artistStatement` su `null`) u
+istoj transakciji; postojeći profil se ne mijenja.
 
 ### Poslovna pravila
 
@@ -77,7 +81,7 @@ vezan na profil prijavljenog umjetnika.
 | 400 | `VALIDATION_ERROR` | prazan ili predug `title`/`place`, `year` izvan 1900–tekuća, neispravan JSON |
 | 401 | `UNAUTHENTICATED` | zahtjev bez prijave |
 | 403 | `FORBIDDEN` | prijavljeni korisnik nije umjetnik, ili CSRF token nedostaje |
-| 403 | `ONBOARDING_REQUIRED` | umjetnik još nema profil |
+| 403 | `ONBOARDING_REQUIRED` | korisnik je u statusu `ONBOARDING` i nije odabrao ulogu |
 
 Neispravna polja navedena su u `error.details`, svako sa svojim imenom. Primjer
 za godinu u budućnosti:
@@ -101,4 +105,5 @@ Jedinični testovi pokrivaju granicu godine s fiksnim satom
 zoni) i pravila servisa (`PastExhibitionServiceTest`). Integracijski testovi
 (`PastExhibitionIntegrationTest`) pokrivaju svaki dokumentirani status: 201 sa
 zaglavljem `Location` i obrezanim vrijednostima u bazi, 400 za svako neispravno
-polje, 401, 403 za organizatora, 403 bez CSRF tokena i 403 za umjetnika bez profila.
+polje, 401, 403 za organizatora i 403 bez CSRF tokena. Umjetnik bez reda u
+`artist_profiles` dobiva 201, a profil mu se stvori prazan.
