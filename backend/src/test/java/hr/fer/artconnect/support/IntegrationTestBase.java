@@ -1,9 +1,9 @@
 package hr.fer.artconnect.support;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-
 import hr.fer.artconnect.auth.domain.UserRepository;
+import jakarta.servlet.http.Cookie;
 import java.util.List;
+import java.util.stream.Stream;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -90,7 +90,17 @@ public abstract class IntegrationTestBase {
         return id;
     }
 
+    // Šalje token kao frontend: isti XSRF-TOKEN kolačić i X-XSRF-TOKEN zaglavlje.
+    // Springov csrf() trajno zamijeni repozitorij tokena u CsrfFilteru keširanog
+    // konteksta, pa bi poslije njega /auth/csrf vraćao krivo zaglavlje.
     protected RequestPostProcessor withCsrf() {
-        return csrf();
+        return request -> {
+            String token = UUID.randomUUID().toString();
+            Cookie[] existing = request.getCookies() == null ? new Cookie[0] : request.getCookies();
+            request.setCookies(Stream.concat(Stream.of(existing), Stream.of(new Cookie("XSRF-TOKEN", token)))
+                    .toArray(Cookie[]::new));
+            request.addHeader("X-XSRF-TOKEN", token);
+            return request;
+        };
     }
 }
