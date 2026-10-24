@@ -88,6 +88,10 @@ class DevLoginIntegrationTest extends IntegrationTestBase {
 
     @Test
     void neispravanEmailVracaValidacijskuGresku() throws Exception {
+        String emailOverLimit = "a".repeat(64) + "@"
+                + "b".repeat(63) + "." + "c".repeat(63) + "." + "d".repeat(62);
+        assertThat(emailOverLimit).hasSize(255);
+
         for (String body : new String[] {
                 "{}",
                 """
@@ -96,7 +100,7 @@ class DevLoginIntegrationTest extends IntegrationTestBase {
                 """
                 {"email":"nije-email"}
                 """,
-                "{\"email\":\"" + "a".repeat(243) + "@example.com\"}"
+                "{\"email\":\"" + emailOverLimit + "\"}"
         }) {
             mockMvc.perform(post(LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
