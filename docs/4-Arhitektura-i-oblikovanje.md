@@ -247,9 +247,27 @@ Nakon uspješne obrade stvara se poslužiteljska sesija putem Spring Session JDB
 
 **Cilj:** Prikazati važna stanja jednog domenskog objekta ili eksplicitno upravljanog načina rada sustava te događaje ili uvjete koji ih mijenjaju.
 
-**Vlasnik stanja i razlog odabira:** [Navedite objekt ili način rada sustava, kako se njegovo stanje prepoznaje i zašto su prijelazi važni.]  
-**Dijagram stanja:** [Ugradite čitljiv UML dijagram stanja.]  
-**PlantUML izvor:** [Poveznica na odgovarajuću `.puml` datoteku.]
+Vlasnik stanja je korisnički račun (`users.status`). Nova Google prijava stvara
+račun u stanju `ONBOARDING`, dok pozvani račun ima unaprijed zadanu ulogu.
+Jednokratni odabir uloge aktivira novi račun i osvježava prava u istoj sesiji.
+
+```mermaid
+stateDiagram-v2
+    [*] --> ONBOARDING: prva Google prijava
+    [*] --> INVITED: unaprijed pozvani račun
+    INVITED --> ACTIVE: Google prijava s pozvanom adresom
+    ONBOARDING --> ACTIVE: odabir ARTIST ili ORGANIZER
+    ACTIVE --> BLOCKED: administrator blokira (EPIC-08)
+    BLOCKED --> ACTIVE: administrator deblokira (EPIC-08)
+    ONBOARDING --> DELETED: brisanje računa (AUTH-04)
+    ACTIVE --> DELETED: brisanje računa (AUTH-04)
+    BLOCKED --> DELETED: brisanje računa (AUTH-04)
+    DELETED --> [*]
+```
+
+**PlantUML izvor:** [stanja korisnika](puml/4-5-artconnect-user-state.puml).
+Blokiranje i brisanje prikazuju planirane prijelaze; nisu implementirani u AUTH-02.
+Ponovna prijava nakon brisanja stvara novi račun, a ne oživljava obrisani red.
 
 <details>
 <summary><strong>Načini rada i dostupnost usluge</strong></summary>
@@ -361,7 +379,7 @@ Paket `hr.fer.artconnect.common` sadrži zajedničke klase za greške, provjeru 
 
 `ArtConnectPrincipal` je principal prijavljenog korisnika. Nastaje nakon Google prijave u `ArtConnectOidcUserService`, a nakon promjene uloge ili statusa gradi ga `SessionAuthenticationUpdater` iz reda `users`. Implementira `OidcUser` i `Serializable`, jer ga Spring Session JDBC serijalizira u sesiju zajedno sa `SecurityContextom`. `getName()` vraća `users.id`, pa se sesije mogu dohvatiti i poništiti po korisniku. Ovlasti su `ROLE_<role>` iz baze; korisnik u statusu `ONBOARDING` još nema ulogu ni ovlasti. Kontroler prima `@AuthenticationPrincipal ArtConnectPrincipal principal`. Servis poziva `currentUserProvider.getCurrentUser()`, koji vraća entitet `User` iz baze za ID iz principala. Bez valjanog principala ili ako korisnik više ne postoji u bazi, provider javlja 401 `UNAUTHENTICATED`.
 
-`RoleHierarchy` je spojen na provjere `@PreAuthorize`. Prema dogovoru, uloge ostaju odvojene: `ADMIN` ne nasljeđuje automatski prava `ARTIST` i `ORGANIZER`. `UserStatusFilter` je uključen u sigurnosni lanac prije odluke o pristupu, ali zasad samo propušta zahtjev. Provjere `ONBOARDING_REQUIRED` i `USER_BLOCKED` pripadaju kasnijim zadacima EPIC-01 i EPIC-08.
+`RoleHierarchy` je spojen na provjere `@PreAuthorize`. Prema dogovoru, uloge ostaju odvojene: `ADMIN` ne nasljeđuje automatski prava `ARTIST` i `ORGANIZER`. `OnboardingEnforcementFilter` je uključen u sigurnosni lanac prije odluke o pristupu. Čita status iz baze i korisniku u statusu `ONBOARDING` vraća `403 ONBOARDING_REQUIRED` osim za dopuštene metode i putanje opisane u [API dokumentaciji](api/auth.md#ograničenje-tijekom-odabira-uloge). Anonimni posjetitelji zadržavaju pristup javnim rutama. Provjera `USER_BLOCKED` pripada EPIC-08.
 
 Spring Session JDBC sprema sesije u postojeće tablice PostgreSQL-a. Sesija istječe nakon 8 sati neaktivnosti. Kolačić `SESSION` ima `HttpOnly` i `SameSite=Lax`, a u profilu `prod` i `Secure`. Springov `FindByIndexNameSessionRepository` dostupan je za kasnije poništavanje sesija korisnika.
 

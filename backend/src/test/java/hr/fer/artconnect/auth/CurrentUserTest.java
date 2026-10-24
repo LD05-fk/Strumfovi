@@ -93,13 +93,13 @@ class CurrentUserTest {
     }
 
     @Test
-    void onboardingNemaUloguAFilterJosNeOgranicavaStatus() throws Exception {
+    void onboardingNemaUloguIFilterOgranicavaPristup() throws Exception {
         var user = user(null, UserStatus.ONBOARDING);
         var auth = TestPrincipals.authentication(user);
         assertThat(auth.getAuthorities()).isEmpty();
         mvc.perform(get("/api/v1/test/current-user/provider").with(authentication(auth)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("ONBOARDING"));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("ONBOARDING_REQUIRED"));
     }
 
     private User user(UserRole role, UserStatus status) {

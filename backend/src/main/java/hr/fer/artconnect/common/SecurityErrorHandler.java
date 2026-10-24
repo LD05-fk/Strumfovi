@@ -49,7 +49,7 @@ public class SecurityErrorHandler implements AuthenticationEntryPoint, AccessDen
         return ErrorCode.FORBIDDEN;
     }
 
-    private void write(HttpServletResponse response, ErrorCode code) throws IOException {
+    public void write(HttpServletResponse response, ErrorCode code) throws IOException {
         String message = messages.getMessage("error." + code.name(), null, Locale.forLanguageTag("hr"));
         response.setStatus(code.getHttpStatus().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

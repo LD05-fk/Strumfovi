@@ -20,6 +20,8 @@ class DevCsrfTest {
     MockMvc mvc;
     @MockitoBean
     private ArtConnectOidcUserService oidcUserService;
+    @MockitoBean
+    hr.fer.artconnect.auth.domain.UserRepository users;
 
     @Test
     @WithMockUser

@@ -44,6 +44,8 @@ class AuthControllerTest {
     UserRepository userRepository;
     @MockitoBean
     RoleSelectionService roleSelectionService;
+    @MockitoBean
+    SessionAuthenticationUpdater sessionAuthenticationUpdater;
 
     @Test
     void odabirUlogeVracaAktualnogKorisnika() throws Exception {

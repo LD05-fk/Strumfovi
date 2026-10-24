@@ -88,9 +88,30 @@ zahtjeva samo jedan može uspjeti.
 | 403 | `FORBIDDEN` | Nedostaje valjan CSRF token |
 | 409 | `ROLE_ALREADY_CHOSEN` | Status u bazi više nije `ONBOARDING` |
 
-Trenutno su implementirani endpoint i spremanje izbora u bazu. Osvježavanje
-ovlasti u postojećoj sesiji i zabrana ostalih ruta kodom `ONBOARDING_REQUIRED`
-preostali su dijelovi zadatka [#75](https://github.com/LD05-fk/Strumfovi/issues/75).
+Nakon potvrde transakcije `SessionAuthenticationUpdater` sprema novi principal
+i ovlast `ROLE_ARTIST` ili `ROLE_ORGANIZER` u istu sesiju. Sljedeći zahtjev
+s postojećim sesijskim kolačićem koristi nova prava bez ponovne prijave.
+
+## Ograničenje tijekom odabira uloge
+
+`OnboardingEnforcementFilter` provjerava aktualni status u bazi nakon
+autentikacije, prije odluke o pristupu ruti. Prijavljenom korisniku u statusu
+`ONBOARDING` sve ostale rute pod `/api/v1/` vraćaju `403 ONBOARDING_REQUIRED`.
+Dopuštene su samo ove kombinacije metode i putanje:
+
+- `GET /api/v1/me`
+- `DELETE /api/v1/me`
+- `POST /api/v1/me/role`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/auth/csrf`
+
+Izuzeće od filtra ne implementira samu rutu; brisanje računa pripada zasebnom
+zadatku. CSRF zaštita i dalje vrijedi za zahtjeve koji mijenjaju stanje i može
+vratiti `403 FORBIDDEN` prije provjere onboardinga.
+
+Anonimni posjetitelji i dalje mogu pregledavati javne rute. Prijavljeni korisnik
+u onboardingu prvo mora odabrati ulogu i za pristup tim API rutama. Putanje izvan
+API-ja nisu obuhvaćene ovim filtrom. Provjera blokiranih računa pripada EPIC-08.
 
 ## POST /auth/logout
 
@@ -114,3 +135,9 @@ baze i greške prijave. `CurrentUserDtoTest` provjerava mapiranje entiteta u DTO
 `AuthEndpointsIntegrationTest` koristi PostgreSQL i stvarni zapis sesije za
 provjeru CSRF-a, promjene uloge, odjave, brisanja sesije i ponovljene odjave.
 `SecurityConfigTest` dodatno provjerava podudaranje CSRF kolačića i zaglavlja.
+
+`RoleSelectionServiceTest` i `RoleSelectionIntegrationTest` provjeravaju izbor
+obiju uloga, odobrenje i profil organizatora, neispravne zahtjeve, ponovljeni i
+istodobni odabir te prava na sljedećem zahtjevu s istim JDBC sesijskim kolačićem.
+`OnboardingEnforcementFilterTest` provjerava iznimke po metodi i putanji te
+prednost aktualnog statusa iz baze pred statusom u sesiji.

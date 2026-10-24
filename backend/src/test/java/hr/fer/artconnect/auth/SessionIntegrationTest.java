@@ -72,9 +72,9 @@ class SessionIntegrationTest {
 
             String cookieValue = Base64.getEncoder().encodeToString(
                     session.getId().getBytes(StandardCharsets.UTF_8));
-            mvc.perform(get("/api/v1/auth/session-test").cookie(new Cookie("SESSION", cookieValue)))
+            mvc.perform(get("/api/v1/me").cookie(new Cookie("SESSION", cookieValue)))
                     .andExpect(status().isOk())
-                    .andExpect(content().string(user.getName()));
+                    .andExpect(jsonPath("$.id").value(user.getName()));
 
             // Bez čekanja osam sati pomičemo zadnju aktivnost u prošlost i provjeravamo odbijanje.
             session.setLastAccessedTime(Instant.now().minus(Duration.ofHours(9)));
