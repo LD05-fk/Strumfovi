@@ -9,14 +9,23 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Set;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 public class OnboardingEnforcementFilter extends OncePerRequestFilter {
-    private static final Set<String> ALLOWED = Set.of(
-            "GET /api/v1/me", "DELETE /api/v1/me", "POST /api/v1/me/role",
-            "POST /api/v1/auth/logout", "GET /api/v1/auth/csrf");
+    // Istu obradu kodiranih segmenata putanje koristi Springovo usmjeravanje zahtjeva.
+    private static final PathPatternRequestMatcher.Builder PATHS = PathPatternRequestMatcher.withDefaults();
+    private static final RequestMatcher API = PATHS.matcher("/api/v1/**");
+    private static final RequestMatcher ALLOWED = new OrRequestMatcher(
+            PATHS.matcher(HttpMethod.GET, "/api/v1/me"),
+            PATHS.matcher(HttpMethod.DELETE, "/api/v1/me"),
+            PATHS.matcher(HttpMethod.POST, "/api/v1/me/role"),
+            PATHS.matcher(HttpMethod.POST, "/api/v1/auth/logout"),
+            PATHS.matcher(HttpMethod.GET, "/api/v1/auth/csrf"));
 
     private final UserRepository users;
     private final SecurityErrorHandler errors;
@@ -29,9 +38,8 @@ public class OnboardingEnforcementFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
             FilterChain chain) throws ServletException, IOException {
-        String path = request.getRequestURI().substring(request.getContextPath().length());
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (path.startsWith("/api/v1/") && !ALLOWED.contains(request.getMethod() + " " + path)
+        if (API.matches(request) && !ALLOWED.matches(request)
                 && authentication != null && authentication.isAuthenticated()
                 && authentication.getPrincipal() instanceof ArtConnectPrincipal principal) {
             // Status iz sesije može biti zastario, zato odlučujemo prema bazi.

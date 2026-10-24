@@ -13,6 +13,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -43,6 +45,30 @@ class OnboardingEnforcementFilterTest {
     @Test
     void anonimniPosjetiteljProlaziBezProvjereStatusa() throws Exception {
         filter.doFilter(new MockHttpServletRequest("GET", "/api/v1/artists"),
+                new MockHttpServletResponse(), chain);
+        verify(chain).doFilter(any(), any());
+        verifyNoInteractions(users, errors);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/%61pi/v1/artists", "/api/%761/artists", "/api/v1/%61rtists",
+            "/artconnect/%61pi/v1/artists"})
+    void kodiraniUrlNeZaobilaziOnboarding(String path) throws Exception {
+        User user = login(UserStatus.ONBOARDING);
+        when(users.findById(user.getId())).thenReturn(Optional.of(user));
+        var request = new MockHttpServletRequest("GET", path);
+        if (path.startsWith("/artconnect/")) {
+            request.setContextPath("/artconnect");
+        }
+        filter.doFilter(request, new MockHttpServletResponse(), chain);
+        verify(errors).write(any(), eq(ErrorCode.ONBOARDING_REQUIRED));
+        verifyNoInteractions(chain);
+    }
+
+    @Test
+    void kodiranaDopustenaPutanjaOstajeDopustena() throws Exception {
+        login(UserStatus.ONBOARDING);
+        filter.doFilter(new MockHttpServletRequest("GET", "/%61pi/v1/%6de"),
                 new MockHttpServletResponse(), chain);
         verify(chain).doFilter(any(), any());
         verifyNoInteractions(users, errors);
