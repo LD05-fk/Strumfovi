@@ -88,6 +88,10 @@ simuliraju prijavljenog korisnika.
 Frontend testovi koriste `renderWithProviders`.
 E2E testovi se prijavljuju preko `POST /api/v1/dev/login-as` (profil `dev`) jer se Google
 prijava ne može automatizirati.
+Endpoint prihvaća e-mail testnog korisnika u JSON tijelu, postavlja sesiju i dostupan je
+samo kada je aktivan profil `dev` bez `prod`. Testni računi koje Liquibase stvara za lokalni
+razvoj su `umjetnik@artconnect.test`, `umjetnik2@artconnect.test`,
+`organizator@artconnect.test`, `admin@artconnect.test` i `novi@artconnect.test`.
 E2E se u CI-ju pokreće s `e2e` (ručno i noću);
 HTML izvještaj je artefakt workflowa.
 

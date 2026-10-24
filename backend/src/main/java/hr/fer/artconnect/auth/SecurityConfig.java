@@ -33,19 +33,25 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, Environment environment,
             SecurityErrorHandler errors, ArtConnectOidcUserService oidcUserService, SecurityContextRepository securityContextRepository) throws Exception {
-        // Samo navedene GET rute su javne; ostali zahtjevi traže prijavu.
-        http.authorizeHttpRequests(authorize -> authorize
-                .requestMatchers(HttpMethod.GET,
-                        "/api/v1/opportunities/**",
-                        "/api/v1/artists/**",
-                        "/api/v1/artworks/**",
-                        "/api/v1/files/**",
-                        "/api/v1/art-fields",
-                        "/api/v1/opportunity-types",
-                        "/api/v1/settings/public",
-                        "/api/v1/auth/csrf",
-                        "/actuator/health").permitAll()
-                .anyRequest().authenticated());
+        boolean devProfile = environment.acceptsProfiles(Profiles.of("dev & !prod"));
+
+        // Samo navedene GET rute i razvojna dev ruta u dev profilu su javne.
+        http.authorizeHttpRequests(authorize -> {
+            authorize.requestMatchers(HttpMethod.GET,
+                    "/api/v1/opportunities/**",
+                    "/api/v1/artists/**",
+                    "/api/v1/artworks/**",
+                    "/api/v1/files/**",
+                    "/api/v1/art-fields",
+                    "/api/v1/opportunity-types",
+                    "/api/v1/settings/public",
+                    "/api/v1/auth/csrf",
+                    "/actuator/health").permitAll();
+            if (devProfile) {
+                authorize.requestMatchers("/api/v1/dev/**").permitAll();
+            }
+            authorize.anyRequest().authenticated();
+        });
 
         // Sesiju stvara Spring po potrebi, a Spring Session JDBC sprema je u bazu.
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
@@ -80,8 +86,7 @@ public class SecurityConfig {
         http.csrf(csrf -> {
             csrf.csrfTokenRepository(tokens)
                     .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler());
-            // Razvojna prijava smije preskočiti CSRF samo u profilu dev.
-            if (environment.acceptsProfiles(Profiles.of("dev & !prod"))) {
+            if (devProfile) {
                 csrf.ignoringRequestMatchers("/api/v1/dev/**");
             }
         });
