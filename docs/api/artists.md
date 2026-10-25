@@ -11,6 +11,47 @@ uloge, pa ga prvi unos u portfolio stvara kao prazan profil — umjetnik ne mora
 prvo spremiti biografiju. `403 ONBOARDING_REQUIRED` dobiva korisnik koji je još u
 statusu `ONBOARDING`, odnosno nije odabrao ulogu.
 
+## GET /me/artist-profile
+
+Vraća profil prijavljenog umjetnika za obrazac na stranici `/profile`.
+`displayName` i `avatarUrl` dolaze iz korisnikova Google profila i ne uređuju se
+kroz ovaj API. Ostala polja dolaze iz profila umjetnika i njegovih povezanih
+područja umjetnosti i poveznica.
+
+Odgovor `200 OK` (`ArtistProfile`):
+
+```json
+{
+  "userId": "0b6a5c1e-3f2d-4e8b-9a7c-1d2e3f4a5b6c",
+  "displayName": "Ana Horvat",
+  "avatarUrl": "https://lh3.googleusercontent.com/a/ana-horvat",
+  "biography": "Akademska slikarica iz Splita.",
+  "artistStatement": "U radu istražujem odnos mora, svjetla i sjećanja.",
+  "artFields": [
+    { "id": "a1f0c2d3-4b5e-4f60-8a71-9b2c3d4e5f01", "code": "slikarstvo", "name": "Slikarstvo" }
+  ],
+  "links": [
+    { "label": "Instagram", "url": "https://www.instagram.com/ana.horvat.art" }
+  ]
+}
+```
+
+Ako profilni red još ne postoji, odgovor sadrži `biography` i `artistStatement`
+kao `null`, a `artFields` i `links` kao prazne nizove. Dohvat ne stvara red.
+Vrijednosti `avatarUrl` i `label` mogu biti `null`. Područja se vraćaju
+poredana po `art_fields.position`, a poveznice po `artist_links.position`;
+jednake pozicije razrješavaju se uzlazno po ID-u. Vraćaju se i neaktivna
+područja koja su već povezana s profilom.
+
+### Greške
+
+| Status | Kod | Kada |
+| --- | --- | --- |
+| 401 | `UNAUTHENTICATED` | zahtjev bez valjane sesije |
+| 403 | `FORBIDDEN` | prijavljeni korisnik nema ulogu `ARTIST` |
+| 403 | `ONBOARDING_REQUIRED` | korisnik je u statusu `ONBOARDING` i nije odabrao ulogu |
+| 403 | `USER_BLOCKED` | prijavljeni korisnik ima status `BLOCKED` |
+
 ## POST /past-exhibitions
 
 Dodaje prethodnu izložbu ili projekt u portfolio prijavljenog umjetnika.
