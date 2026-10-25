@@ -69,6 +69,7 @@ class ArtistProfileServiceTest {
         ArtistProfile profile = mock(ArtistProfile.class);
         var fieldFirst = artField("00000000-0000-0000-0000-000000000001", (short) 1, "prvo");
         var fieldSecond = artField("00000000-0000-0000-0000-000000000002", (short) 1, "drugo");
+        var fieldHighId = artField("80000000-0000-0000-0000-000000000001", (short) 1, "visoki-id");
         var fieldThird = artField("00000000-0000-0000-0000-000000000003", (short) 2, "trece");
         var links = List.of(
                 link("00000000-0000-0000-0000-000000000001", (short) 1, "Prva"),
@@ -76,7 +77,8 @@ class ArtistProfileServiceTest {
                 link("00000000-0000-0000-0000-000000000003", (short) 2, "Treća"));
         when(profile.getBiography()).thenReturn("Bio");
         when(profile.getArtistStatement()).thenReturn("Izjava");
-        when(profile.getArtFields()).thenReturn(new LinkedHashSet<>(List.of(fieldThird, fieldSecond, fieldFirst)));
+        when(profile.getArtFields())
+                .thenReturn(new LinkedHashSet<>(List.of(fieldThird, fieldHighId, fieldSecond, fieldFirst)));
         when(currentUserProvider.getCurrentUser()).thenReturn(user);
         when(artistProfiles.findById(ARTIST_ID)).thenReturn(Optional.of(profile));
         when(artistLinks.findAllForArtistProfile(ARTIST_ID)).thenReturn(links);
@@ -85,7 +87,8 @@ class ArtistProfileServiceTest {
 
         assertThat(dto.biography()).isEqualTo("Bio");
         assertThat(dto.artistStatement()).isEqualTo("Izjava");
-        assertThat(dto.artFields()).map(ArtistProfileDto.CatalogRef::code).containsExactly("prvo", "drugo", "trece");
+        assertThat(dto.artFields()).map(ArtistProfileDto.CatalogRef::code)
+                .containsExactly("prvo", "drugo", "visoki-id", "trece");
         assertThat(dto.links()).map(ArtistProfileDto.ArtistLink::label).containsExactly("Prva", "Druga", "Treća");
         verify(artistLinks).findAllForArtistProfile(ARTIST_ID);
     }

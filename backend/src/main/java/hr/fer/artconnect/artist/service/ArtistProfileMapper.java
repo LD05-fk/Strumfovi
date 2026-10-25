@@ -16,7 +16,8 @@ public final class ArtistProfileMapper {
         List<ArtistProfileDto.CatalogRef> artFields = profile == null
                 ? List.of()
                 : profile.getArtFields().stream()
-                        .sorted(Comparator.comparingInt(ArtField::getPosition).thenComparing(ArtField::getId))
+                        .sorted(Comparator.comparingInt(ArtField::getPosition)
+                                .thenComparing(field -> field.getId().toString()))
                         .map(field -> new ArtistProfileDto.CatalogRef(
                                 field.getId(), field.getCode(), field.getName()))
                         .toList();
