@@ -19,6 +19,7 @@ import org.springframework.context.annotation.*;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.context.*;
 import org.springframework.security.core.annotation.*;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.web.context.*;
 import org.springframework.session.*;
 import org.springframework.session.jdbc.*;
@@ -105,10 +106,20 @@ class SessionIntegrationTest {
     }
 
     @Test
-    void produkcijaNeDopustaDevIzuzeceCsrf() throws Exception {
-        mvc.perform(post("/api/v1/dev/login-as"))
+    @WithMockUser
+    void devRutaNijeDostupnaUProdukcijiIZasticenaJeCsrfom() throws Exception {
+        var token = mvc.perform(get("/api/v1/auth/csrf").secure(true))
+                .andExpect(status().isOk()).andReturn().getResponse().getCookie("XSRF-TOKEN");
+
+        mvc.perform(post("/api/v1/dev/login-as").secure(true))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+
+        mvc.perform(post("/api/v1/dev/login-as").secure(true)
+                        .cookie(token)
+                        .header("X-XSRF-TOKEN", token.getValue()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
     }
 
     @RestController

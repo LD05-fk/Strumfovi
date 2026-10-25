@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -20,7 +21,7 @@ public class NominatimRateLimiter {
     private Instant lastRequestAt;
 
     @Autowired
-    public NominatimRateLimiter(GeocodingProperties properties, Clock clock) {
+    public NominatimRateLimiter(GeocodingProperties properties, @Qualifier("geocodingClock") Clock clock) {
         this(properties, clock, NominatimRateLimiter::sleep);
     }
 

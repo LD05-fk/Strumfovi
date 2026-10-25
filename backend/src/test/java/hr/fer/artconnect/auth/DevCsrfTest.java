@@ -24,14 +24,8 @@ class DevCsrfTest {
     hr.fer.artconnect.auth.domain.UserRepository users;
 
     @Test
-    @WithMockUser
-    void samoDevRutePreskacuCsrf() throws Exception {
+    void javnaDevRutaPreskaceCsrf() throws Exception {
         mvc.perform(post("/api/v1/dev/login-as")).andExpect(status().isOk());
         mvc.perform(post("/api/v1/opportunities")).andExpect(status().isForbidden());
-    }
-
-    @Test
-    void izuzeceCsrfNeZaobilaziPrijavu() throws Exception {
-        mvc.perform(post("/api/v1/dev/login-as")).andExpect(status().isUnauthorized());
     }
 }

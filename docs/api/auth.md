@@ -113,6 +113,34 @@ Anonimni posjetitelji i dalje mogu pregledavati javne rute. Prijavljeni korisnik
 u onboardingu prvo mora odabrati ulogu i za pristup tim API rutama. Putanje izvan
 API-ja nisu obuhvaćene ovim filtrom. Provjera blokiranih računa pripada EPIC-08.
 
+## POST /dev/login-as
+
+Javno dostupan samo u profilu `dev` (i ne uz profil `prod`). Ovaj endpoint služi
+za razvojno i Selenium testiranje umjesto Google prijave. U produkciji ruta nije
+registrirana.
+
+Tijelo zahtjeva:
+
+```json
+{
+  "email": "umjetnik@artconnect.test"
+}
+```
+
+`email` mora biti valjana e-mail adresa duljine do 254 znaka. Uspjeh vraća
+`200 OK` s objektom `CurrentUser` kao u `GET /me` te postavlja novi kolačić
+sesije `SESSION`. Prethodna sesija, ako postoji, dobiva novi ID.
+
+| Status | Kod | Značenje |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | Nedostaje e-mail ili je neispravnog formata/duljine |
+| 404 | `NOT_FOUND` | Korisnik ne postoji ili je u statusu `DELETED` |
+
+Pretraga e-maila ne razlikuje velika i mala slova. Prijava ažurira
+`last_login_at`; korisnik u statusu `INVITED` prelazi u `ACTIVE`. Ne postavlja se
+`google_sub`. CSRF provjera za `/api/v1/dev/**` isključena je samo u profilu
+`dev` bez `prod`.
+
 ## POST /auth/logout
 
 Zahtjev nema tijelo. Preglednik šalje `SESSION`, kolačić `XSRF-TOKEN` i njegovu

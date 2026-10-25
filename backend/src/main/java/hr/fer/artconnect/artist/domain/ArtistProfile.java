@@ -63,4 +63,11 @@ public class ArtistProfile {
     public Set<ArtField> getArtFields() {
         return artFields;
     }
+
+    // Red u artist_profiles ne nastaje pri odabiru uloge, pa ga stvara prvi unos u portfolio.
+    public static ArtistProfile forUser(User user) {
+        ArtistProfile profile = new ArtistProfile();
+        profile.user = user;
+        return profile;
+    }
 }

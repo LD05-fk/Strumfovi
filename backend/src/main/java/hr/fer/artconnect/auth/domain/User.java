@@ -132,6 +132,14 @@ public class User {
         this.avatarUrl = avatarUrl;
         this.lastLoginAt = OffsetDateTime.now();
     }
+
+    public void loginAsDev() {
+        if (this.status == UserStatus.INVITED) {
+            this.status = UserStatus.ACTIVE;
+        }
+        this.lastLoginAt = OffsetDateTime.now();
+    }
+
     public void activateInvitedGoogleAccount(String googleSub, String email, String displayName, String avatarUrl){
         this.googleSub = googleSub;
         this.email = email;
