@@ -1,0 +1,13 @@
+@startuml
+title Stanja korisničkog računa ArtConnect
+[*] --> ONBOARDING : prva Google prijava
+[*] --> INVITED : unaprijed pozvani račun
+INVITED --> ACTIVE : Google prijava s pozvanom adresom
+ONBOARDING --> ACTIVE : jednokratni odabir ARTIST ili ORGANIZER
+ACTIVE --> BLOCKED : administrator blokira (EPIC-08)
+BLOCKED --> ACTIVE : administrator deblokira (EPIC-08)
+ONBOARDING --> DELETED : brisanje računa (AUTH-04)
+ACTIVE --> DELETED : brisanje računa (AUTH-04)
+BLOCKED --> DELETED : brisanje računa (AUTH-04)
+DELETED --> [*]
+@enduml

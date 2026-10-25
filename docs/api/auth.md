@@ -61,6 +61,58 @@ Bez valjane prijave ili kada korisnik iz sesije više ne postoji u bazi, vraća
 }
 ```
 
+## POST /me/role
+
+Prijavljeni korisnik u statusu `ONBOARDING` jednom odabire ulogu. Zahtjev šalje
+sesijski kolačić i valjan CSRF token u zaglavlju `X-XSRF-TOKEN`.
+
+```json
+{ "role": "ORGANIZER" }
+```
+
+Dopuštene su vrijednosti `ARTIST` i `ORGANIZER`. Uspjeh vraća `200` i isti oblik
+podataka kao `GET /me`, s odabranom ulogom i statusom `ACTIVE`.
+Za umjetnika `organizerApproval` ostaje `null`; profil umjetnika ovdje se ne stvara.
+Za organizatora postaje `APPROVED` i stvara se prazan red u `organizer_profiles`
+bez naziva organizacije. Zadano odobrenje određuje
+`OrganizerApprovalPolicy.defaultForNewOrganizer()`.
+
+Promjena korisnika i stvaranje profila izvršavaju se u jednoj transakciji.
+Ažuriranje uspijeva samo dok je status u bazi `ONBOARDING`, pa i kod istodobnih
+zahtjeva samo jedan može uspjeti.
+
+| Status | Kod | Razlog |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | Prazno ili neispravno tijelo, nedostajuća ili nedopuštena uloga, uključujući `ADMIN` |
+| 401 | `UNAUTHENTICATED` | Nema valjane prijave |
+| 403 | `FORBIDDEN` | Nedostaje valjan CSRF token |
+| 409 | `ROLE_ALREADY_CHOSEN` | Status u bazi više nije `ONBOARDING` |
+
+Nakon potvrde transakcije `SessionAuthenticationUpdater` sprema novi principal
+i ovlast `ROLE_ARTIST` ili `ROLE_ORGANIZER` u istu sesiju. Sljedeći zahtjev
+s postojećim sesijskim kolačićem koristi nova prava bez ponovne prijave.
+
+## Ograničenje tijekom odabira uloge
+
+`OnboardingEnforcementFilter` provjerava aktualni status u bazi nakon
+autentikacije, prije odluke o pristupu ruti. Prijavljenom korisniku u statusu
+`ONBOARDING` sve ostale rute pod `/api/v1/` vraćaju `403 ONBOARDING_REQUIRED`.
+Dopuštene su samo ove kombinacije metode i putanje:
+
+- `GET /api/v1/me`
+- `DELETE /api/v1/me`
+- `POST /api/v1/me/role`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/auth/csrf`
+
+Izuzeće od filtra ne implementira samu rutu; brisanje računa pripada zasebnom
+zadatku. CSRF zaštita i dalje vrijedi za zahtjeve koji mijenjaju stanje i može
+vratiti `403 FORBIDDEN` prije provjere onboardinga.
+
+Anonimni posjetitelji i dalje mogu pregledavati javne rute. Prijavljeni korisnik
+u onboardingu prvo mora odabrati ulogu i za pristup tim API rutama. Putanje izvan
+API-ja nisu obuhvaćene ovim filtrom. Provjera blokiranih računa pripada EPIC-08.
+
 ## POST /dev/login-as
 
 Javno dostupan samo u profilu `dev` (i ne uz profil `prod`). Ovaj endpoint služi
@@ -111,3 +163,9 @@ baze i greške prijave. `CurrentUserDtoTest` provjerava mapiranje entiteta u DTO
 `AuthEndpointsIntegrationTest` koristi PostgreSQL i stvarni zapis sesije za
 provjeru CSRF-a, promjene uloge, odjave, brisanja sesije i ponovljene odjave.
 `SecurityConfigTest` dodatno provjerava podudaranje CSRF kolačića i zaglavlja.
+
+`RoleSelectionServiceTest` i `RoleSelectionIntegrationTest` provjeravaju izbor
+obiju uloga, odobrenje i profil organizatora, neispravne zahtjeve, ponovljeni i
+istodobni odabir te prava na sljedećem zahtjevu s istim JDBC sesijskim kolačićem.
+`OnboardingEnforcementFilterTest` provjerava iznimke po metodi i putanji te
+prednost aktualnog statusa iz baze pred statusom u sesiji.

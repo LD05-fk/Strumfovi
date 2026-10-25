@@ -1,5 +1,30 @@
 # 3. Obrasci uporabe
 
+## 3.2 Prva prijava i odabir uloge
+
+- **Primarni sudionik:** novi korisnik.
+- **Zahtjevi:** FR-01 i FR-03 iz [analize zahtjeva](2-Analiza-zahtjeva.md#211-računi-i-prijava-1-ciklus-brisanje-računa-u-2).
+- **Preduvjet:** korisnik ima Google račun.
+- **Rezultat:** korisnik ima ulogu `ARTIST` ili `ORGANIZER`, status `ACTIVE` i nova prava u istoj sesiji.
+
+### Osnovni tijek
+
+1. Korisnik se prijavljuje Google računom.
+2. Sustav stvara novi račun u statusu `ONBOARDING`, bez uloge, i usmjerava ga na `/onboarding`.
+3. Korisnik bira umjetnika ili organizatora. Frontend šalje `POST /api/v1/me/role` uz sesiju i CSRF token.
+4. Sustav jednom postavlja ulogu i aktivira račun. Organizatoru stvara prazan profil i automatski postavlja odobrenje `APPROVED`.
+5. Sustav osvježava prava u postojećoj sesiji. Korisnik nastavlja rad bez ponovne prijave.
+
+### Alternativni tijekovi
+
+- Nedostajuća ili nedopuštena uloga, uključujući `ADMIN`, vraća `400 VALIDATION_ERROR`.
+- Ponovljeni odabir vraća `409 ROLE_ALREADY_CHOSEN`; kod istodobnih zahtjeva samo jedan uspijeva.
+- Bez prijave sustav vraća `401 UNAUTHENTICATED`; bez valjanog CSRF tokena vraća `403 FORBIDDEN`.
+- Do odabira uloge ostale API rute vraćaju `403 ONBOARDING_REQUIRED`. Dostupni ostaju dohvat vlastitih podataka, izbor uloge, dohvat CSRF tokena i odjava; filtar dopušta i buduću rutu za brisanje računa.
+- Pozvani korisnik aktivira unaprijed dodijeljenu ulogu prijavom putem Googlea i preskače ovaj odabir.
+
+Detalji su u [API dokumentaciji prijave](api/auth.md#post-merole).
+
 ## Pregled korisnika
 
 - **Primarni sudionik:** administrator.

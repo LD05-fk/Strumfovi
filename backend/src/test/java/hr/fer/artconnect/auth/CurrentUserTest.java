@@ -93,13 +93,28 @@ class CurrentUserTest {
     }
 
     @Test
-    void onboardingNemaUloguAFilterJosNeOgranicavaStatus() throws Exception {
+    void onboardingNemaUloguIFilterOgranicavaPristup() throws Exception {
         var user = user(null, UserStatus.ONBOARDING);
         var auth = TestPrincipals.authentication(user);
         assertThat(auth.getAuthorities()).isEmpty();
         mvc.perform(get("/api/v1/test/current-user/provider").with(authentication(auth)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("ONBOARDING_REQUIRED"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/%61pi/v1/test/current-user/provider", "/api/%761/test/current-user/provider"})
+    void kodiranaPutanjaKoristiIstaPravilaFiltraIKontrolera(String path) throws Exception {
+        var user = user(null, UserStatus.ONBOARDING);
+        var auth = TestPrincipals.authentication(user);
+        // URI sprječava da MockMvc ponovno kodira znak % iz testne putanje.
+        mvc.perform(get(java.net.URI.create(path)).with(authentication(auth)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("ONBOARDING_REQUIRED"));
+        when(user.getStatus()).thenReturn(UserStatus.ACTIVE);
+        mvc.perform(get(java.net.URI.create(path)).with(authentication(auth)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("ONBOARDING"));
+                .andExpect(jsonPath("$.id").value(user.getId().toString()));
     }
 
     private User user(UserRole role, UserStatus status) {

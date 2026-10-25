@@ -23,6 +23,7 @@ import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 
 import hr.fer.artconnect.auth.domain.UserStatus;
+import hr.fer.artconnect.auth.domain.UserRepository;
 import hr.fer.artconnect.common.SecurityErrorHandler;
 import tools.jackson.databind.ObjectMapper;
 
@@ -32,7 +33,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, Environment environment,
-            SecurityErrorHandler errors, ArtConnectOidcUserService oidcUserService, SecurityContextRepository securityContextRepository) throws Exception {
+            SecurityErrorHandler errors, ArtConnectOidcUserService oidcUserService, SecurityContextRepository securityContextRepository,
+                                                  UserRepository users) throws Exception {
         boolean devProfile = environment.acceptsProfiles(Profiles.of("dev & !prod"));
 
         // Samo navedene GET rute i razvojna dev ruta u dev profilu su javne.
@@ -98,7 +100,7 @@ public class SecurityConfig {
 
         // Filter vidi prijavljenog korisnika prije odluke o pristupu ruti.
         // Ne označavamo ga kao @Component, kako se ne bi registrirao i izvan ovog lanca.
-        http.addFilterBefore(new UserStatusFilter(), AuthorizationFilter.class);
+        http.addFilterBefore(new OnboardingEnforcementFilter(users, errors), AuthorizationFilter.class);
         http.securityContext(context -> context.securityContextRepository(securityContextRepository));
         return http.build();
     }

@@ -2,9 +2,12 @@ package hr.fer.artconnect.auth;
 
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -13,7 +16,10 @@ import hr.fer.artconnect.auth.domain.User;
 import hr.fer.artconnect.auth.domain.UserRepository;
 import hr.fer.artconnect.auth.domain.UserRole;
 import hr.fer.artconnect.auth.domain.UserStatus;
+import hr.fer.artconnect.auth.service.RoleSelectionService;
 import hr.fer.artconnect.auth.web.AuthController;
+import hr.fer.artconnect.common.ApiException;
+import hr.fer.artconnect.common.ErrorCode;
 import hr.fer.artconnect.support.TestPrincipals;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,6 +42,67 @@ class AuthControllerTest {
     ArtConnectOidcUserService oidcUserService;
     @MockitoBean
     UserRepository userRepository;
+    @MockitoBean
+    RoleSelectionService roleSelectionService;
+    @MockitoBean
+    SessionAuthenticationUpdater sessionAuthenticationUpdater;
+
+    @Test
+    void odabirUlogeVracaAktualnogKorisnika() throws Exception {
+        for (var role : new UserRole[] {UserRole.ARTIST, UserRole.ORGANIZER}) {
+            var user = user(role, UserStatus.ACTIVE);
+            when(roleSelectionService.chooseRole(role)).thenReturn(user);
+            mvc.perform(post("/api/v1/me/role")
+                            .with(authentication(TestPrincipals.authentication(user)))
+                            .with(csrf())
+                            .contentType("application/json").content("{\"role\":\"" + role + "\"}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.role").value(role.name()))
+                    .andExpect(jsonPath("$.status").value("ACTIVE"));
+        }
+    }
+
+    @Test
+    void neispravnaUlogaIliTijeloVraca400() throws Exception {
+        var user = user(null, UserStatus.ONBOARDING);
+        for (String body : new String[] {"", "{}", "null", "{\"role\":null}", "{\"role\":\"ADMIN\"}",
+                "{\"role\":\"UNKNOWN\"}", "{\"role\":\"\"}"}) {
+            mvc.perform(post("/api/v1/me/role")
+                            .with(authentication(TestPrincipals.authentication(user)))
+                            .with(csrf())
+                            .contentType("application/json").content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        }
+        verifyNoInteractions(roleSelectionService);
+    }
+
+    @Test
+    void odabirBezSesijeVraca401ABezCsrfVraca403() throws Exception {
+        mvc.perform(post("/api/v1/me/role")
+                        .with(csrf())
+                        .contentType("application/json").content("{\"role\":\"ARTIST\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
+        var user = user(null, UserStatus.ONBOARDING);
+        mvc.perform(post("/api/v1/me/role")
+                        .with(authentication(TestPrincipals.authentication(user)))
+                        .contentType("application/json").content("{\"role\":\"ARTIST\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void ponovljeniOdabirVraca409() throws Exception {
+        var user = user(UserRole.ARTIST, UserStatus.ACTIVE);
+        when(roleSelectionService.chooseRole(UserRole.ARTIST)).thenThrow(new ApiException(
+                ErrorCode.ROLE_ALREADY_CHOSEN, "Uloga je već odabrana."));
+        mvc.perform(post("/api/v1/me/role")
+                        .with(authentication(TestPrincipals.authentication(user)))
+                        .with(csrf())
+                        .contentType("application/json").content("{\"role\":\"ARTIST\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("ROLE_ALREADY_CHOSEN"));
+    }
 
     @Test
     void meVracaAktualnePodatkeIzBaze() throws Exception {

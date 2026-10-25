@@ -95,8 +95,9 @@ Za neispravne parametre endpoint vraća `400 VALIDATION_ERROR` s detaljem
 po polju, bez valjane sesije `401 UNAUTHENTICATED`, a korisniku bez
 administratorske uloge `403 FORBIDDEN`.
 
-Trenutni `UserStatusFilter` još ne provodi provjere statusa pozivatelja
-`ONBOARDING_REQUIRED` i `USER_BLOCKED`; one pripadaju zasebnim zadacima.
+`OnboardingEnforcementFilter` korisniku u statusu `ONBOARDING` vraća
+`403 ONBOARDING_REQUIRED` prije provjere administratorske uloge.
+Provjera `USER_BLOCKED` pripada zasebnom zadatku EPIC-08.
 
 ### Provjera
 

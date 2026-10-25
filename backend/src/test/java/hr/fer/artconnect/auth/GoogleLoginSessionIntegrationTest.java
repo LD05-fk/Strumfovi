@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import java.util.UUID;
 
@@ -67,9 +68,9 @@ class GoogleLoginSessionIntegrationTest extends IntegrationTestBase {
         // Drugi zahtjev nosi samo kolačić; korisnika daje CurrentUserProvider iz baze.
         TestSecurityContextHolder.clearContext();
         SecurityContextHolder.clearContext();
-        mockMvc.perform(get("/api/v1/test/google-login/current").cookie(sessionCookie))
+        mockMvc.perform(get("/api/v1/me").cookie(sessionCookie))
                 .andExpect(status().isOk())
-                .andExpect(content().string(userId.toString()));
+                .andExpect(jsonPath("$.id").value(userId.toString()));
     }
 
     @RestController

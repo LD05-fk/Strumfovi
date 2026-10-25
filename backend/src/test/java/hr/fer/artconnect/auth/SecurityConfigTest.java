@@ -33,6 +33,8 @@ class SecurityConfigTest {
     MockMvc mvc;
     @MockitoBean
     ArtConnectOidcUserService oidcUserService;
+    @MockitoBean
+    hr.fer.artconnect.auth.domain.UserRepository users;
 
     @ParameterizedTest
     @ValueSource(strings = {
