@@ -98,4 +98,16 @@ describe('apiFetch', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect(error).toMatchObject({ status: 0, code: 'NETWORK_ERROR' })
   })
+
+  it.each(['POST', 'PUT', 'PATCH', 'DELETE'])(
+    'šalje CSRF zaglavlje za metodu %s',
+    async (method) => {
+      document.cookie = 'XSRF-TOKEN=abc123'
+      fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
+
+      await apiFetch('/opportunities', { method })
+
+      expect(sentHeaders().get('X-XSRF-TOKEN')).toBe('abc123')
+    },
+  )
 })
