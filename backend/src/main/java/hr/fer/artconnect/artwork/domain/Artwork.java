@@ -60,6 +60,19 @@ public class Artwork {
 
     protected Artwork() {}
 
+    public static Artwork create(User artist, String title, short year, String technique, String dimensions,
+            String description, ArtworkVisibility visibility) {
+        Artwork artwork = new Artwork();
+        artwork.artist = artist;
+        artwork.title = title;
+        artwork.year = year;
+        artwork.technique = technique;
+        artwork.dimensions = dimensions;
+        artwork.description = description;
+        artwork.visibility = visibility;
+        return artwork;
+    }
+
     @PrePersist
     void onCreate() {
         OffsetDateTime now = OffsetDateTime.now();
