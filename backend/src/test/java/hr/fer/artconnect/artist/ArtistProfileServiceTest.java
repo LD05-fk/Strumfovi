@@ -18,6 +18,7 @@ import hr.fer.artconnect.auth.domain.User;
 import hr.fer.artconnect.auth.domain.UserRole;
 import hr.fer.artconnect.auth.domain.UserStatus;
 import hr.fer.artconnect.catalog.domain.ArtField;
+import hr.fer.artconnect.catalog.domain.ArtFieldRepository;
 import hr.fer.artconnect.common.ApiException;
 import hr.fer.artconnect.common.ErrorCode;
 import hr.fer.artconnect.support.TestUsers;
@@ -40,6 +41,9 @@ class ArtistProfileServiceTest {
 
     @Mock
     ArtistLinkRepository artistLinks;
+
+    @Mock
+    ArtFieldRepository artFields;
 
     @Mock
     CurrentUserProvider currentUserProvider;
@@ -106,7 +110,7 @@ class ArtistProfileServiceTest {
     }
 
     private ArtistProfileService service() {
-        return new ArtistProfileService(artistProfiles, artistLinks, currentUserProvider);
+        return new ArtistProfileService(artistProfiles, artistLinks, artFields, currentUserProvider);
     }
 
     private static User artist(UserStatus status) {

@@ -41,4 +41,13 @@ public class ArtistLink {
     public short getPosition() {
         return position;
     }
+
+    public static ArtistLink create(ArtistProfile artistProfile, String label, String url, short position) {
+        ArtistLink link = new ArtistLink();
+        link.artistProfile = artistProfile;
+        link.label = label;
+        link.url = url;
+        link.position = position;
+        return link;
+    }
 }
