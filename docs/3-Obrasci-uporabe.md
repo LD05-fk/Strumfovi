@@ -25,6 +25,39 @@
 
 Detalji su u [API dokumentaciji prijave](api/auth.md#post-merole).
 
+## Dodavanje djela u portfolio
+
+- **Primarni sudionik:** umjetnik.
+- **Cilj:** dodati djelo u vlastiti portfolio i odabrati njegovu vidljivost.
+- **Preduvjet:** valjana prijavljena sesija s ulogom `ARTIST` i CSRF token.
+- **Rezultat:** djelo je spremljeno u portfoliju bez slika; slike se mogu dodati
+  zasebnim zahtjevom nakon što djelo dobije ID.
+
+### Osnovni tijek
+
+1. Umjetnik u obrascu unosi naslov, godinu i tehniku te po želji dimenzije i opis.
+2. Umjetnik za djelo odabire vidljivost `PUBLIC` ili `PRIVATE`.
+3. Sučelje šalje `POST /api/v1/artworks` uz sesiju i CSRF token.
+4. Sustav provjerava obavezna polja, ograničenja tekstova i godinu od 1900 do
+   tekuće godine.
+5. Sustav sprema djelo vezano uz prijavljenog umjetnika i vraća `201 Created`,
+   zaglavlje `Location` i djelo s praznim nizom slika.
+6. Nakon stvaranja, sučelje može zasebno učitati slike za dobiveni ID djela.
+
+### Alternativni tijekovi
+
+- Nedostajući naslov, godina, tehnika ili vidljivost, nevaljana godina,
+  prekoračeno ograničenje teksta ili nepoznata vidljivost vraća
+  `400 VALIDATION_ERROR` s detaljima polja.
+- Tekstualne vrijednosti se obrezuju; prazne neobavezne dimenzije i opis
+  spremaju se kao `null`.
+- Bez prijave sustav vraća `401 UNAUTHENTICATED`.
+- Bez uloge `ARTIST`, bez valjanog CSRF tokena ili prije odabira uloge sustav
+  vraća odgovarajući `403`.
+
+Detalji zahtjeva i odgovora nalaze se u
+[API dokumentaciji djela](api/artworks.md#post-artworks).
+
 ## Pregled korisnika
 
 - **Primarni sudionik:** administrator.
