@@ -115,7 +115,7 @@ public class ArtistProfileService {
         try {
             URI uri = new URI(value);
             String scheme = uri.getScheme();
-            return ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))
+            return ("http".equals(scheme) || "https".equals(scheme))
                     && uri.getHost() != null && !uri.getHost().isBlank();
         } catch (URISyntaxException exception) {
             return false;

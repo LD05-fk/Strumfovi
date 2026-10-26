@@ -154,6 +154,10 @@ class ArtistProfileUpdateIntegrationTest extends IntegrationTestBase {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.details[0].field").value("links[0].url"));
 
+        send(body(null, List.of(), List.of("{\"label\":null,\"url\":\"HTTPS://example.test\"}")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.details[0].field").value("links[0].url"));
+
         send(body(null, List.of(), List.of("{\"label\":null,\"url\":\"https://\"}")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.details[0].field").value("links[0].url"));
