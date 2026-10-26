@@ -55,6 +55,17 @@ Zahtjevi su grupirani po područjima (epicima plana rada). Svaki ima stabilan ID
 | FR-23 | Detalj prilike prikazuje sva polja, lokaciju, popis priloga koje prijava treba sadržavati i objavljene rezultate. | Must | G06 | Detalj prikazuje naslov, opis, vrstu, područja, rok, kriterije, nagradu, datume i naziv organizatora. Odjeljak „Što treba priložiti” prikazuje za svaku stavku vrstu, najviši broj i je li obavezna (ili „Prijava ne zahtijeva priloge.”). Za završenu priliku prikazuje se odjeljak „Rezultati”. |
 | FR-24 | Organizator na stranici „Moje prilike” vidi sve svoje prilike u svim statusima, odvojene na aktivne i arhivirane, s filtrom statusa i brojem prijava. | Must | G06; odluka tima | Organizator vidi samo vlastite prilike, s oznakom statusa i oznakom „Skriveno od administratora” kad je primjenjivo. Uz svaku priliku prikazan je broj prijava (bez povučenih) razvrstan po statusima; brojevi prijava prikazuju se od 2. ciklusa. Popis je straničen. |
 
+**Provjerljivi backend rezultat za FR-15 i FR-16:** `POST /api/v1/opportunities`
+stvara privatni nacrt prijavljenog aktivnog organizatora, uključujući organizatora
+na čekanju. Vraća `201 Created` i `Location`. Rok mora biti strogo u budućnosti;
+vrsta i 1–10 različitih područja moraju postojati i biti aktivni. Za fizičku
+lokaciju obavezni su adresa, grad i koordinate u dopuštenom rasponu, a za online
+lokaciju HTTP/HTTPS poveznica. Završetak događanja dopušten je samo uz početak
+i ne prije njega; datumi događanja mogu izostati. Neispravan unos vraća
+`400 VALIDATION_ERROR` s detaljima polja bez spremanja prilike. Vlasnik se
+određuje iz sesije. Detalji su u [API dokumentaciji prilika](api/opportunities.md#post-opportunities).
+Uređivanje, javni dohvat i promjena statusa zasebni su zadaci.
+
 ### 2.1.4 Zahtjevi prijave i prijave (2. ciklus)
 
 | ID | Opis | Prioritet | Izvor | Kriteriji prihvaćanja |
