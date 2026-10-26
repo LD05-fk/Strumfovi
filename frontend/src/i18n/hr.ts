@@ -25,6 +25,13 @@ export const hr = {
     home: 'Na početnu',
   },
 
+  auth: {
+    loginRequiredTitle: 'Prijava potrebna',
+    loginRequiredDescription:
+      'Za pristup ovoj stranici prijavite se svojim Google računom.',
+    onboardingTitle: 'Odabir uloge',
+  },
+
   errors: {
     generic: 'Nešto je pošlo po zlu. Pokušajte ponovno.',
     notFound: 'Stranica ne postoji.',

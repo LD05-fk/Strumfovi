@@ -23,6 +23,14 @@ export class ApiError extends Error {
   }
 }
 
+export const API_ERROR_EVENT = 'artconnect:api-error'
+
+export type ApiErrorEventDetail = {
+  status: number
+  code: string
+  path: string
+}
+
 export type ApiFetchOptions = Omit<RequestInit, 'body'> & {
   // podaci koji se šalju kao JSON (apiFetch postavi Content-Type i JSON.stringify)
   json?: unknown
@@ -42,6 +50,16 @@ function readCookie(name: string): string | undefined {
 
 function unexpected(status: number, message: string): ApiError {
   return new ApiError(status, { code: 'INTERNAL_ERROR', message })
+}
+
+function emitApiError(error: ApiError, path: string): void {
+  if (typeof window === 'undefined') return
+
+  window.dispatchEvent(
+    new CustomEvent<ApiErrorEventDetail>(API_ERROR_EVENT, {
+      detail: { status: error.status, code: error.code, path },
+    }),
+  )
 }
 
 export async function apiFetch<T>(
@@ -87,19 +105,25 @@ export async function apiFetch<T>(
     body = text ? JSON.parse(text) : undefined
   } catch {
     // npr. HTML stranica umjesto JSON-a (preusmjeravanje, greška proxyja)
-    throw unexpected(
+    const apiError = unexpected(
       response.status,
       `Neočekivan odgovor poslužitelja (HTTP ${response.status})`,
     )
+    if (!response.ok) emitApiError(apiError, path)
+    throw apiError
   }
 
   if (!response.ok) {
     const error = (body as { error?: ErrorBody } | undefined)?.error
-    if (error?.code) throw new ApiError(response.status, error)
-    throw unexpected(
-      response.status,
-      `Neočekivan odgovor poslužitelja (HTTP ${response.status})`,
-    )
+    const apiError = error?.code
+      ? new ApiError(response.status, error)
+      : unexpected(
+          response.status,
+          `Neočekivan odgovor poslužitelja (HTTP ${response.status})`,
+        )
+
+    emitApiError(apiError, path)
+    throw apiError
   }
 
   return body as T

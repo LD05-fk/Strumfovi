@@ -14,7 +14,7 @@ export interface CurrentUser {
   displayName: string
   email: string
   avatarUrl: string | null
-  role: UserRole
+  role: UserRole | null
   status: UserStatus
   organizerApproval: OrganizerApproval | null
 }

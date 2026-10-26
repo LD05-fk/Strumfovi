@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, apiFetch } from './client'
+import { API_ERROR_EVENT, ApiError, apiFetch } from './client'
 
 const fetchMock = vi.fn<typeof fetch>()
 
@@ -79,6 +79,30 @@ describe('apiFetch', () => {
       message: 'Neispravni podaci',
       details: [{ field: 'title', issue: 'obavezno polje' }],
     })
+  })
+
+  it('emitira događaj za globalno rukovanje autentifikacijskom greškom', async () => {
+    const handleApiError = vi.fn()
+    window.addEventListener(API_ERROR_EVENT, handleApiError)
+    fetchMock.mockResolvedValue(
+      Response.json(
+        { error: { code: 'ONBOARDING_REQUIRED', message: 'Odaberite ulogu' } },
+        { status: 403 },
+      ),
+    )
+
+    await expect(apiFetch('/opportunities')).rejects.toBeInstanceOf(ApiError)
+
+    expect(handleApiError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: {
+          status: 403,
+          code: 'ONBOARDING_REQUIRED',
+          path: '/opportunities',
+        },
+      }),
+    )
+    window.removeEventListener(API_ERROR_EVENT, handleApiError)
   })
 
   it('odgovor koji nije JSON postaje ApiError', async () => {
