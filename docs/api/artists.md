@@ -1,8 +1,9 @@
 # Portfolio umjetnika
 
-Endpointi kojima umjetnik vodi vlastiti portfolio. Sve putanje počinju s `/api/v1`.
+Endpointi za javni profil umjetnika i portfolio umjetnika. Sve putanje počinju s `/api/v1`.
 
-Zahtjevi traže prijavu i ulogu `ARTIST`, a nesigurne metode i CSRF zaglavlje
+Javni profil ne traži prijavu ni CSRF token. Za upravljanje vlastitim portfoliom
+potrebna je prijava i uloga `ARTIST`, a nesigurne metode traže i CSRF zaglavlje
 `X-XSRF-TOKEN` iz kolačića `XSRF-TOKEN`. Vlasnik zapisa uvijek je prijavljeni
 korisnik — `artist_id` se ne prima iz tijela zahtjeva i ne može se proturiti.
 
@@ -10,6 +11,45 @@ Zapisi se vežu na profil umjetnika. Red u `artist_profiles` ne nastaje pri odab
 uloge, pa ga prvi unos u portfolio stvara kao prazan profil — umjetnik ne mora
 prvo spremiti biografiju. `403 ONBOARDING_REQUIRED` dobiva korisnik koji je još u
 statusu `ONBOARDING`, odnosno nije odabrao ulogu.
+
+## GET /artists/{artistId}
+
+Javno vraća profil umjetnika i njegove ručno unesene prethodne izložbe. Odgovor
+`200 OK` koristi ista polja kao `ArtistProfile`, uz `pastExhibitions` i
+`participations`:
+
+```json
+{
+  "userId": "0b6a5c1e-3f2d-4e8b-9a7c-1d2e3f4a5b6c",
+  "displayName": "Ana Horvat",
+  "avatarUrl": "https://lh3.googleusercontent.com/a/ana-horvat",
+  "biography": "Akademska slikarica iz Splita.",
+  "artistStatement": "U radu istražujem odnos mora, svjetla i sjećanja.",
+  "artFields": [],
+  "links": [],
+  "pastExhibitions": [
+    {
+      "id": "c3d4e5f6-7a8b-4c90-9d12-3e4f5a6b7c08",
+      "title": "Gradski motivi",
+      "year": 2024,
+      "place": "Galerija Nova, Zagreb"
+    }
+  ],
+  "participations": []
+}
+```
+
+`pastExhibitions` sadrži `id`, `title`, `year` i `place`, poredane po godini
+silazno, pa po vremenu stvaranja silazno. Umjetnik bez retka u
+`artist_profiles` vraća se s praznim profilom, kao kod `GET /me/artist-profile`.
+`participations` je u Fazi 1 uvijek prazan niz; stvarni podaci pune se od
+EPIC-05. Endpoint se koristi i za prikaz prethodnih izložbi vlasnika na
+`/profile`.
+
+Odgovor `404 NOT_FOUND` vraća se ako korisnik ne postoji, nema ulogu `ARTIST`
+ili je u statusu `BLOCKED`, `DELETED`, `ONBOARDING` ili `INVITED`. Vlasnik i
+administrator mogu vidjeti blokiran profil; obrisani profil nije javan ni njima.
+Neispravan UUID također vraća `404 NOT_FOUND`.
 
 ## GET /me/artist-profile
 
