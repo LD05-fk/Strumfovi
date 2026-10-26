@@ -11,8 +11,10 @@ import {
 } from '@mui/material'
 import { useEffect, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
+import type { UserRole } from './layout/navigation'
 import { useCurrentUser } from '../features/auth/useCurrentUser'
 import { useLogout } from '../features/auth/useLogout'
+import { hasRole } from '../features/auth/hasRole'
 import { hr } from '../i18n/hr'
 import { GoogleSignInButton } from './GoogleSignInButton'
 import { useNotify } from './state/useNotify'
@@ -27,17 +29,14 @@ function getInitials(displayName: string) {
     .join('')
 }
 
-function getRoleLabel(role: string) {
-  switch (role) {
-    case 'ARTIST':
-      return 'Umjetnik'
-    case 'ORGANIZER':
-      return 'Organizator'
-    case 'ADMIN':
-      return 'Administrator'
-    default:
-      return role
-  }
+const roleLabels: Record<UserRole, string> = {
+  ARTIST: 'Umjetnik',
+  ORGANIZER: 'Organizator',
+  ADMIN: 'Administrator',
+}
+
+function getRoleLabel(role: UserRole): string {
+  return roleLabels[role]
 }
 
 export function UserMenu() {
@@ -127,16 +126,20 @@ export function UserMenu() {
             {user.email}
           </Typography>
 
-          <Chip
-            label={getRoleLabel(user.role)}
-            size="small"
-            sx={{ alignSelf: 'flex-start', mt: 0.5 }}
-          />
+          {user.role !== null && (
+            <Chip
+              label={getRoleLabel(user.role)}
+              size="small"
+              sx={{ alignSelf: 'flex-start', mt: 0.5 }}
+            />
+          )}
         </Stack>
 
-        <MenuItem component={RouterLink} to="/profile" onClick={closeMenu}>
-          Profil
-        </MenuItem>
+        {hasRole(user, 'ARTIST', 'ORGANIZER') && (
+          <MenuItem component={RouterLink} to="/profile" onClick={closeMenu}>
+            Profil
+          </MenuItem>
+        )}
 
         <MenuItem
           data-testid="logout"

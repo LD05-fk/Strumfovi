@@ -1,14 +1,12 @@
 import MenuIcon from '@mui/icons-material/Menu'
 import {
   AppBar,
-  Avatar,
   Box,
   Button,
   Drawer,
   IconButton,
   Link as MuiLink,
-  Menu,
-  MenuItem,
+  Skeleton,
   Stack,
   Toolbar,
   Typography,
@@ -18,22 +16,23 @@ import {
 import { useState } from 'react'
 import { Link as RouterLink, Outlet } from 'react-router'
 import { hr } from '../../i18n/hr'
-import { GoogleMark } from './GoogleMark'
+import { useCurrentUser } from '../../features/auth/useCurrentUser'
+import { useLogout } from '../../features/auth/useLogout'
+import { hasRole } from '../../features/auth/hasRole'
+import { GoogleSignInButton } from '../GoogleSignInButton'
+import { UserMenu } from '../UserMenu'
 import { NavItems } from './NavItems'
 import type { NavigationRole } from './navigation'
 
 export type { NavigationRole, UserRole } from './navigation'
 
-type AppLayoutProps = {
-  role?: NavigationRole
-  onSignOut?: () => void
-}
-
-export function AppLayout({ role = null, onSignOut }: AppLayoutProps) {
+export function AppLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [accountAnchor, setAccountAnchor] = useState<HTMLElement | null>(null)
   const theme = useTheme()
   const desktop = useMediaQuery(theme.breakpoints.up('md'))
+  const { data: user, isPending, isError } = useCurrentUser()
+  const logout = useLogout()
+  const role: NavigationRole = user?.role ?? null
   const closeDrawer = () => setDrawerOpen(false)
 
   return (
@@ -101,73 +100,7 @@ export function AppLayout({ role = null, onSignOut }: AppLayoutProps) {
           )}
 
           <Box sx={{ flexGrow: 1 }} />
-          {role === null ? (
-            <Button
-              component="a"
-              href="/oauth2/authorization/google"
-              variant="outlined"
-              size="small"
-              aria-label="Prijava s Googleom"
-              sx={{
-                minWidth: { xs: 40, sm: 0 },
-                minHeight: 36,
-                px: { xs: 1, sm: 2 },
-                whiteSpace: 'nowrap',
-                color: 'text.primary',
-                bgcolor: 'background.paper',
-                borderColor: '#78716C',
-                '&:hover': {
-                  borderColor: 'text.primary',
-                  bgcolor: 'background.paper',
-                },
-              }}
-            >
-              <GoogleMark />
-              <Box
-                component="span"
-                sx={{ display: { xs: 'none', sm: 'inline' }, ml: 1 }}
-              >
-                Prijava s Googleom
-              </Box>
-            </Button>
-          ) : (
-            <IconButton
-              aria-label="Korisnički izbornik"
-              aria-haspopup="true"
-              aria-expanded={Boolean(accountAnchor)}
-              onClick={(event) => setAccountAnchor(event.currentTarget)}
-              sx={{ p: 0.5 }}
-            >
-              <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main' }}>
-                {role === 'ARTIST' ? 'UM' : role === 'ORGANIZER' ? 'OR' : 'AD'}
-              </Avatar>
-            </IconButton>
-          )}
-          {role !== null && (
-            <Menu
-              anchorEl={accountAnchor}
-              open={Boolean(accountAnchor)}
-              onClose={() => setAccountAnchor(null)}
-            >
-              <MenuItem
-                component={RouterLink}
-                to="/profile"
-                onClick={() => setAccountAnchor(null)}
-              >
-                Profil
-              </MenuItem>
-              {onSignOut && (
-                <MenuItem
-                  onClick={() => {
-                    onSignOut()
-                    setAccountAnchor(null)
-                  }}
-                >
-                  Odjava
-                </MenuItem>
-              )}
-            </Menu>
-          )}
+          <UserMenu />
         </Toolbar>
       </AppBar>
 
@@ -193,44 +126,36 @@ export function AppLayout({ role = null, onSignOut }: AppLayoutProps) {
               {hr.appName}
             </Typography>
             <NavItems role={role} vertical onNavigate={closeDrawer} />
-            {role === null ? (
-              <Button
-                component="a"
-                href="/oauth2/authorization/google"
-                variant="outlined"
-                fullWidth
-                sx={{
-                  color: 'text.primary',
-                  borderColor: '#78716C',
-                  '&:hover': { borderColor: 'text.primary' },
-                }}
-              >
-                <GoogleMark />
-                <Box component="span" sx={{ ml: 1 }}>
-                  Prijava s Googleom
-                </Box>
-              </Button>
+            {isPending ? (
+              <Skeleton
+                variant="rounded"
+                height={36}
+                data-testid="drawer-account-loading"
+              />
+            ) : isError ? null : user == null ? (
+              <GoogleSignInButton />
             ) : (
               <>
-                <Button
-                  component={RouterLink}
-                  to="/profile"
-                  onClick={closeDrawer}
-                  sx={{ justifyContent: 'flex-start' }}
-                >
-                  Profil
-                </Button>
-                {onSignOut && (
+                {hasRole(user, 'ARTIST', 'ORGANIZER') && (
                   <Button
-                    onClick={() => {
-                      onSignOut()
-                      closeDrawer()
-                    }}
+                    component={RouterLink}
+                    to="/profile"
+                    onClick={closeDrawer}
                     sx={{ justifyContent: 'flex-start' }}
                   >
-                    Odjava
+                    Profil
                   </Button>
                 )}
+                <Button
+                  disabled={logout.isPending}
+                  onClick={() => {
+                    closeDrawer()
+                    logout.mutate()
+                  }}
+                  sx={{ justifyContent: 'flex-start' }}
+                >
+                  Odjava
+                </Button>
               </>
             )}
           </Stack>

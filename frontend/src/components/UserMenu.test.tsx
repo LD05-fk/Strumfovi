@@ -127,6 +127,37 @@ describe('UserMenu', () => {
     expect(screen.getByTestId('logout')).toBeInTheDocument()
   })
 
+  it('ne prikazuje Profil administratoru', async () => {
+    vi.mocked(useCurrentUser).mockReturnValue({
+      data: { ...mockUser, role: 'ADMIN' },
+      isPending: false,
+      isError: false,
+    } as ReturnType<typeof useCurrentUser>)
+
+    renderUserMenu()
+    fireEvent.click(screen.getByTestId('user-menu'))
+
+    expect(await screen.findByTestId('logout')).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Profil' })).toBeNull()
+  })
+
+  it('ne prikazuje praznu oznaku uloge tijekom onboardinga', async () => {
+    vi.mocked(useCurrentUser).mockReturnValue({
+      data: { ...mockUser, role: null, status: 'ONBOARDING' },
+      isPending: false,
+      isError: false,
+    } as ReturnType<typeof useCurrentUser>)
+
+    renderUserMenu()
+    fireEvent.click(screen.getByTestId('user-menu'))
+
+    expect(await screen.findByText('Testni Korisnik')).toBeInTheDocument()
+    expect(screen.queryByText('Umjetnik')).not.toBeInTheDocument()
+    expect(screen.queryByText('Organizator')).not.toBeInTheDocument()
+    expect(screen.queryByText('Administrator')).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Profil' })).toBeNull()
+  })
+
   it('poziva logout kada korisnik odabere odjavu', async () => {
     renderUserMenu()
 
