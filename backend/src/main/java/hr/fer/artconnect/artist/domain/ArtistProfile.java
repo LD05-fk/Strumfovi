@@ -4,6 +4,7 @@ import hr.fer.artconnect.auth.domain.User;
 import hr.fer.artconnect.catalog.domain.ArtField;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -62,6 +63,14 @@ public class ArtistProfile {
 
     public Set<ArtField> getArtFields() {
         return artFields;
+    }
+
+    public void replace(String biography, String artistStatement, Collection<ArtField> artFields) {
+        this.biography = biography;
+        this.artistStatement = artistStatement;
+        this.artFields.clear();
+        this.artFields.addAll(artFields);
+        this.updatedAt = OffsetDateTime.now();
     }
 
     // Red u artist_profiles ne nastaje pri odabiru uloge, pa ga stvara prvi unos u portfolio.

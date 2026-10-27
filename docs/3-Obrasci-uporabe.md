@@ -58,6 +58,38 @@ Detalji su u [API dokumentaciji prijave](api/auth.md#post-merole).
 Detalji zahtjeva i odgovora nalaze se u
 [API dokumentaciji djela](api/artworks.md#post-artworks).
 
+## Uređivanje profila umjetnika
+
+- **Primarni sudionik:** umjetnik.
+- **Cilj:** urediti biografiju, opis umjetničkog rada, područja umjetnosti i
+  poveznice na vlastitom profilu.
+- **Preduvjet:** valjana prijavljena sesija s ulogom `ARTIST` i CSRF token.
+- **Rezultat:** profil i njegove veze potpuno su ažurirani.
+
+### Osnovni tijek
+
+1. Umjetnik u obrascu unosi ili uređuje biografiju i opis umjetničkog rada.
+2. Odabire do 10 područja iz aktivnog šifrarnika te unosi do 10 poveznica.
+3. Sučelje šalje `PUT /api/v1/me/artist-profile` sa svim poljima obrasca.
+4. Sustav validira ograničenja tekstova, jedinstvenost i dostupnost područja te
+   HTTP(S) format svake poveznice.
+5. Sustav u jednoj transakciji stvara ili ažurira profil, potpuno zamjenjuje
+   odabrana područja i poveznice te vraća spremljeni `ArtistProfile`.
+
+### Alternativni tijekovi
+
+- Prazni nizovi područja i poveznica brišu postojeće veze.
+- Postojeće neaktivno područje može ostati odabrano, ali se ne može dodati u
+  profil koji ga prethodno nije imao.
+- Tekstovi se obrezuju; prazna oznaka poveznice sprema se kao `null`.
+- Nevaljana polja, duplikati, nedostupna područja ili neispravni URL-ovi vraćaju
+  `400 VALIDATION_ERROR` s detaljima polja.
+- Bez prijave sustav vraća `401 UNAUTHENTICATED`; bez uloge umjetnika, bez
+  valjanog CSRF tokena ili prije odabira uloge vraća odgovarajući `403`.
+
+Detalji zahtjeva, odgovora i ograničenja nalaze se u
+[API dokumentaciji portfolija umjetnika](api/artists.md#put-meartist-profile).
+
 ## Pregled korisnika
 
 - **Primarni sudionik:** administrator.

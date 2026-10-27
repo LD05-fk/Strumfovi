@@ -2,8 +2,11 @@ package hr.fer.artconnect.artist.web;
 
 import hr.fer.artconnect.artist.service.ArtistProfileService;
 import hr.fer.artconnect.common.ApiPaths;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,5 +23,10 @@ public class ArtistProfileController {
     @GetMapping
     public ArtistProfileDto getMyArtistProfile() {
         return artistProfiles.getMyArtistProfile();
+    }
+
+    @PutMapping
+    public ArtistProfileDto updateMyArtistProfile(@Valid @RequestBody ArtistProfileUpdateRequest request) {
+        return artistProfiles.updateMyArtistProfile(request);
     }
 }
