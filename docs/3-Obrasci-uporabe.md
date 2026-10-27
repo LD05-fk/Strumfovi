@@ -25,6 +25,30 @@
 
 Detalji su u [API dokumentaciji prijave](api/auth.md#post-merole).
 
+### Uređivanje profila organizatora
+
+- **Primarni sudionik:** organizator.
+- **Cilj:** pregledati profil i promijeniti naziv organizacije.
+- **Preduvjet:** valjana sesija s ulogom `ORGANIZER`; za spremanje je potreban CSRF token.
+- **Rezultat:** naziv organizacije je spremljen ili obrisan; ime i odobrenje ostaju nepromijenjeni.
+
+#### Osnovni tijek
+
+1. Organizator otvara stranicu `/profile`.
+2. Sučelje dohvaća `GET /api/v1/me/organizer-profile`.
+3. Sustav vraća ime organizatora, naziv organizacije i status odobrenja. Ako profilni red ne postoji, naziv je `null`.
+4. Organizator unosi ili mijenja naziv organizacije i sprema obrazac.
+5. Sučelje šalje `PUT /api/v1/me/organizer-profile` uz sesiju i CSRF token.
+6. Sustav obrezuje naziv, sprema ga (ili `null` za praznu vrijednost), osvježava `updated_at` i vraća spremljeni profil.
+
+#### Alternativni tijekovi
+
+- Organizator koji čeka odobrenje može urediti profil; odobrenje se ovim zahtjevom ne mijenja.
+- Ako profilni red ne postoji, uspješan PUT stvara ga.
+- Izostavljeno polje `organizationName`, `null`, prazan niz ili niz samo od razmaka sprema se kao `null`.
+- Naziv dulji od 200 znakova vraća `400 VALIDATION_ERROR`.
+- Bez valjane sesije sustav vraća `401 UNAUTHENTICATED`; bez uloge organizatora, uz onboarding, blokiran račun ili nedostajući/nevaljan CSRF token vraća odgovarajući `403`.
+
 ## Dodavanje djela u portfolio
 
 - **Primarni sudionik:** umjetnik.
