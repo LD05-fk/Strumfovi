@@ -1,7 +1,6 @@
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
 import {
   Avatar,
-  Chip,
   IconButton,
   Menu,
   MenuItem,
@@ -11,12 +10,12 @@ import {
 } from '@mui/material'
 import { useEffect, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import type { UserRole } from './layout/navigation'
 import { useCurrentUser } from '../features/auth/useCurrentUser'
 import { useLogout } from '../features/auth/useLogout'
 import { hasRole } from '../features/auth/hasRole'
 import { hr } from '../i18n/hr'
 import { GoogleSignInButton } from './GoogleSignInButton'
+import { RoleChip } from './state/RoleChip'
 import { useNotify } from './state/useNotify'
 
 function getInitials(displayName: string) {
@@ -27,16 +26,6 @@ function getInitials(displayName: string) {
     .slice(0, 2)
     .map((part) => part[0].toLocaleUpperCase('hr-HR'))
     .join('')
-}
-
-const roleLabels: Record<UserRole, string> = {
-  ARTIST: 'Umjetnik',
-  ORGANIZER: 'Organizator',
-  ADMIN: 'Administrator',
-}
-
-function getRoleLabel(role: UserRole): string {
-  return roleLabels[role]
 }
 
 export function UserMenu() {
@@ -126,13 +115,7 @@ export function UserMenu() {
             {user.email}
           </Typography>
 
-          {user.role !== null && (
-            <Chip
-              label={getRoleLabel(user.role)}
-              size="small"
-              sx={{ alignSelf: 'flex-start', mt: 0.5 }}
-            />
-          )}
+          {user.role !== null && <RoleChip role={user.role} />}
         </Stack>
 
         {hasRole(user, 'ARTIST', 'ORGANIZER') && (
