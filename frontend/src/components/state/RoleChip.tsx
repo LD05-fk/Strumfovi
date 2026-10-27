@@ -1,5 +1,6 @@
 import { Chip } from '@mui/material'
 import { statusChip } from '../../app/theme'
+import { hr } from '../../i18n/hr'
 import type { UserRole } from '../layout/navigation'
 
 type RoleChipProps = {
@@ -12,18 +13,12 @@ const roleStatus: Record<UserRole, keyof typeof statusChip> = {
   ADMIN: 'PREPARATION',
 }
 
-const roleLabels: Record<UserRole, string> = {
-  ARTIST: 'Umjetnik',
-  ORGANIZER: 'Organizator',
-  ADMIN: 'Administrator',
-}
-
 export function RoleChip({ role }: RoleChipProps) {
   const colors = statusChip[roleStatus[role]]
 
   return (
     <Chip
-      label={roleLabels[role]}
+      label={hr.auth.roles[role]}
       size="small"
       sx={{
         alignSelf: 'flex-start',

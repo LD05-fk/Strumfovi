@@ -30,6 +30,11 @@ export const hr = {
     loginRequiredDescription:
       'Za pristup ovoj stranici prijavite se svojim Google računom.',
     onboardingTitle: 'Odabir uloge',
+    roles: {
+      ARTIST: 'Umjetnik',
+      ORGANIZER: 'Organizator',
+      ADMIN: 'Administrator',
+    },
   },
 
   errors: {
