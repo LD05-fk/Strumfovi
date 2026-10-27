@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, apiFetch } from './client'
+import { API_ERROR_EVENT, ApiError, apiFetch } from './client'
 
 const fetchMock = vi.fn<typeof fetch>()
 
@@ -81,6 +81,30 @@ describe('apiFetch', () => {
     })
   })
 
+  it('emitira događaj za globalno rukovanje autentifikacijskom greškom', async () => {
+    const handleApiError = vi.fn()
+    window.addEventListener(API_ERROR_EVENT, handleApiError)
+    fetchMock.mockResolvedValue(
+      Response.json(
+        { error: { code: 'ONBOARDING_REQUIRED', message: 'Odaberite ulogu' } },
+        { status: 403 },
+      ),
+    )
+
+    await expect(apiFetch('/opportunities')).rejects.toBeInstanceOf(ApiError)
+
+    expect(handleApiError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: {
+          status: 403,
+          code: 'ONBOARDING_REQUIRED',
+          path: '/opportunities',
+        },
+      }),
+    )
+    window.removeEventListener(API_ERROR_EVENT, handleApiError)
+  })
+
   it('odgovor koji nije JSON postaje ApiError', async () => {
     fetchMock.mockResolvedValue(new Response('<html>prijava</html>'))
 
@@ -98,4 +122,16 @@ describe('apiFetch', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect(error).toMatchObject({ status: 0, code: 'NETWORK_ERROR' })
   })
+
+  it.each(['POST', 'PUT', 'PATCH', 'DELETE'])(
+    'šalje CSRF zaglavlje za metodu %s',
+    async (method) => {
+      document.cookie = 'XSRF-TOKEN=abc123'
+      fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
+
+      await apiFetch('/opportunities', { method })
+
+      expect(sentHeaders().get('X-XSRF-TOKEN')).toBe('abc123')
+    },
+  )
 })
