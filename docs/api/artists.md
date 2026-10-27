@@ -152,8 +152,8 @@ istoj transakciji; postojeći profil se ne mijenja.
 - Donja granica godine je 1900. Gornja granica je **tekuća godina u zoni
   `Europe/Zagreb`**, pa se nova godina počinje prihvaćati u ponoć po lokalnom
   vremenu, a ne po UTC-u.
-- Zapis se nakon stvaranja ne mijenja ovim endpointom; uređivanje i brisanje
-  pripadaju zasebnim zadacima.
+- Zapis se nakon stvaranja ne mijenja ovim endpointom; za uređivanje služi
+  `PUT /past-exhibitions/{pastExhibitionId}`.
 
 ### Greške
 
@@ -188,3 +188,32 @@ zoni) i pravila servisa (`PastExhibitionServiceTest`). Integracijski testovi
 zaglavljem `Location` i obrezanim vrijednostima u bazi, 400 za svako neispravno
 polje, 401, 403 za organizatora i 403 bez CSRF tokena. Umjetnik bez reda u
 `artist_profiles` dobiva 201, a profil mu se stvori prazan.
+
+## PUT /past-exhibitions/{pastExhibitionId}
+
+Uređuje prethodnu izložbu prijavljenog umjetnika. Tijelo (`PastExhibitionInput`),
+ograničenja i oblik odgovora isti su kao kod `POST /past-exhibitions`; šalju se
+sva tri polja.
+
+Odgovor `200 OK` (`PastExhibition`) s ažuriranim vrijednostima; `id` se ne mijenja.
+Nuspojava je ažuriran red u `past_exhibitions`.
+
+### Greške
+
+| Status | Kod | Kada |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | kao kod `POST`, i neispravan `pastExhibitionId` |
+| 401 | `UNAUTHENTICATED` | zahtjev bez prijave |
+| 403 | `FORBIDDEN` | prijavljeni korisnik nije umjetnik, ili CSRF token nedostaje |
+| 403 | `ONBOARDING_REQUIRED` | korisnik je u statusu `ONBOARDING` i nije odabrao ulogu |
+| 404 | `NOT_FOUND` | izložba ne postoji ili pripada drugom umjetniku |
+
+Tuđa izložba vraća isti odgovor kao nepostojeća, pa se postojanje tuđih zapisa
+ne otkriva.
+
+### Provjera
+
+`PastExhibitionServiceTest` pokriva provjeru vlasništva, a
+`PastExhibitionIntegrationTest` svaki dokumentirani status: 200 s obrezanim
+vrijednostima u bazi, 400, 401, 403 za organizatora te 404 za tuđu i
+nepostojeću izložbu.
