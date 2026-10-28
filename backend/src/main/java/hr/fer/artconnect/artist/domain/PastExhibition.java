@@ -62,4 +62,10 @@ public class PastExhibition {
         exhibition.place = place;
         return exhibition;
     }
+
+    public void update(String title, short year, String place) {
+        this.title = title;
+        this.year = year;
+        this.place = place;
+    }
 }
