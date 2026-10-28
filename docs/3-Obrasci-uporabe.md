@@ -65,6 +65,39 @@ Detalji su u [API dokumentaciji prijave](api/auth.md#post-merole).
 
 Detalji i primjeri su u [API dokumentaciji prilika](api/opportunities.md#post-opportunities).
 
+## Uređivanje prilike
+
+- **Primarni sudionik:** organizator koji je vlasnik prilike.
+- **Zahtjevi:** FR-15 i FR-16 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
+- **Preduvjet:** aktivni račun s ulogom `ORGANIZER`, prijavljena sesija i valjan CSRF token.
+- **Rezultat:** sadržaj vlastite prilike ažuriran je bez promjene statusa.
+
+### Osnovni tijek
+
+1. Organizator mijenja podatke vlastite prilike u obrascu.
+2. Sučelje šalje `PUT /api/v1/opportunities/{opportunityId}` sa svim unosivim
+   poljima i cijelim odabranim skupom područja umjetnosti.
+3. Sustav provjerava postoji li prilika i pripada li prijavljenom organizatoru.
+4. Sustav provjerava podatke kao kod stvaranja, ali dopušta rok u prošlosti
+   i zadržavanje već povezanih neaktivnih šifrarnika.
+5. Sustav u jednoj transakciji zamjenjuje unosiva polja, ažurira veze s područjima
+   i vrijeme izmjene. Vlasnik, status, arhiviranost i skrivenost ostaju isti.
+6. Sustav vraća `200 OK` i ažurirani objekt prilike.
+
+### Alternativni tijekovi
+
+- Uređivanje je dopušteno u svakom statusu, i za arhivirane ili skrivene prilike.
+- Nova neaktivna vrsta ili novo neaktivno područje, nepostojeći šifrarnici i
+  ostali neispravni podaci vraćaju `400 VALIDATION_ERROR` bez spremanja promjena.
+- Izostavljene opcionalne vrijednosti brišu prethodne vrijednosti.
+  Promjena fizičke lokacije u online briše prethodnu adresu i koordinate.
+- Prošli rok ne mijenja status u ovom zahtjevu; automatsko zatvaranje zaseban je zadatak.
+- Nepostojeća prilika vraća `404 NOT_FOUND`, a tuđa prilika `403 FORBIDDEN`.
+- Bez sesije sustav vraća `401 UNAUTHENTICATED`; bez uloge organizatora,
+  s neaktivnim računom ili nevaljanim CSRF tokenom odgovarajući `403`.
+
+Detalji su u [API dokumentaciji prilika](api/opportunities.md#put-opportunitiesopportunityid).
+
 ## Dodavanje djela u portfolio
 
 - **Primarni sudionik:** umjetnik.

@@ -94,19 +94,28 @@ public class Opportunity {
             Location location, OffsetDateTime eventStart, OffsetDateTime eventEnd, OffsetDateTime now) {
         Opportunity opportunity = new Opportunity();
         opportunity.organizer = organizer;
-        opportunity.type = type;
-        opportunity.artFields = new LinkedHashSet<>(artFields);
-        opportunity.title = title;
-        opportunity.description = description;
-        opportunity.deadline = deadline;
-        opportunity.criteria = criteria;
-        opportunity.prize = prize;
-        opportunity.location = location;
-        opportunity.eventStart = eventStart;
-        opportunity.eventEnd = eventEnd;
+        opportunity.update(type, artFields, title, description, deadline, criteria, prize,
+                location, eventStart, eventEnd, now);
         opportunity.createdAt = now;
-        opportunity.updatedAt = now;
         return opportunity;
+    }
+
+    public void update(OpportunityType type, Set<ArtField> artFields, String title, String description,
+            OffsetDateTime deadline, String criteria, String prize, Location location,
+            OffsetDateTime eventStart, OffsetDateTime eventEnd, OffsetDateTime now) {
+        this.type = type;
+        // Čuvamo postojeću JPA kolekciju i mijenjamo samo razliku veza.
+        this.artFields.retainAll(artFields);
+        this.artFields.addAll(artFields);
+        this.title = title;
+        this.description = description;
+        this.deadline = deadline;
+        this.criteria = criteria;
+        this.prize = prize;
+        this.location = location;
+        this.eventStart = eventStart;
+        this.eventEnd = eventEnd;
+        this.updatedAt = now;
     }
 
     public UUID getId() {
