@@ -25,6 +25,46 @@
 
 Detalji su u [API dokumentaciji prijave](api/auth.md#post-merole).
 
+## Objava prilike
+
+- **Primarni sudionik:** organizator, uključujući organizatora na čekanju odobrenja.
+- **Zahtjevi:** FR-15 i FR-16 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
+- **Preduvjet:** aktivni račun s ulogom `ORGANIZER`, prijavljena sesija i valjan CSRF token.
+- **Rezultat ovog koraka:** spremljen privatni nacrt u statusu `PREPARATION`.
+  Javna objava i promjena statusa zasebni su koraci.
+
+### Osnovni tijek
+
+1. Organizator unosi naslov, opis, aktivnu vrstu prilike, jedno do deset različitih
+   aktivnih područja umjetnosti i budući rok prijave.
+2. Odabire fizičku lokaciju s adresom, gradom i koordinatama ili online lokaciju
+   s HTTP/HTTPS poveznicom. Za fizičku lokaciju koordinate dobiva pretraživanjem
+   adrese ili ručnim odabirom na karti.
+3. Po želji dodaje kriterije, nagradu te početak i završetak događanja.
+4. Sučelje šalje `POST /api/v1/opportunities` uz sesiju i CSRF token.
+5. Sustav provjerava unos, uklanja okolne razmake tekstova i sprema priliku te
+   veze s područjima u jednoj transakciji. Vlasnik je prijavljeni organizator.
+6. Sustav vraća `201 Created`, puni objekt prilike i zaglavlje `Location`.
+   Nova prilika ima status „U pripremi”, bez datuma objave.
+
+### Alternativni tijekovi
+
+- Nedostajuće polje, prekoračeno ograničenje, ponovljeno područje, neaktivan ili
+  nepostojeći šifrarnik vraća `400 VALIDATION_ERROR` s nazivom problematičnog polja.
+- Rok jednak sadašnjem trenutku ili u prošlosti odbija se. Završetak događanja
+  bez početka ili prije početka također se odbija; oba datuma mogu izostati.
+- Fizička lokacija bez adrese, grada ili koordinata i online lokacija bez valjane
+  HTTP/HTTPS poveznice odbijaju se. Za online lokaciju fizička polja se zanemaruju,
+  a za fizičku lokaciju zanemaruje se online poveznica.
+- Neispravan zahtjev ne sprema djelomičnu priliku.
+- Bez prijave sustav vraća `401 UNAUTHENTICATED`; bez uloge organizatora ili
+  valjanog CSRF tokena `403 FORBIDDEN`; prije odabira uloge `403 ONBOARDING_REQUIRED`.
+  Blokirani organizator dobiva `403 USER_BLOCKED`.
+- Organizator na čekanju smije spremiti nacrt. Odobravanje je potrebno za
+  naknadnu javnu objavu, koja nije dio ovog endpointa.
+
+Detalji i primjeri su u [API dokumentaciji prilika](api/opportunities.md#post-opportunities).
+
 ### Uređivanje profila organizatora
 
 - **Primarni sudionik:** organizator.
@@ -81,6 +121,38 @@ Detalji su u [API dokumentaciji prijave](api/auth.md#post-merole).
 
 Detalji zahtjeva i odgovora nalaze se u
 [API dokumentaciji djela](api/artworks.md#post-artworks).
+
+## Uređivanje profila umjetnika
+
+- **Primarni sudionik:** umjetnik.
+- **Cilj:** urediti biografiju, opis umjetničkog rada, područja umjetnosti i
+  poveznice na vlastitom profilu.
+- **Preduvjet:** valjana prijavljena sesija s ulogom `ARTIST` i CSRF token.
+- **Rezultat:** profil i njegove veze potpuno su ažurirani.
+
+### Osnovni tijek
+
+1. Umjetnik u obrascu unosi ili uređuje biografiju i opis umjetničkog rada.
+2. Odabire do 10 područja iz aktivnog šifrarnika te unosi do 10 poveznica.
+3. Sučelje šalje `PUT /api/v1/me/artist-profile` sa svim poljima obrasca.
+4. Sustav validira ograničenja tekstova, jedinstvenost i dostupnost područja te
+   HTTP(S) format svake poveznice.
+5. Sustav u jednoj transakciji stvara ili ažurira profil, potpuno zamjenjuje
+   odabrana područja i poveznice te vraća spremljeni `ArtistProfile`.
+
+### Alternativni tijekovi
+
+- Prazni nizovi područja i poveznica brišu postojeće veze.
+- Postojeće neaktivno područje može ostati odabrano, ali se ne može dodati u
+  profil koji ga prethodno nije imao.
+- Tekstovi se obrezuju; prazna oznaka poveznice sprema se kao `null`.
+- Nevaljana polja, duplikati, nedostupna područja ili neispravni URL-ovi vraćaju
+  `400 VALIDATION_ERROR` s detaljima polja.
+- Bez prijave sustav vraća `401 UNAUTHENTICATED`; bez uloge umjetnika, bez
+  valjanog CSRF tokena ili prije odabira uloge vraća odgovarajući `403`.
+
+Detalji zahtjeva, odgovora i ograničenja nalaze se u
+[API dokumentaciji portfolija umjetnika](api/artists.md#put-meartist-profile).
 
 ## Pregled korisnika
 

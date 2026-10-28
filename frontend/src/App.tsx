@@ -7,6 +7,9 @@ import { ForbiddenPage } from './components/state/ForbiddenPage'
 import { NotFoundPage } from './components/state/NotFoundPage'
 import { NotifyProvider } from './components/state/NotifyProvider'
 import { HomePage } from './features/home/HomePage'
+import { AuthErrorHandler } from './features/auth/routing/AuthErrorHandler'
+import { OnboardingOnly } from './features/auth/routing/OnboardingOnly'
+import { RequireRole } from './features/auth/routing/RequireRole'
 import { hr } from './i18n/hr'
 
 type PageProps = {
@@ -44,16 +47,84 @@ function AppRoutes() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route index element={<HomePage />} />
-        <Route path="opportunities" element={<Page title="Prilike" />} />
-        <Route path="portfolio" element={<Page title="Portfolio" />} />
-        <Route path="applications" element={<Page title="Moje prijave" />} />
+        <Route path="opportunities/*" element={<Page title="Prilike" />} />
         <Route
           path="my-opportunities"
-          element={<Page title="Moje prilike" />}
+          element={
+            <RequireRole roles={['ORGANIZER']}>
+              <Page title="Moje prilike" />
+            </RequireRole>
+          }
         />
-        <Route path="statistics" element={<Page title="Statistika" />} />
-        <Route path="admin" element={<Page title="Administracija" />} />
-        <Route path="profile" element={<Page title="Profil" />} />
+        <Route
+          path="statistics"
+          element={
+            <RequireRole roles={['ORGANIZER']}>
+              <Page title="Statistika" />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="opportunities/:opportunityId"
+          element={<Page title="Prilika" />}
+        />
+        <Route
+          path="opportunities/:opportunityId/apply"
+          element={
+            <RequireRole roles={['ARTIST']}>
+              <Page title="Prijava na priliku" />
+            </RequireRole>
+          }
+        />
+        <Route path="artists/:artistId" element={<Page title="Umjetnik" />} />
+        <Route
+          path="onboarding"
+          element={
+            <OnboardingOnly>
+              <Page title={hr.auth.onboardingTitle} />
+            </OnboardingOnly>
+          }
+        />
+        <Route
+          path="profile"
+          element={
+            <RequireRole roles={['ARTIST', 'ORGANIZER']}>
+              <Page title="Profil" />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="portfolio/*"
+          element={
+            <RequireRole roles={['ARTIST']}>
+              <Page title="Portfolio" />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="applications/*"
+          element={
+            <RequireRole roles={['ARTIST']}>
+              <Page title="Moje prijave" />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="organizer/*"
+          element={
+            <RequireRole roles={['ORGANIZER']}>
+              <Page title="Organizatorski portal" />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="admin/*"
+          element={
+            <RequireRole roles={['ADMIN']}>
+              <Page title="Administracija" />
+            </RequireRole>
+          }
+        />
         <Route path="403" element={<ForbiddenPage />} />
         <Route path="error" element={<ErrorPage />} />
         <Route path="*" element={<NotFoundPage />} />
@@ -66,6 +137,7 @@ function App() {
   return (
     <NotifyProvider>
       <BrowserRouter>
+        <AuthErrorHandler />
         <AppRoutes />
       </BrowserRouter>
     </NotifyProvider>

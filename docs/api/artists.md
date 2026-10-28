@@ -92,6 +92,68 @@ područja koja su već povezana s profilom.
 | 403 | `ONBOARDING_REQUIRED` | korisnik je u statusu `ONBOARDING` i nije odabrao ulogu |
 | 403 | `USER_BLOCKED` | prijavljeni korisnik ima status `BLOCKED` |
 
+## PUT /me/artist-profile
+
+Potpuno zamjenjuje uređivački dio profila prijavljenog umjetnika. Zahtjev
+zahtijeva ulogu `ARTIST`, valjanu sesiju i CSRF zaglavlje `X-XSRF-TOKEN`.
+`userId`, `displayName` i `avatarUrl` ne mogu se mijenjati ovim endpointom.
+
+Tijelo zahtjeva (`ArtistProfileUpdate`):
+
+| Polje | Tip | Ograničenja |
+| --- | --- | --- |
+| `biography` | string ili `null` | neobavezno, najviše 5000 znakova |
+| `artistStatement` | string ili `null` | neobavezno, najviše 5000 znakova |
+| `artFieldIds` | UUID niz | obavezno, najviše 10 jedinstvenih identifikatora |
+| `links` | niz poveznica | obavezno, najviše 10 poveznica |
+| `links[].label` | string ili `null` | neobavezno, najviše 60 znakova |
+| `links[].url` | string | obavezno, najviše 1024 znaka; valjani HTTP(S) URI s hostom |
+
+Primjer zahtjeva:
+
+```http
+PUT /api/v1/me/artist-profile
+Content-Type: application/json
+X-XSRF-TOKEN: <token iz kolačića XSRF-TOKEN>
+
+{
+  "biography": "Akademska slikarica iz Splita.",
+  "artistStatement": "U radu istražujem odnos mora, svjetla i sjećanja.",
+  "artFieldIds": ["a1f0c2d3-4b5e-4f60-8a71-9b2c3d4e5f01"],
+  "links": [
+    { "label": "Instagram", "url": "https://www.instagram.com/ana.horvat.art" }
+  ]
+}
+```
+
+Odgovor je `200 OK` sa spremljenim `ArtistProfile` prikazanim u primjeru za
+`GET /me/artist-profile`.
+
+### Pravila spremanja
+
+- Profil se stvara ako još ne postoji ili se postojeći ažurira. `updated_at` se
+  postavlja pri svakom uspješnom spremanju.
+- `artFieldIds` i `links` potpuno zamjenjuju postojeće veze u istoj transakciji
+  kao profil. Prazni nizovi brišu sve veze. Poveznice dobivaju `position` prema
+  indeksu u zahtjevu, počevši od nule.
+- Svaki identifikator područja mora postojati u šifrarniku. Neaktivno područje
+  prihvaća se samo ako je već povezano s profilom; time se zadržavaju postojeće
+  veze, ali se ne mogu odabrati u novom unosu. Duplikati nisu dopušteni.
+- Vodeće i prateće praznine se uklanjaju iz tekstova. Prazna ili samo
+  bjelinama ispunjena oznaka poveznice sprema se kao `null`.
+- URL mora imati shemu `http` ili `https`, biti sintaktički valjan URI i imati
+  neprazan host.
+
+### Greške
+
+| Status | Kod | Kada |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | neispravne vrijednosti ili ograničenja zahtjeva; `error.details[].field` navodi polje, npr. `links[2].url` ili `artFieldIds` |
+| 401 | `UNAUTHENTICATED` | zahtjev bez valjane sesije |
+| 403 | `FORBIDDEN` | korisnik nije umjetnik ili nedostaje/neispravan je CSRF token |
+| 403 | `ONBOARDING_REQUIRED` | korisnik nije odabrao ulogu |
+| 403 | `USER_BLOCKED` | korisnički račun je blokiran |
+
 ## GET /me/organizer-profile
 
 Vraća profil prijavljenog organizatora. `displayName` i `organizerApproval`
@@ -214,8 +276,8 @@ istoj transakciji; postojeći profil se ne mijenja.
 - Donja granica godine je 1900. Gornja granica je **tekuća godina u zoni
   `Europe/Zagreb`**, pa se nova godina počinje prihvaćati u ponoć po lokalnom
   vremenu, a ne po UTC-u.
-- Zapis se nakon stvaranja ne mijenja ovim endpointom; uređivanje i brisanje
-  pripadaju zasebnim zadacima.
+- Zapis se nakon stvaranja ne mijenja ovim endpointom; za uređivanje služi
+  `PUT /past-exhibitions/{pastExhibitionId}`.
 
 ### Greške
 
@@ -250,3 +312,32 @@ zoni) i pravila servisa (`PastExhibitionServiceTest`). Integracijski testovi
 zaglavljem `Location` i obrezanim vrijednostima u bazi, 400 za svako neispravno
 polje, 401, 403 za organizatora i 403 bez CSRF tokena. Umjetnik bez reda u
 `artist_profiles` dobiva 201, a profil mu se stvori prazan.
+
+## PUT /past-exhibitions/{pastExhibitionId}
+
+Uređuje prethodnu izložbu prijavljenog umjetnika. Tijelo (`PastExhibitionInput`),
+ograničenja i oblik odgovora isti su kao kod `POST /past-exhibitions`; šalju se
+sva tri polja.
+
+Odgovor `200 OK` (`PastExhibition`) s ažuriranim vrijednostima; `id` se ne mijenja.
+Nuspojava je ažuriran red u `past_exhibitions`.
+
+### Greške
+
+| Status | Kod | Kada |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | kao kod `POST`, i neispravan `pastExhibitionId` |
+| 401 | `UNAUTHENTICATED` | zahtjev bez prijave |
+| 403 | `FORBIDDEN` | prijavljeni korisnik nije umjetnik, ili CSRF token nedostaje |
+| 403 | `ONBOARDING_REQUIRED` | korisnik je u statusu `ONBOARDING` i nije odabrao ulogu |
+| 404 | `NOT_FOUND` | izložba ne postoji ili pripada drugom umjetniku |
+
+Tuđa izložba vraća isti odgovor kao nepostojeća, pa se postojanje tuđih zapisa
+ne otkriva.
+
+### Provjera
+
+`PastExhibitionServiceTest` pokriva provjeru vlasništva, a
+`PastExhibitionIntegrationTest` svaki dokumentirani status: 200 s obrezanim
+vrijednostima u bazi, 400, 401, 403 za organizatora te 404 za tuđu i
+nepostojeću izložbu.
