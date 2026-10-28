@@ -111,7 +111,7 @@ public class OpportunityService {
         List<ArtField> selectedFields = artFields.findAllById(input.artFieldIds());
         if (selectedFields.size() != input.artFieldIds().size()
                 || selectedFields.stream().anyMatch(item ->
-                        !item.isActive() && !existingFieldIds.contains(item.getId()))) {
+                        !item.isActive() && (opportunity == null || !existingFieldIds.contains(item.getId())))) {
             throw invalid("artFieldIds", "Odaberite aktivna ili već povezana područja umjetnosti.");
         }
 
