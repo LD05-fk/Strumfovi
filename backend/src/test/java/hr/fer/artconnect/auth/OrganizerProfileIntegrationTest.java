@@ -1,6 +1,7 @@
 package hr.fer.artconnect.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -8,11 +9,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import hr.fer.artconnect.support.IntegrationTestBase;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.test.context.TestSecurityContextHolder;
 
 class OrganizerProfileIntegrationTest extends IntegrationTestBase {
     private static final String PATH = "/api/v1/me/organizer-profile";
@@ -100,8 +107,12 @@ class OrganizerProfileIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void putObrezujeNazivUpsertaProfilIMijenjaVrijemeAzuriranja() throws Exception {
+    void putObrezujeNazivAzuriraProfilIVrijemeAzuriranja() throws Exception {
         UUID organizerId = loginAs("ORGANIZER");
+        jdbc.update("INSERT INTO organizer_profiles (user_id, organization_name, updated_at) VALUES (?, ?, ?)",
+                organizerId, "Stari naziv", OffsetDateTime.parse("2000-01-01T00:00:00Z"));
+        var oldUpdatedAt = jdbc.queryForObject(
+                "SELECT updated_at FROM organizer_profiles WHERE user_id = ?", OffsetDateTime.class, organizerId);
 
         mockMvc.perform(put(PATH).with(withCsrf()).contentType("application/json")
                 .content("{\"organizationName\":\"  Galerija Kontrast  \"}"))
@@ -114,8 +125,38 @@ class OrganizerProfileIntegrationTest extends IntegrationTestBase {
                 "SELECT organization_name FROM organizer_profiles WHERE user_id = ?", String.class, organizerId))
                 .isEqualTo("Galerija Kontrast");
         assertThat(jdbc.queryForObject(
-                "SELECT updated_at FROM organizer_profiles WHERE user_id = ?", java.time.OffsetDateTime.class,
-                organizerId)).isNotNull();
+                "SELECT updated_at FROM organizer_profiles WHERE user_id = ?", OffsetDateTime.class, organizerId))
+                .isAfter(oldUpdatedAt);
+    }
+
+    @Test
+    void dvaIstodobnaPrvaPutStvarajuJedanProfil() throws Exception {
+        UUID organizerId = loginAs("ORGANIZER");
+        Authentication auth = TestSecurityContextHolder.getContext().getAuthentication();
+        var start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var first = executor.submit(() -> updateProfile(auth, start, "Galerija Prva"));
+            var second = executor.submit(() -> updateProfile(auth, start, "Galerija Druga"));
+            start.countDown();
+            assertThat(new Integer[] {first.get(30, TimeUnit.SECONDS), second.get(30, TimeUnit.SECONDS)})
+                    .containsExactly(200, 200);
+        }
+
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM organizer_profiles WHERE user_id = ?", Integer.class, organizerId)).isEqualTo(1);
+        assertThat(jdbc.queryForObject(
+                "SELECT organization_name FROM organizer_profiles WHERE user_id = ?", String.class, organizerId))
+                .isIn("Galerija Prva", "Galerija Druga");
+    }
+
+    private int updateProfile(Authentication auth, CountDownLatch start, String name) throws Exception {
+        if (!start.await(10, TimeUnit.SECONDS)) {
+            throw new IllegalStateException("Test nije pokrenuo istodobne zahtjeve.");
+        }
+        return mockMvc.perform(put(PATH).with(authentication(auth)).with(withCsrf())
+                        .contentType("application/json")
+                        .content("{\"organizationName\":\"" + name + "\"}"))
+                .andReturn().getResponse().getStatus();
     }
 
     @Test
@@ -124,7 +165,7 @@ class OrganizerProfileIntegrationTest extends IntegrationTestBase {
         jdbc.update("INSERT INTO organizer_profiles (user_id, organization_name) VALUES (?, ?)",
                 organizerId, "Postojeći naziv");
         var oldUpdatedAt = jdbc.queryForObject(
-                "SELECT updated_at FROM organizer_profiles WHERE user_id = ?", java.time.OffsetDateTime.class,
+                "SELECT updated_at FROM organizer_profiles WHERE user_id = ?", OffsetDateTime.class,
                 organizerId);
 
         mockMvc.perform(put(PATH).with(withCsrf()).contentType("application/json")
@@ -143,7 +184,7 @@ class OrganizerProfileIntegrationTest extends IntegrationTestBase {
                 "SELECT organization_name FROM organizer_profiles WHERE user_id = ?", String.class, organizerId))
                 .isNull();
         assertThat(jdbc.queryForObject(
-                "SELECT updated_at FROM organizer_profiles WHERE user_id = ?", java.time.OffsetDateTime.class,
+                "SELECT updated_at FROM organizer_profiles WHERE user_id = ?", OffsetDateTime.class,
                 organizerId)).isAfter(oldUpdatedAt);
     }
 

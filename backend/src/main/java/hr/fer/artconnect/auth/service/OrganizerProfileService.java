@@ -34,10 +34,8 @@ public class OrganizerProfileService {
     public OrganizerProfileDto updateMyOrganizerProfile(OrganizerProfileUpdateRequest request) {
         User user = getActiveUser();
         String organizationName = normalize(request.organizationName());
-        OrganizerProfile profile = organizerProfiles.findById(user.getId())
-                .orElseGet(() -> OrganizerProfile.createFor(user));
-        profile.updateOrganizationName(organizationName);
-        OrganizerProfile saved = organizerProfiles.save(profile);
+        organizerProfiles.upsert(user.getId(), organizationName);
+        OrganizerProfile saved = organizerProfiles.findById(user.getId()).orElseThrow();
         return toDto(user, saved);
     }
 

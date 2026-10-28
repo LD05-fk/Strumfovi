@@ -1,7 +1,6 @@
 package hr.fer.artconnect.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import hr.fer.artconnect.auth.domain.OrganizerApproval;
@@ -19,7 +18,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -41,35 +39,35 @@ class OrganizerProfileServiceTest {
         when(user.getStatus()).thenReturn(UserStatus.ACTIVE);
         when(user.getDisplayName()).thenReturn("Test Organizer");
         when(user.getOrganizerApproval()).thenReturn(OrganizerApproval.PENDING);
-        when(organizerProfiles.save(any(OrganizerProfile.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
     void obrezujeNazivPrijePohrane() {
-        when(organizerProfiles.findById(userId)).thenReturn(Optional.empty());
+        when(organizerProfiles.findById(userId)).thenReturn(Optional.of(profile("Galerija Kontrast")));
 
         var result = service.updateMyOrganizerProfile(
                 new OrganizerProfileUpdateRequest("  Galerija Kontrast \t"));
 
         assertThat(result.organizationName()).isEqualTo("Galerija Kontrast");
         assertThat(result.organizerApproval()).isEqualTo(OrganizerApproval.PENDING);
-        var saved = ArgumentCaptor.forClass(OrganizerProfile.class);
-        verify(organizerProfiles).save(saved.capture());
-        assertThat(saved.getValue().getUpdatedAt()).isNotNull();
+        verify(organizerProfiles).upsert(userId, "Galerija Kontrast");
     }
 
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {"", "   ", "\t "})
     void prazanNazivSeSpremaKaoNull(String organizationName) {
-        when(organizerProfiles.findById(userId)).thenReturn(Optional.empty());
+        when(organizerProfiles.findById(userId)).thenReturn(Optional.of(profile(null)));
 
         var result = service.updateMyOrganizerProfile(new OrganizerProfileUpdateRequest(organizationName));
 
         assertThat(result.organizationName()).isNull();
-        var saved = ArgumentCaptor.forClass(OrganizerProfile.class);
-        verify(organizerProfiles).save(saved.capture());
-        assertThat(saved.getValue().getOrganizationName()).isNull();
+        verify(organizerProfiles).upsert(userId, null);
+    }
+
+    private OrganizerProfile profile(String organizationName) {
+        OrganizerProfile profile = OrganizerProfile.createFor(user);
+        profile.updateOrganizationName(organizationName);
+        return profile;
     }
 }

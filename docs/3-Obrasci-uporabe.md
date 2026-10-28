@@ -65,14 +65,14 @@ Detalji su u [API dokumentaciji prijave](api/auth.md#post-merole).
 
 Detalji i primjeri su u [API dokumentaciji prilika](api/opportunities.md#post-opportunities).
 
-### Uređivanje profila organizatora
+## Uređivanje profila organizatora
 
 - **Primarni sudionik:** organizator.
 - **Cilj:** pregledati profil i promijeniti naziv organizacije.
 - **Preduvjet:** valjana sesija s ulogom `ORGANIZER`; za spremanje je potreban CSRF token.
 - **Rezultat:** naziv organizacije je spremljen ili obrisan; ime i odobrenje ostaju nepromijenjeni.
 
-#### Osnovni tijek
+### Osnovni tijek
 
 1. Organizator otvara stranicu `/profile`.
 2. Sučelje dohvaća `GET /api/v1/me/organizer-profile`.
@@ -81,7 +81,7 @@ Detalji i primjeri su u [API dokumentaciji prilika](api/opportunities.md#post-op
 5. Sučelje šalje `PUT /api/v1/me/organizer-profile` uz sesiju i CSRF token.
 6. Sustav obrezuje naziv, sprema ga (ili `null` za praznu vrijednost), osvježava `updated_at` i vraća spremljeni profil.
 
-#### Alternativni tijekovi
+### Alternativni tijekovi
 
 - Organizator koji čeka odobrenje može urediti profil; odobrenje se ovim zahtjevom ne mijenja.
 - Ako profilni red ne postoji, uspješan PUT stvara ga.
