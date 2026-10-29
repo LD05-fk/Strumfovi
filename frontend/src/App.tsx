@@ -11,6 +11,7 @@ import { AuthErrorHandler } from './features/auth/routing/AuthErrorHandler'
 import { OnboardingOnly } from './features/auth/routing/OnboardingOnly'
 import { RequireRole } from './features/auth/routing/RequireRole'
 import { hr } from './i18n/hr'
+import { ChooseRolePage } from './features/auth/pages/ChooseRolePage'
 
 type PageProps = {
   title: string
@@ -81,7 +82,7 @@ function AppRoutes() {
           path="onboarding"
           element={
             <OnboardingOnly>
-              <Page title={hr.auth.onboardingTitle} />
+              <ChooseRolePage />
             </OnboardingOnly>
           }
         />
