@@ -99,9 +99,10 @@ class PastExhibitionServiceTest {
 
     @Test
     void azuriraVlastituIzlozbu() {
-        PastExhibition exhibition = exhibition(ARTIST_ID);
-        when(pastExhibitions.findById(EXHIBITION_ID)).thenReturn(Optional.of(exhibition));
+        PastExhibition exhibition = exhibition();
         when(currentUserProvider.getCurrentUser()).thenReturn(artist());
+        when(pastExhibitions.findByIdAndArtistProfile_UserId(EXHIBITION_ID, ARTIST_ID))
+                .thenReturn(Optional.of(exhibition));
 
         var dto = service().update(EXHIBITION_ID, new PastExhibitionRequest("Novi naslov", 2024, "Zagreb"));
 
@@ -116,40 +117,66 @@ class PastExhibitionServiceTest {
 
     @Test
     void tudjuIzlozbuTretiraKaoNepostojecu() {
-        PastExhibition exhibition = exhibition(UUID.randomUUID());
-        when(pastExhibitions.findById(EXHIBITION_ID)).thenReturn(Optional.of(exhibition));
         when(currentUserProvider.getCurrentUser()).thenReturn(artist());
+        // Vlasništvo provjerava sam upit, pa tuđu izložbu ne vrati ni kad postoji.
+        when(pastExhibitions.findByIdAndArtistProfile_UserId(EXHIBITION_ID, ARTIST_ID))
+                .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service().update(EXHIBITION_ID,
                 new PastExhibitionRequest("Novi naslov", 2024, "Zagreb")))
                 .isInstanceOf(ApiException.class)
                 .extracting(exception -> ((ApiException) exception).getCode())
                 .isEqualTo(ErrorCode.NOT_FOUND);
-        assertThat(exhibition.getTitle()).isEqualTo("Stari naslov");
+        // Traži se samo među izložbama prijavljenog umjetnika, ne po samom identifikatoru.
+        verify(pastExhibitions).findByIdAndArtistProfile_UserId(EXHIBITION_ID, ARTIST_ID);
     }
 
     @Test
     void nepostojecuIzlozbuPrijavljujeKaoNepostojecu() {
-        when(pastExhibitions.findById(EXHIBITION_ID)).thenReturn(Optional.empty());
+        when(currentUserProvider.getCurrentUser()).thenReturn(artist());
+        when(pastExhibitions.findByIdAndArtistProfile_UserId(EXHIBITION_ID, ARTIST_ID))
+                .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service().update(EXHIBITION_ID,
                 new PastExhibitionRequest("Novi naslov", 2024, "Zagreb")))
                 .isInstanceOf(ApiException.class)
                 .extracting(exception -> ((ApiException) exception).getCode())
                 .isEqualTo(ErrorCode.NOT_FOUND);
-        verify(currentUserProvider, never()).getCurrentUser();
+        verify(pastExhibitions, never()).save(any());
+    }
+
+    @Test
+    void briseVlastituIzlozbu() {
+        PastExhibition exhibition = exhibition();
+        when(currentUserProvider.getCurrentUser()).thenReturn(artist());
+        when(pastExhibitions.findByIdAndArtistProfile_UserId(EXHIBITION_ID, ARTIST_ID))
+                .thenReturn(Optional.of(exhibition));
+
+        service().delete(EXHIBITION_ID);
+
+        verify(pastExhibitions).delete(exhibition);
+    }
+
+    @Test
+    void izlozbuKojaNijeVlastitaNeBrise() {
+        when(currentUserProvider.getCurrentUser()).thenReturn(artist());
+        when(pastExhibitions.findByIdAndArtistProfile_UserId(EXHIBITION_ID, ARTIST_ID))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().delete(EXHIBITION_ID))
+                .isInstanceOf(ApiException.class)
+                .extracting(exception -> ((ApiException) exception).getCode())
+                .isEqualTo(ErrorCode.NOT_FOUND);
+        verify(pastExhibitions, never()).delete(any(PastExhibition.class));
     }
 
     private PastExhibitionService service() {
         return new PastExhibitionService(pastExhibitions, artistProfiles, currentUserProvider);
     }
 
-    // Pravi entitet, da se vidi što update stvarno mijenja; vlasnika daje mock jer userId inače postavlja baza.
-    private static PastExhibition exhibition(UUID ownerId) {
+    // Pravi entitet, da se vidi što update stvarno mijenja; vlasnika daje mock jer ga postavlja baza.
+    private static PastExhibition exhibition() {
         ArtistProfile owner = mock(ArtistProfile.class);
-        // Namjerno nova instanca iste vrijednosti: vlasništvo se smije provjeravati samo usporedbom vrijednosti.
-        when(owner.getUserId()).thenReturn(
-                new UUID(ownerId.getMostSignificantBits(), ownerId.getLeastSignificantBits()));
         PastExhibition exhibition = PastExhibition.create(owner, "Stari naslov", (short) 2020, "Split");
         ReflectionTestUtils.setField(exhibition, "id", EXHIBITION_ID);
         return exhibition;

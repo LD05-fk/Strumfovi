@@ -7,6 +7,7 @@ import java.net.URI;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,5 +36,11 @@ public class PastExhibitionController {
     @PutMapping("/{pastExhibitionId}")
     public PastExhibitionDto updatePastExhibition(@PathVariable UUID pastExhibitionId, @Valid @RequestBody PastExhibitionRequest request) {
         return pastExhibitions.update(pastExhibitionId, request);
+    }
+
+    @DeleteMapping("/{pastExhibitionId}")
+    public ResponseEntity<Void> deletePastExhibition(@PathVariable UUID pastExhibitionId) {
+        pastExhibitions.delete(pastExhibitionId);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -279,3 +279,29 @@ ne otkriva.
 `PastExhibitionIntegrationTest` svaki dokumentirani status: 200 s obrezanim
 vrijednostima u bazi, 400, 401, 403 za organizatora te 404 za tuđu i
 nepostojeću izložbu.
+
+## DELETE /past-exhibitions/{pastExhibitionId}
+
+Briše izložbu prijavljenog umjetnika. Zahtjev nema tijelo.
+
+Odgovor `204 No Content` bez tijela. Rezultat je obrisan red u
+`past_exhibitions`, ostali zapisi portfolija ostaju nepromijenjeni.
+
+### Greške
+
+| Status | Kod | Kada |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | neispravan `pastExhibitionId` |
+| 401 | `UNAUTHENTICATED` | zahtjev bez prijave |
+| 403 | `FORBIDDEN` | prijavljeni korisnik nije umjetnik, ili CSRF token nedostaje |
+| 403 | `ONBOARDING_REQUIRED` | korisnik je u statusu `ONBOARDING` i nije odabrao ulogu |
+| 404 | `NOT_FOUND` | izložba ne postoji ili pripada drugom umjetniku |
+
+Kao i kod `PUT`, tuđa izložba vraća isti odgovor kao nepostojeća. Ponovno
+brisanje istog zapisa zato vraća `404`.
+
+### Provjera
+
+`PastExhibitionServiceTest` pokriva brisanje vlastite izložbe i odbijanje tuđe, a
+`PastExhibitionIntegrationTest` svaki dokumentirani status: 204 s obrisanim redom,
+401, 403 za organizatora i bez CSRF tokena te 404 za tuđu i nepostojeću izložbu.
