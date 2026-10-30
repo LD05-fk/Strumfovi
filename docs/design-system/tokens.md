@@ -88,6 +88,6 @@ Početna stranica prikazuje naslov „Umjetnici i prilike na jednom mjestu”, o
 | Uloga | Stavke |
 |---|---|
 | Posjetitelj | Početna stranica; „Prilike” · gumb „Prijava s Googleom” u zaglavlju (na telefonu kompaktna Google oznaka) |
-| Umjetnik | Prilike · Portfolio · Moje prijave · korisnički izbornik (Profil, Odjava) |
+| Umjetnik | Prilike · Moj profil · Moj portfolio · Moje prijave · korisnički izbornik (Profil, Odjava) |
 | Organizator | Prilike · Moje prilike · Statistika · korisnički izbornik |
 | Admin | Prilike · Administracija · korisnički izbornik |

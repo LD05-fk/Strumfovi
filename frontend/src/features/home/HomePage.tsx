@@ -60,7 +60,7 @@ export function HomePage() {
         >
           <GoogleMark />
           <Box component="span" sx={{ ml: 1 }}>
-            Prijava s Googleom
+            {hr.home.googleSignIn}
           </Box>
         </Button>
         <Button
