@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -246,6 +247,110 @@ class OpportunityIntegrationTest extends IntegrationTestBase {
         send(validRequest()).andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
         assertEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"PREPARATION", "OPEN", "CLOSED", "SELECTION", "FINISHED"})
+    void vlasnikUredujePrilikuBezPromjeneStatusa(String opportunityStatus) throws Exception {
+        UUID owner = loginAs("ORGANIZER");
+        var extraFields = jdbc.queryForList(
+                "SELECT id FROM art_fields WHERE active = true AND id <> ? LIMIT 2", UUID.class, fieldId);
+        var request = validRequest();
+        request.put("artFieldIds", List.of(fieldId, extraFields.get(0)));
+        request.put("criteria", "Stari kriteriji");
+        UUID id = createOpportunity(request);
+        jdbc.update("UPDATE opportunities SET status = ?, archived = true, hidden_by_admin = true, "
+                + "created_at = '2026-10-25T10:00:00Z', updated_at = '2026-10-25T10:00:00Z' WHERE id = ?",
+                opportunityStatus, id);
+        var preserved = jdbc.queryForMap("SELECT organizer_id, status, archived, hidden_by_admin, "
+                + "created_at, published_at, hidden_at FROM opportunities WHERE id = ?", id);
+        jdbc.update("UPDATE opportunity_types SET active = false WHERE id = ?", typeId);
+        jdbc.update("UPDATE art_fields SET active = false WHERE id = ?", fieldId);
+        try {
+            request.put("title", "Uređena prilika");
+            request.remove("criteria");
+            request.put("deadline", "2026-10-01T10:00:00Z");
+            request.put("artFieldIds", List.of(fieldId, extraFields.get(1)));
+            request.put("location", Map.of("type", "ONLINE", "onlineUrl", "https://example.org/event"));
+            update(id, request).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.title").value("Uređena prilika"))
+                    .andExpect(jsonPath("$.status").value(opportunityStatus))
+                    .andExpect(jsonPath("$.organizer.id").value(owner.toString()))
+                    .andExpect(jsonPath("$.updatedAt").value(NOW));
+            assertThat(jdbc.queryForMap("SELECT * FROM opportunities WHERE id = ?", id))
+                    .containsAllEntriesOf(preserved)
+                    .containsEntry("title", "Uređena prilika")
+                    .containsEntry("criteria", null)
+                    .containsEntry("street_address", null).containsEntry("city", null)
+                    .containsEntry("postal_code", null).containsEntry("latitude", null)
+                    .containsEntry("longitude", null).containsEntry("online_url", "https://example.org/event");
+            assertThat(jdbc.queryForList("SELECT art_field_id FROM opportunity_art_fields WHERE opportunity_id = ?",
+                    UUID.class, id)).containsExactlyInAnyOrder(fieldId, extraFields.get(1));
+            assertThat(jdbc.queryForObject("SELECT deadline < updated_at FROM opportunities WHERE id = ?",
+                    Boolean.class, id)).isTrue();
+        } finally {
+            jdbc.update("UPDATE opportunity_types SET active = true WHERE id = ?", typeId);
+            jdbc.update("UPDATE art_fields SET active = true WHERE id = ?", fieldId);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"typeId", "artFieldIds"})
+    void uredivanjeOdbijaNoviNeaktivniSifrarnikBezPromjena(String field) throws Exception {
+        loginAs("ORGANIZER");
+        UUID id = createOpportunity(validRequest());
+        String table = field.equals("typeId") ? "opportunity_types" : "art_fields";
+        UUID current = field.equals("typeId") ? typeId : fieldId;
+        UUID inactive = jdbc.queryForObject("SELECT id FROM " + table + " WHERE active = true AND id <> ? LIMIT 1",
+                UUID.class, current);
+        var before = jdbc.queryForMap("SELECT * FROM opportunities WHERE id = ?", id);
+        jdbc.update("UPDATE " + table + " SET active = false WHERE id = ?", inactive);
+        try {
+            var request = validRequest();
+            request.put("title", "Ne smije se spremiti");
+            request.put(field, field.equals("typeId") ? inactive : List.of(inactive));
+            update(id, request).andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
+                    .andExpect(jsonPath("$.error.details[*].field", hasItem(field)));
+            assertThat(jdbc.queryForMap("SELECT * FROM opportunities WHERE id = ?", id)).isEqualTo(before);
+            assertThat(jdbc.queryForList("SELECT art_field_id FROM opportunity_art_fields WHERE opportunity_id = ?",
+                    UUID.class, id)).containsExactly(fieldId);
+        } finally {
+            jdbc.update("UPDATE " + table + " SET active = true WHERE id = ?", inactive);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ORGANIZER", "ARTIST"})
+    void drugiKorisnikNeMozeUreditiPriliku(String role) throws Exception {
+        loginAs("ORGANIZER");
+        UUID id = createOpportunity(validRequest());
+        var before = jdbc.queryForMap("SELECT * FROM opportunities WHERE id = ?", id);
+        loginAs(role);
+        update(id, validRequest()).andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+        assertThat(jdbc.queryForMap("SELECT * FROM opportunities WHERE id = ?", id)).isEqualTo(before);
+    }
+
+    @Test
+    void uredivanjeTraziSesijuIPostojecuPriliku() throws Exception {
+        mockMvc.perform(put(PATH + "/" + UUID.randomUUID()).with(anonymous()).with(withCsrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(validRequest())))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
+        loginAs("ORGANIZER");
+        update(UUID.randomUUID(), validRequest()).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+
+    private UUID createOpportunity(Map<String, Object> request) throws Exception {
+        var response = send(request).andExpect(status().isCreated()).andReturn().getResponse();
+        return UUID.fromString(objectMapper.readTree(response.getContentAsString()).get("id").asString());
+    }
+
+    private ResultActions update(UUID id, Map<String, Object> request) throws Exception {
+        return mockMvc.perform(put(PATH + "/" + id).with(withCsrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)));
     }
 
     private void invalid(Map<String, Object> request, String field) throws Exception {
