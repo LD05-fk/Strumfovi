@@ -17,7 +17,7 @@ import { OnboardingOnly } from './features/auth/routing/OnboardingOnly'
 import { RequireRole } from './features/auth/routing/RequireRole'
 import { useCurrentUser } from './features/auth/useCurrentUser'
 import { ArtistProfilePage } from './features/artist-profile/ArtistProfilePage'
-import { HomePage } from './features/home/HomePage'
+import { HomePage } from './features/auth/pages/HomePage'
 import { hr } from './i18n/hr'
 
 type PageProps = {
