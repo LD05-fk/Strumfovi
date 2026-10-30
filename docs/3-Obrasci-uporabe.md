@@ -11,14 +11,14 @@
 
 1. Korisnik se prijavljuje Google računom.
 2. Sustav stvara novi račun u statusu `ONBOARDING`, bez uloge, i usmjerava ga na `/onboarding`.
-3. Korisnik bira umjetnika ili organizatora. Frontend šalje `POST /api/v1/me/role` uz sesiju i CSRF token.
+3. Korisnik odabire karticu „Umjetnik” ili „Organizator” i potvrđuje odabir gumbom „Potvrdi”. Frontend šalje `POST /api/v1/me/role` uz sesiju i CSRF token.
 4. Sustav jednom postavlja ulogu i aktivira račun. Organizatoru stvara prazan profil i automatski postavlja odobrenje `APPROVED`.
-5. Sustav osvježava prava u postojećoj sesiji. Korisnik nastavlja rad bez ponovne prijave.
+5. Sustav osvježava prava u postojećoj sesiji, a sučelje preusmjerava korisnika na `/profile` bez ponovne prijave.
 
 ### Alternativni tijekovi
 
 - Nedostajuća ili nedopuštena uloga, uključujući `ADMIN`, vraća `400 VALIDATION_ERROR`.
-- Ponovljeni odabir vraća `409 ROLE_ALREADY_CHOSEN`; kod istodobnih zahtjeva samo jedan uspijeva.
+- Ponovljeni odabir vraća `409 ROLE_ALREADY_CHOSEN`; kod istodobnih zahtjeva samo jedan uspijeva. Sučelje prikazuje obavijest „Uloga je već odabrana”, osvježava podatke korisnika (`['me']`) i preusmjerava ga na početnu stranicu (`/`).
 - Bez prijave sustav vraća `401 UNAUTHENTICATED`; bez valjanog CSRF tokena vraća `403 FORBIDDEN`.
 - Do odabira uloge ostale API rute vraćaju `403 ONBOARDING_REQUIRED`. Dostupni ostaju dohvat vlastitih podataka, izbor uloge, dohvat CSRF tokena i odjava; filtar dopušta i buduću rutu za brisanje računa.
 - Pozvani korisnik aktivira unaprijed dodijeljenu ulogu prijavom putem Googlea i preskače ovaj odabir.

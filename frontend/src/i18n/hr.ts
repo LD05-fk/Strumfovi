@@ -35,6 +35,17 @@ export const hr = {
       ORGANIZER: 'Organizator',
       ADMIN: 'Administrator',
     },
+    roleAlreadyChosen: 'Uloga je već odabrana',
+    chooseRoleHeading: 'Dobro došli! Tko ste vi?',
+    chooseRoleDescription: 'Odaberite ulogu kojom ćete koristiti ArtConnect.',
+    roleDescriptions: {
+      ARTIST: 'Izradite portfolio, pregledajte prilike i šaljite prijave.',
+      ORGANIZER: 'Objavite prilike i pregledajte prijave umjetnika.',
+    },
+    roleSelectionNotice:
+      'Ulogu birate samo jednom. Kasnije je može promijeniti samo administrator.',
+    confirmRole: 'Potvrdi',
+    savingRole: 'Spremanje…',
   },
 
   errors: {
@@ -65,7 +76,7 @@ export const hr = {
   map: {
     ariaLabel: 'Karta lokacije prilike',
     unavailable: 'Karta trenutno nije dostupna.',
-    setCenterMarker:  'Postavi oznaku u središte karte',
+    setCenterMarker: 'Postavi oznaku u središte karte',
     dragHint: 'Oznaku možete povući na točan položaj.',
     noMarkerHint: 'Oznaka nije postavljena.',
     details: 'Detalji',
