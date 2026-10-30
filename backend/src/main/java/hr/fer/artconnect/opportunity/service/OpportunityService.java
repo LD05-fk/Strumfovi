@@ -18,6 +18,7 @@ import hr.fer.artconnect.opportunity.domain.OpportunityRepository;
 import hr.fer.artconnect.opportunity.web.LocationInput;
 import hr.fer.artconnect.opportunity.web.OpportunityDto;
 import hr.fer.artconnect.opportunity.web.OpportunityInput;
+import hr.fer.artconnect.opportunity.web.OpportunityStatusChange;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Clock;
@@ -29,8 +30,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class OpportunityService {
@@ -72,13 +75,26 @@ public class OpportunityService {
         return save(input, opportunity, organizer);
     }
 
+    @Transactional
+    public OpportunityDto changeStatus(UUID opportunityId, OpportunityStatusChange input) {
+        var organizer = requireOrganizer();
+        var opportunity = opportunities.findById(opportunityId)
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "Prilika nije pronađena."));
+        if (!opportunity.getOrganizer().getId().equals(organizer.getId())) {
+            throw new ApiException(ErrorCode.FORBIDDEN, "Možete mijenjati status samo vlastitih prilika.");
+        }
+
+        // TODO OPP-03-BE2: dodati OpportunityStatusMachine i spremanje statusa u sljedećem koraku.
+        throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED);
+    }
+
     private User requireOrganizer() {
         var organizer = currentUser.getCurrentUser();
         if (organizer.getStatus() == UserStatus.ONBOARDING) {
             throw new ApiException(ErrorCode.ONBOARDING_REQUIRED, "Potrebno je odabrati ulogu.");
         }
         if (organizer.getRole() != UserRole.ORGANIZER) {
-            throw new ApiException(ErrorCode.FORBIDDEN, "Samo organizator može stvarati i uređivati prilike.");
+            throw new ApiException(ErrorCode.FORBIDDEN, "Samo organizator može upravljati prilikama.");
         }
         if (organizer.getStatus() == UserStatus.BLOCKED) {
             throw new ApiException(ErrorCode.USER_BLOCKED, "Korisnički račun je blokiran.");

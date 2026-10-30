@@ -185,6 +185,19 @@ uz ažurirane vrijednosti i očuvane podatke o statusu i vlasniku.
 
 Greške koriste istu zajedničku omotnicu kao kod stvaranja.
 
+## POST /opportunities/{opportunityId}/status — priprema
+
+`POST /api/v1/opportunities/{opportunityId}/status` zasad provjerava tijelo zahtjeva
+i pristup: valjanu sesiju, CSRF token, aktivnog organizatora i vlasništvo prilike.
+Tijelo je `{ "status": "OPEN" }`; dopuštene vrijednosti su `OPEN`, `CLOSED` i
+`SELECTION`. Nedostajući ili nepoznat status, uključujući `PREPARATION` i
+`FINISHED`, vraća `400 VALIDATION_ERROR`. Nepostojeća prilika vraća `404 NOT_FOUND`,
+a tuđa `403 FORBIDDEN`. Ostale provjere pristupa koriste iste kodove kao uređivanje.
+
+Ovo je međukorak implementacije issuea #131. Pravila prijelaza i spremanje statusa
+još nisu dodani: zahtjev vlasnika koji prođe provjere završava s `501 Not Implemented`
+i zajedničkom omotnicom greške (`INTERNAL_ERROR`). Podaci prilike ostaju nepromijenjeni.
+
 ## `GET /api/v1/geocoding/search`
 
 Geokodira adresu preko OSM Nominatima. Frontend poziva samo ArtConnect API; javni Nominatim poziva isključivo backend. Rezultati se ne spremaju u bazu.

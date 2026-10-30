@@ -36,4 +36,11 @@ public class OpportunityController {
     public OpportunityDto update(@PathVariable UUID opportunityId, @Valid @RequestBody OpportunityInput input) {
         return opportunities.update(opportunityId, input);
     }
+
+    @PostMapping("/{opportunityId}/status")
+    @PreAuthorize("hasRole('ORGANIZER')")
+    public OpportunityDto changeStatus(@PathVariable UUID opportunityId,
+            @Valid @RequestBody OpportunityStatusChange input) {
+        return opportunities.changeStatus(opportunityId, input);
+    }
 }
