@@ -12,6 +12,8 @@ import hr.fer.artconnect.opportunity.domain.LocationType;
 import hr.fer.artconnect.opportunity.domain.Opportunity;
 import hr.fer.artconnect.opportunity.domain.OpportunityStatus;
 import hr.fer.artconnect.opportunity.service.OpportunityMapper;
+import hr.fer.artconnect.opportunity.service.ZeroApplicationCountsProvider;
+import hr.fer.artconnect.opportunity.web.ApplicationCounts;
 import hr.fer.artconnect.opportunity.web.CatalogRef;
 import hr.fer.artconnect.support.TestUsers;
 import java.math.BigDecimal;
@@ -123,6 +125,23 @@ class OpportunityMapperTest {
         assertThat(summary.city()).isNull();
         assertThat(summary.latitude()).isNull();
         assertThat(summary.longitude()).isNull();
+    }
+
+    @Test
+    void mapiraBrojacePrijavaKaoNule() {
+        var user = TestUsers.user(UUID.randomUUID(), "google", "org@test.hr", UserRole.ORGANIZER, UserStatus.ACTIVE);
+        var type = new OpportunityType();
+        type.update("workshop", "Radionica", true, (short) 0);
+        var now = OffsetDateTime.parse("2026-10-26T10:00:00Z");
+        var opportunity = Opportunity.create(user, type, Set.of(field("painting", "Slikarstvo", 0)),
+                "Radionica", "Opis", now.plusDays(1), null, null,
+                Location.online("https://example.org"), null, null, now);
+        ReflectionTestUtils.setField(opportunity, "id", UUID.randomUUID());
+
+        var counts = new ZeroApplicationCountsProvider().getCounts(opportunity.getId());
+        var result = mapper.toOrganizerOpportunity(opportunity, null, counts);
+
+        assertThat(result.applicationCounts()).isEqualTo(new ApplicationCounts(0, 0, 0, 0, 0, 0));
     }
 
     private ArtField field(String code, String name, int position) {
