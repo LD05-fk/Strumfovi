@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Navigate, Outlet } from 'react-router'
+import { hasRole } from '../hasRole'
 import { SessionGate } from './SessionGate'
 
 type OnboardingOnlyProps = {
@@ -13,7 +14,10 @@ export function OnboardingOnly({ children }: OnboardingOnlyProps) {
         user?.status === 'ONBOARDING' ? (
           (children ?? <Outlet />)
         ) : (
-          <Navigate to="/" replace />
+          <Navigate
+            to={hasRole(user, 'ARTIST', 'ORGANIZER') ? '/profile' : '/'}
+            replace
+          />
         )
       }
     </SessionGate>

@@ -8,8 +8,11 @@ import hr.fer.artconnect.artist.web.PastExhibitionDto;
 import hr.fer.artconnect.artist.web.PastExhibitionRequest;
 import hr.fer.artconnect.auth.CurrentUserProvider;
 import hr.fer.artconnect.auth.domain.User;
+import hr.fer.artconnect.common.ApiException;
+import hr.fer.artconnect.common.ErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.UUID;
 
 @Service
 public class PastExhibitionService {
@@ -34,6 +37,28 @@ public class PastExhibitionService {
         PastExhibition saved = pastExhibitions.save(PastExhibition.create(
             profile, request.title(), request.year().shortValue(), request.place()));
         return toDto(saved);
+    }
+
+    @Transactional
+    public PastExhibitionDto update(UUID pastExhibitionId, PastExhibitionRequest request) {
+        PastExhibition exhibition = findOwned(pastExhibitionId);
+        exhibition.update(request.title(), request.year().shortValue(), request.place());
+        return toDto(exhibition);
+    }
+
+    @Transactional
+    public void delete(UUID pastExhibitionId) {
+        pastExhibitions.delete(findOwned(pastExhibitionId));
+    }
+
+    private PastExhibition findOwned(UUID pastExhibitionId) {
+        User user = currentUserProvider.getCurrentUser();
+        return pastExhibitions.findByIdAndArtistProfile_UserId(pastExhibitionId, user.getId())
+                .orElseThrow(PastExhibitionService::exhibitionNotFound);
+    }
+
+    private static ApiException exhibitionNotFound() {
+        return new ApiException(ErrorCode.NOT_FOUND, "Izložba umjetnika nije pronađena.");
     }
 
     private static PastExhibitionDto toDto(PastExhibition exhibition) {

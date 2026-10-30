@@ -46,6 +46,11 @@ public class OrganizerProfile {
         return organizationName;
     }
 
+    public void updateOrganizationName(String organizationName) {
+        this.organizationName = organizationName;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
     }

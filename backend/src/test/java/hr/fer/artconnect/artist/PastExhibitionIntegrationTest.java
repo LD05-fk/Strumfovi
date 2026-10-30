@@ -2,7 +2,10 @@ package hr.fer.artconnect.artist;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -149,9 +152,167 @@ class PastExhibitionIntegrationTest extends IntegrationTestBase {
                 .isEqualTo(1);
     }
 
+    @Test
+    void azuriraVlastituIzlozbuIObrezujeTekst() throws Exception {
+        UUID artistId = loginAsArtistWithProfile();
+        UUID exhibitionId = insertExhibition(artistId, "Stari naslov", 2020, "Split");
+
+        sendUpdate(exhibitionId, body("  Gradski motivi  ", 2024, "  Galerija Nova, Zagreb  "))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(exhibitionId.toString()))
+                .andExpect(jsonPath("$.title").value("Gradski motivi"))
+                .andExpect(jsonPath("$.year").value(2024))
+                .andExpect(jsonPath("$.place").value("Galerija Nova, Zagreb"));
+
+        Map<String, Object> row = jdbc.queryForMap("SELECT * FROM past_exhibitions WHERE id = ?", exhibitionId);
+        assertThat(row.get("title")).isEqualTo("Gradski motivi");
+        assertThat(((Number) row.get("year")).intValue()).isEqualTo(2024);
+        assertThat(row.get("place")).isEqualTo("Galerija Nova, Zagreb");
+    }
+
+    @Test
+    void odbijaNeispravnoTijeloPriAzuriranju() throws Exception {
+        UUID artistId = loginAsArtistWithProfile();
+        UUID exhibitionId = insertExhibition(artistId, "Stari naslov", 2020, "Split");
+
+        sendUpdate(exhibitionId, body("   ", 2024, "Zagreb"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.error.details[0].field").value("title"));
+        assertThat(title(exhibitionId)).isEqualTo("Stari naslov");
+    }
+
+    @Test
+    void neprijavljenomPriAzuriranjuVracaUnauthenticated() throws Exception {
+        mockMvc.perform(put(PATH + "/" + UUID.randomUUID()).with(anonymous()).with(withCsrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(body("Gradski motivi", 2024, "Zagreb")))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
+    }
+
+    @Test
+    void organizatoruPriAzuriranjuVracaForbidden() throws Exception {
+        loginAs("ORGANIZER");
+
+        sendUpdate(UUID.randomUUID(), body("Gradski motivi", 2024, "Zagreb"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    void tudjuIzlozbuTretiraKaoNepostojecu() throws Exception {
+        UUID vlasnik = loginAsArtistWithProfile();
+        UUID exhibitionId = insertExhibition(vlasnik, "Stari naslov", 2020, "Split");
+        // Druga prijava zamjenjuje prvu: zahtjev sada šalje drugi umjetnik.
+        loginAsArtistWithProfile();
+
+        sendUpdate(exhibitionId, body("Gradski motivi", 2024, "Zagreb"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+        assertThat(title(exhibitionId)).isEqualTo("Stari naslov");
+    }
+
+    @Test
+    void nepostojecuIzlozbuVracaNotFound() throws Exception {
+        loginAsArtistWithProfile();
+
+        sendUpdate(UUID.randomUUID(), body("Gradski motivi", 2024, "Zagreb"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void briseVlastituIzlozbuIVracaNoContent() throws Exception {
+        UUID artistId = loginAsArtistWithProfile();
+        UUID exhibitionId = insertExhibition(artistId, "Stari naslov", 2020, "Split");
+        UUID ostaje = insertExhibition(artistId, "Druga izložba", 2021, "Rijeka");
+
+        sendDelete(exhibitionId)
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
+
+        assertThat(exists(exhibitionId)).isFalse();
+        // Briše se samo zatraženi red, ostatak portfolija ostaje.
+        assertThat(exists(ostaje)).isTrue();
+    }
+
+    @Test
+    void neprijavljenomPriBrisanjuVracaUnauthenticated() throws Exception {
+        mockMvc.perform(delete(PATH + "/" + UUID.randomUUID()).with(anonymous()).with(withCsrf()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
+    }
+
+    @Test
+    void organizatoruPriBrisanjuVracaForbidden() throws Exception {
+        loginAs("ORGANIZER");
+
+        sendDelete(UUID.randomUUID())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    void bezCsrfTokenaPriBrisanjuVracaForbidden() throws Exception {
+        UUID artistId = loginAsArtistWithProfile();
+        UUID exhibitionId = insertExhibition(artistId, "Stari naslov", 2020, "Split");
+
+        mockMvc.perform(delete(PATH + "/" + exhibitionId))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+        assertThat(exists(exhibitionId)).isTrue();
+    }
+
+    @Test
+    void tudjuIzlozbuNeBriseIVracaNotFound() throws Exception {
+        UUID vlasnik = loginAsArtistWithProfile();
+        UUID exhibitionId = insertExhibition(vlasnik, "Stari naslov", 2020, "Split");
+        // Druga prijava zamjenjuje prvu: zahtjev sada šalje drugi umjetnik.
+        loginAsArtistWithProfile();
+
+        sendDelete(exhibitionId)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+        assertThat(exists(exhibitionId)).isTrue();
+    }
+
+    @Test
+    void nepostojecuIzlozbuPriBrisanjuVracaNotFound() throws Exception {
+        loginAsArtistWithProfile();
+
+        sendDelete(UUID.randomUUID())
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+
     private ResultActions send(String body) throws Exception {
         return mockMvc.perform(post(PATH).with(withCsrf())
                 .contentType(MediaType.APPLICATION_JSON).content(body));
+    }
+
+    private ResultActions sendUpdate(UUID exhibitionId, String body) throws Exception {
+        return mockMvc.perform(put(PATH + "/" + exhibitionId).with(withCsrf())
+                .contentType(MediaType.APPLICATION_JSON).content(body));
+    }
+
+    private ResultActions sendDelete(UUID exhibitionId) throws Exception {
+        return mockMvc.perform(delete(PATH + "/" + exhibitionId).with(withCsrf()));
+    }
+
+    private UUID insertExhibition(UUID artistId, String title, int year, String place) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("INSERT INTO past_exhibitions (id, artist_id, title, year, place) VALUES (?, ?, ?, ?, ?)",
+                id, artistId, title, year, place);
+        return id;
+    }
+
+    private boolean exists(UUID exhibitionId) {
+        return jdbc.queryForObject("SELECT count(*) FROM past_exhibitions WHERE id = ?",
+                Long.class, exhibitionId) == 1;
+    }
+
+    private String title(UUID exhibitionId) {
+        return jdbc.queryForObject("SELECT title FROM past_exhibitions WHERE id = ?", String.class, exhibitionId);
     }
 
     // Umjetnik koji je već spremio profil ima svoj red u artist_profiles; endpoint ga tada

@@ -154,6 +154,68 @@ Odgovor je `200 OK` sa spremljenim `ArtistProfile` prikazanim u primjeru za
 | 403 | `ONBOARDING_REQUIRED` | korisnik nije odabrao ulogu |
 | 403 | `USER_BLOCKED` | korisnički račun je blokiran |
 
+## GET /me/organizer-profile
+
+Vraća profil prijavljenog organizatora. `displayName` i `organizerApproval`
+čitaju se iz korisnika, a `organizationName` iz `organizer_profiles`.
+Organizacija je samo naziv; profil ne sadrži zasebne podatke o organizaciji.
+
+Odgovor `200 OK` (`OrganizerProfile`):
+
+```json
+{
+  "userId": "5e7d9c2b-1a4f-4b3e-8c6d-7f8a9b0c1d2e",
+  "displayName": "Marko Kovačević",
+  "organizationName": "Galerija Kontrast",
+  "organizerApproval": "APPROVED"
+}
+```
+
+Ako red u `organizer_profiles` ne postoji, `organizationName` je `null`; GET
+ne stvara profilni red. Organizator koji čeka odobrenje može čitati profil.
+
+| Status | Kod | Kada |
+| --- | --- | --- |
+| 401 | `UNAUTHENTICATED` | zahtjev bez valjane sesije |
+| 403 | `FORBIDDEN` | prijavljeni korisnik nema ulogu `ORGANIZER` |
+| 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
+| 403 | `USER_BLOCKED` | prijavljeni korisnik ima status `BLOCKED` |
+
+## PUT /me/organizer-profile
+
+Uređuje naziv organizacije profila prijavljenog organizatora. Zahtjev šalje
+CSRF token iz kolačića `XSRF-TOKEN` u zaglavlju `X-XSRF-TOKEN`.
+
+Tijelo zahtjeva (`OrganizerProfileUpdate`):
+
+| Polje | Tip | Opis |
+| --- | --- | --- |
+| `organizationName` | string ili `null` | neobavezno, najviše 200 znakova |
+
+Primjer:
+
+```http
+PUT /api/v1/me/organizer-profile
+Content-Type: application/json
+X-XSRF-TOKEN: <token iz kolačića XSRF-TOKEN>
+
+{ "organizationName": "Galerija Kontrast" }
+```
+
+Odgovor `200 OK` je `OrganizerProfile`, istog oblika kao GET. Naziv se obrezuje
+prije pohrane. `null`, izostavljeno polje, prazan niz i niz sastavljen samo od
+praznina spremaju se kao `null`. Ako profilni red ne postoji, PUT ga stvara.
+Svaki uspješan PUT osvježava `updated_at`; `organizerApproval` se ne mijenja.
+Organizator koji čeka odobrenje smije urediti profil.
+
+| Status | Kod | Kada |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | `organizationName` dulji je od 200 znakova ili tijelo nije ispravno |
+| 401 | `UNAUTHENTICATED` | zahtjev bez valjane sesije |
+| 403 | `FORBIDDEN` | korisnik nema ulogu `ORGANIZER` ili nedostaje/nevaljan je CSRF token |
+| 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
+| 403 | `USER_BLOCKED` | prijavljeni korisnik ima status `BLOCKED` |
+
 ## POST /past-exhibitions
 
 Dodaje prethodnu izložbu ili projekt u portfolio prijavljenog umjetnika.
@@ -214,8 +276,8 @@ istoj transakciji; postojeći profil se ne mijenja.
 - Donja granica godine je 1900. Gornja granica je **tekuća godina u zoni
   `Europe/Zagreb`**, pa se nova godina počinje prihvaćati u ponoć po lokalnom
   vremenu, a ne po UTC-u.
-- Zapis se nakon stvaranja ne mijenja ovim endpointom; uređivanje i brisanje
-  pripadaju zasebnim zadacima.
+- Zapis se nakon stvaranja ne mijenja ovim endpointom; za uređivanje služi
+  `PUT /past-exhibitions/{pastExhibitionId}`.
 
 ### Greške
 
@@ -250,3 +312,58 @@ zoni) i pravila servisa (`PastExhibitionServiceTest`). Integracijski testovi
 zaglavljem `Location` i obrezanim vrijednostima u bazi, 400 za svako neispravno
 polje, 401, 403 za organizatora i 403 bez CSRF tokena. Umjetnik bez reda u
 `artist_profiles` dobiva 201, a profil mu se stvori prazan.
+
+## PUT /past-exhibitions/{pastExhibitionId}
+
+Uređuje prethodnu izložbu prijavljenog umjetnika. Tijelo (`PastExhibitionInput`),
+ograničenja i oblik odgovora isti su kao kod `POST /past-exhibitions`; šalju se
+sva tri polja.
+
+Odgovor `200 OK` (`PastExhibition`) s ažuriranim vrijednostima; `id` se ne mijenja.
+Nuspojava je ažuriran red u `past_exhibitions`.
+
+### Greške
+
+| Status | Kod | Kada |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | kao kod `POST`, i neispravan `pastExhibitionId` |
+| 401 | `UNAUTHENTICATED` | zahtjev bez prijave |
+| 403 | `FORBIDDEN` | prijavljeni korisnik nije umjetnik, ili CSRF token nedostaje |
+| 403 | `ONBOARDING_REQUIRED` | korisnik je u statusu `ONBOARDING` i nije odabrao ulogu |
+| 404 | `NOT_FOUND` | izložba ne postoji ili pripada drugom umjetniku |
+
+Tuđa izložba vraća isti odgovor kao nepostojeća, pa se postojanje tuđih zapisa
+ne otkriva.
+
+### Provjera
+
+`PastExhibitionServiceTest` pokriva provjeru vlasništva, a
+`PastExhibitionIntegrationTest` svaki dokumentirani status: 200 s obrezanim
+vrijednostima u bazi, 400, 401, 403 za organizatora te 404 za tuđu i
+nepostojeću izložbu.
+
+## DELETE /past-exhibitions/{pastExhibitionId}
+
+Briše izložbu prijavljenog umjetnika. Zahtjev nema tijelo.
+
+Odgovor `204 No Content` bez tijela. Rezultat je obrisan red u
+`past_exhibitions`, ostali zapisi portfolija ostaju nepromijenjeni.
+
+### Greške
+
+| Status | Kod | Kada |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | neispravan `pastExhibitionId` |
+| 401 | `UNAUTHENTICATED` | zahtjev bez prijave |
+| 403 | `FORBIDDEN` | prijavljeni korisnik nije umjetnik, ili CSRF token nedostaje |
+| 403 | `ONBOARDING_REQUIRED` | korisnik je u statusu `ONBOARDING` i nije odabrao ulogu |
+| 404 | `NOT_FOUND` | izložba ne postoji ili pripada drugom umjetniku |
+
+Kao i kod `PUT`, tuđa izložba vraća isti odgovor kao nepostojeća. Ponovno
+brisanje istog zapisa zato vraća `404`.
+
+### Provjera
+
+`PastExhibitionServiceTest` pokriva brisanje vlastite izložbe i odbijanje tuđe, a
+`PastExhibitionIntegrationTest` svaki dokumentirani status: 204 s obrisanim redom,
+401, 403 za organizatora i bez CSRF tokena te 404 za tuđu i nepostojeću izložbu.

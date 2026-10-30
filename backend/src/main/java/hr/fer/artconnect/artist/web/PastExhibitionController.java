@@ -4,9 +4,13 @@ import hr.fer.artconnect.artist.service.PastExhibitionService;
 import hr.fer.artconnect.common.ApiPaths;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,5 +31,16 @@ public class PastExhibitionController {
     public ResponseEntity<PastExhibitionDto> createPastExhibition(@Valid @RequestBody PastExhibitionRequest request) {
         PastExhibitionDto created = pastExhibitions.create(request);
         return ResponseEntity.created(URI.create(PATH + "/" + created.id())).body(created);
+    }
+
+    @PutMapping("/{pastExhibitionId}")
+    public PastExhibitionDto updatePastExhibition(@PathVariable UUID pastExhibitionId, @Valid @RequestBody PastExhibitionRequest request) {
+        return pastExhibitions.update(pastExhibitionId, request);
+    }
+
+    @DeleteMapping("/{pastExhibitionId}")
+    public ResponseEntity<Void> deletePastExhibition(@PathVariable UUID pastExhibitionId) {
+        pastExhibitions.delete(pastExhibitionId);
+        return ResponseEntity.noContent().build();
     }
 }
