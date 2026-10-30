@@ -14,6 +14,7 @@
 3. Korisnik bira umjetnika ili organizatora. Frontend šalje `POST /api/v1/me/role` uz sesiju i CSRF token.
 4. Sustav jednom postavlja ulogu i aktivira račun. Organizatoru stvara prazan profil i automatski postavlja odobrenje `APPROVED`.
 5. Sustav osvježava prava u postojećoj sesiji. Korisnik nastavlja rad bez ponovne prijave.
+6. Korisnik dolazi na početnu stranicu `/`, gdje vidi pozdrav, poveznicu „Portfolio” (umjetnik) ili „Moje prilike” (organizator) i poveznicu „Prilike”.
 
 ### Alternativni tijekovi
 
@@ -22,6 +23,7 @@
 - Bez prijave sustav vraća `401 UNAUTHENTICATED`; bez valjanog CSRF tokena vraća `403 FORBIDDEN`.
 - Do odabira uloge ostale API rute vraćaju `403 ONBOARDING_REQUIRED`. Dostupni ostaju dohvat vlastitih podataka, izbor uloge, dohvat CSRF tokena i odjava; filtar dopušta i buduću rutu za brisanje računa.
 - Pozvani korisnik aktivira unaprijed dodijeljenu ulogu prijavom putem Googlea i preskače ovaj odabir.
+- Ako Google prijava ne uspije, početna stranica prikazuje poruku „Prijava nije uspjela. Pokušajte ponovno.”.
 
 Detalji su u [API dokumentaciji prijave](api/auth.md#post-merole).
 
