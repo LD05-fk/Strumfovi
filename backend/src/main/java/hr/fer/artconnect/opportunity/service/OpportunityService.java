@@ -15,6 +15,8 @@ import hr.fer.artconnect.opportunity.domain.Location;
 import hr.fer.artconnect.opportunity.domain.LocationType;
 import hr.fer.artconnect.opportunity.domain.Opportunity;
 import hr.fer.artconnect.opportunity.domain.OpportunityRepository;
+import hr.fer.artconnect.opportunity.domain.OpportunityStatus;
+import hr.fer.artconnect.opportunity.domain.OpportunityStatusMachine;
 import hr.fer.artconnect.opportunity.web.LocationInput;
 import hr.fer.artconnect.opportunity.web.OpportunityDto;
 import hr.fer.artconnect.opportunity.web.OpportunityInput;
@@ -30,10 +32,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class OpportunityService {
@@ -84,8 +84,14 @@ public class OpportunityService {
             throw new ApiException(ErrorCode.FORBIDDEN, "Možete mijenjati status samo vlastitih prilika.");
         }
 
-        // TODO OPP-03-BE2: dodati OpportunityStatusMachine i spremanje statusa u sljedećem koraku.
-        throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED);
+        var target = OpportunityStatus.valueOf(input.status().name());
+        var now = OffsetDateTime.now(clock);
+        // Do ADM-02-BE svi organizatori smiju objaviti priliku, prema dogovoru u issueu #131.
+        OpportunityStatusMachine.validate(opportunity.getStatus(), target, opportunity.isArchived(),
+                opportunity.getDeadline(), now, true);
+        opportunity.changeStatus(target, now);
+        var saved = opportunities.save(opportunity);
+        return mapper.toDto(saved, profiles.findById(organizer.getId()).orElse(null));
     }
 
     private User requireOrganizer() {

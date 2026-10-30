@@ -33,6 +33,7 @@ import hr.fer.artconnect.support.TestPrincipals;
 import hr.fer.artconnect.support.TestUsers;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -73,6 +74,8 @@ class OpportunityStatusEndpointTest {
                 UserRole.ORGANIZER, UserStatus.ACTIVE);
         when(users.findById(organizer.getId())).thenReturn(Optional.of(organizer));
         var now = OffsetDateTime.parse("2026-10-30T10:00:00Z");
+        when(clock.instant()).thenReturn(now.plusHours(1).toInstant());
+        when(clock.getZone()).thenReturn(ZoneOffset.UTC);
         opportunity = Opportunity.create(organizer, new OpportunityType(), Set.of(), "Izložba", "Opis",
                 now.plusDays(1), null, null, Location.online("https://example.org"), null, null, now);
         when(opportunities.findById(ID)).thenReturn(Optional.of(opportunity));
@@ -80,20 +83,28 @@ class OpportunityStatusEndpointTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"OPEN", "CLOSED", "SELECTION"})
-    void vlasnikovZahtjevProlaziProvjereAliPromjenaJosNijeImplementirana(String target) throws Exception {
+    void vlasnikMijenjaStatusIDobivaPriliku(String target) throws Exception {
+        if (!target.equals("OPEN")) {
+            ReflectionTestUtils.setField(opportunity, "status",
+                    target.equals("CLOSED") ? OpportunityStatus.OPEN : OpportunityStatus.CLOSED);
+        }
+        when(opportunities.save(any())).thenAnswer(call -> call.getArgument(0));
         mvc.perform(post(PATH).with(authentication(TestPrincipals.authentication(organizer))).with(csrf())
                         .contentType("application/json").content("{\"status\":\"" + target + "\"}"))
-                .andExpect(status().isNotImplemented());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(target))
+                .andExpect(jsonPath("$.title").value("Izložba"))
+                .andExpect(jsonPath("$.organizer.id").value(organizer.getId().toString()));
 
-        assertThat(opportunity.getStatus()).isEqualTo(OpportunityStatus.PREPARATION);
-        assertThat(opportunity.getPublishedAt()).isNull();
-        assertThat(opportunity.getUpdatedAt()).isEqualTo(opportunity.getCreatedAt());
-        verify(opportunities, never()).save(any());
+        assertThat(opportunity.getStatus().name()).isEqualTo(target);
+        assertThat(opportunity.getUpdatedAt()).isAfter(opportunity.getCreatedAt());
+        verify(opportunities).save(opportunity);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"", "{}", "null", "{\"status\":null}", "{\"status\":\"\"}",
-            "{\"status\":\"UNKNOWN\"}", "{\"status\":\"PREPARATION\"}", "{\"status\":\"FINISHED\"}"})
+            "{\"status\":\"UNKNOWN\"}", "{\"status\":\"PREPARATION\"}", "{\"status\":\"FINISHED\"}",
+            "{\"status\":0}"})
     void neispravnoTijeloVraca400PrijeDohvataPrilike(String body) throws Exception {
         mvc.perform(post(PATH).with(authentication(TestPrincipals.authentication(organizer))).with(csrf())
                         .contentType("application/json").content(body))
