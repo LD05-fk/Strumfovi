@@ -6,6 +6,41 @@ ulogom `ARTIST` i CSRF token u zaglavlju `X-XSRF-TOKEN` iz kolačića
 prima u zahtjevu. Djelo se stvara bez slika; slike se dodaju zasebnim pozivom
 nakon što djelo dobije ID.
 
+## GET /artists/{artistId}/artworks
+
+Vraća stranicu djela umjetnika, sortiranu po `createdAt` silazno. Putanja je
+javna; ako postoji sesija, prijavljeni korisnik uzima se u obzir pri odluci o
+vidljivosti.
+
+| Parametar | Tip | Zadano | Pravila |
+| --- | --- | --- | --- |
+| `artistId` | UUID | — | ID korisnika s ulogom `ARTIST` |
+| `page` | integer | `1` | najmanje `1` |
+| `pageSize` | integer | `20` | od `1` do `100` |
+
+Odgovor `200 OK` (`ArtworkPage`) sadrži `data: Artwork[]` i `meta` s poljima
+`page`, `pageSize` i `total`. Umjetnik bez djela vraća `data: []` i `total: 0`.
+
+## GET /artworks/{artworkId}
+
+Vraća detalj djela (`Artwork`) s pripadajućim slikama. Putanja je javna; ako
+postoji sesija, prijavljeni korisnik uzima se u obzir pri odluci o vidljivosti.
+
+### Pravila vidljivosti za oba GET endpointa
+
+| Pozivatelj | Umjetnik | Djela koja može vidjeti |
+| --- | --- | --- |
+| Posjetitelj ili drugi korisnik | aktivan umjetnik | samo `PUBLIC` i `hiddenByAdmin: false` |
+| Vlasnik portfolija | umjetnik s bilo kojim statusom | sva djela, uključujući `PRIVATE` i skrivena |
+| Administrator | umjetnik s bilo kojim statusom | sva djela, uključujući `PRIVATE` i skrivena |
+| Posjetitelj ili drugi korisnik | blokiran ili obrisan umjetnik | ništa; popis i detalj vraćaju `404 NOT_FOUND` |
+
+Za popis, nepostojeći korisnik ili korisnik koji nije umjetnik također vraća
+`404 NOT_FOUND`. Detalj djela vraća `404 NOT_FOUND` ako djelo ne postoji ili ga
+pozivatelj ne smije vidjeti; time se ne otkriva postojanje privatnih ili
+skrivenih djela. Neispravni parametri straničenja vraćaju
+`400 VALIDATION_ERROR`.
+
 ## POST /artworks
 
 Stvara djelo u portfoliju prijavljenog umjetnika.
