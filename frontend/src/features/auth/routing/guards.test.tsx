@@ -160,12 +160,22 @@ describe('RequireRole', () => {
     },
   )
 
-  it('prikazuje panel za korisnika bez sesije', async () => {
+  it('prikazuje panel korisniku bez sesije', async () => {
     setCurrentUser(null)
 
     renderRoutes(<RequireRole roles={['ARTIST']} />)
 
     expect(await screen.findByTestId('login-required')).toBeInTheDocument()
+  })
+
+  it('može preusmjeriti neprijavljenog korisnika na zadanu rutu', async () => {
+    setCurrentUser(null)
+
+    renderRoutes(
+      <RequireRole roles={['ARTIST']} unauthenticatedRedirect="/" />,
+    )
+
+    expect(await screen.findByTestId('home')).toBeInTheDocument()
   })
 
   it('preusmjerava korisnika u onboardingu na onboarding', async () => {

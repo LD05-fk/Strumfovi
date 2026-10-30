@@ -18,7 +18,6 @@ import { Link as RouterLink, Outlet } from 'react-router'
 import { hr } from '../../i18n/hr'
 import { useCurrentUser } from '../../features/auth/useCurrentUser'
 import { useLogout } from '../../features/auth/useLogout'
-import { hasRole } from '../../features/auth/hasRole'
 import { GoogleSignInButton } from '../GoogleSignInButton'
 import { UserMenu } from '../UserMenu'
 import { NavItems } from './NavItems'
@@ -136,14 +135,14 @@ export function AppLayout() {
               <GoogleSignInButton />
             ) : (
               <>
-                {hasRole(user, 'ARTIST', 'ORGANIZER') && (
+                {user.role === 'ORGANIZER' && (
                   <Button
                     component={RouterLink}
                     to="/profile"
                     onClick={closeDrawer}
                     sx={{ justifyContent: 'flex-start' }}
                   >
-                    Profil
+                    {hr.navigation.organizerProfile}
                   </Button>
                 )}
                 <Button
