@@ -30,6 +30,19 @@ export const hr = {
     loginRequiredDescription:
       'Za pristup ovoj stranici prijavite se svojim Google računom.',
     onboardingTitle: 'Odabir uloge',
+    home: {
+      greeting: 'Bok, {name}!',
+      subtitle: 'Što želite danas napraviti?',
+      loginError: 'Prijava nije uspjela. Pokušajte ponovno.',
+      myPortfolio: 'Moj portfolio',
+      myPortfolioDescription: 'Dodajte i uredite svoja djela.',
+      portfolioAction: 'Portfolio',
+      myOpportunities: 'Moje prilike',
+      myOpportunitiesDescription: 'Upravljajte svojim prilikama.',
+      browseOpportunitiesDescription:
+        'Pronađite natječaje i izložbe za svoj rad.',
+      opportunitiesAction: 'Prilike',
+    },
     roles: {
       ARTIST: 'Umjetnik',
       ORGANIZER: 'Organizator',
@@ -65,7 +78,7 @@ export const hr = {
   map: {
     ariaLabel: 'Karta lokacije prilike',
     unavailable: 'Karta trenutno nije dostupna.',
-    setCenterMarker:  'Postavi oznaku u središte karte',
+    setCenterMarker: 'Postavi oznaku u središte karte',
     dragHint: 'Oznaku možete povući na točan položaj.',
     noMarkerHint: 'Oznaka nije postavljena.',
     details: 'Detalji',
