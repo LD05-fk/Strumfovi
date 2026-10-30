@@ -4,9 +4,12 @@ import hr.fer.artconnect.common.ApiPaths;
 import hr.fer.artconnect.opportunity.service.OpportunityService;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,5 +29,11 @@ public class OpportunityController {
     public ResponseEntity<OpportunityDto> create(@Valid @RequestBody OpportunityInput input) {
         OpportunityDto created = opportunities.create(input);
         return ResponseEntity.created(URI.create(PATH + "/" + created.id())).body(created);
+    }
+
+    @PutMapping("/{opportunityId}")
+    @PreAuthorize("hasRole('ORGANIZER')")
+    public OpportunityDto update(@PathVariable UUID opportunityId, @Valid @RequestBody OpportunityInput input) {
+        return opportunities.update(opportunityId, input);
     }
 }

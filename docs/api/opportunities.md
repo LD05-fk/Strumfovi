@@ -1,6 +1,6 @@
 # Prilike
 
-Ovaj dokument opisuje stvaranje nacrta prilike i geokodiranje adrese.
+Ovaj dokument opisuje stvaranje i uređivanje prilike te geokodiranje adrese.
 
 ## POST /opportunities
 
@@ -104,9 +104,9 @@ Vlasnik je uvijek trenutni korisnik. Klijent ne određuje vlasnika, status ni
 vrijeme stvaranja. Spremanje prilike i veza s umjetničkim područjima obavlja
 se zajedno; odbijeni zahtjev ne stvara priliku.
 
-Ova ruta sprema nacrt. Uređivanje, javni dohvat, objava i definiranje zahtjeva
-prijave zasebni su zadaci. Zaglavlje `Location` određuje adresu resursa;
-ovaj zadatak ne implementira `GET` na toj adresi.
+Ova ruta sprema nacrt. Uređivanje je opisano u nastavku; javni dohvat, objava i
+definiranje zahtjeva prijave zasebni su zadaci. Zaglavlje `Location` određuje
+adresu resursa; stvaranje ne implementira `GET` na toj adresi.
 
 ### Greške
 
@@ -137,6 +137,53 @@ Provjere se izvršavaju prije spremanja. Odgovor može sadržavati jednu ili vi�
 grešaka; nakon ispravka prikazanih polja mogu se pokazati ostale greške.
 Neispravan JSON ili vrijednosti koje se ne mogu pretvoriti u očekivani tip
 vraćaju zajedničku grešku validacije tijela zahtjeva.
+
+## PUT /opportunities/{opportunityId}
+
+`PUT /api/v1/opportunities/{opportunityId}` uređuje vlastitu priliku. Pristup ima
+prijavljeni, aktivni organizator, uključujući organizatora na čekanju odobrenja.
+Potrebni su sesijski kolačić i valjan CSRF token kao za stvaranje prilike.
+
+### Podaci zahtjeva i pravila
+
+Tijelo je isti `OpportunityInput` kao za [stvaranje](#post-opportunities).
+Zamjenjuje sva unosiva polja i cijeli skup `artFieldIds`. Izostavljene opcionalne
+vrijednosti brišu prethodne kriterije, nagradu ili datume događanja.
+Prazan skup područja nije dopušten: i dalje treba odabrati 1–10 različitih područja.
+
+Vrijede ista ograničenja tekstova, lokacije i datuma događanja uz dvije razlike:
+
+- `deadline` je obavezan, ali smije biti jednak sadašnjem trenutku ili u prošlosti.
+- Neaktivna vrsta smije ostati samo ako je trenutačna vrsta te prilike.
+  Neaktivno područje smije ostati samo ako je već povezano s tom prilikom.
+  Dodavanje druge neaktivne vrste ili novog neaktivnog područja vraća `400`.
+  Nepostojeći šifrarnici također se odbijaju.
+
+Uređivanje je dopušteno u svakom statusu, uključujući arhivirane i skrivene
+prilike. Zahtjev ne mijenja vlasnika, status, arhiviranost, skrivenost,
+`hiddenAt`, `publishedAt` ni `createdAt`. Postavlja `updatedAt` na trenutačno vrijeme.
+Prošli rok ne zatvara priliku u ovom zahtjevu; automatsko zatvaranje zaseban je zadatak.
+
+Lokacija se u cijelosti zamjenjuje. Promjena `PHYSICAL` u `ONLINE` briše adresu,
+grad, poštanski broj i koordinate; promjena u `PHYSICAL` briše online poveznicu.
+Sve provjere prethode promjenama, a prilika i razlika veza s područjima spremaju
+se u jednoj transakciji. Odbijeni zahtjev ne mijenja postojeću priliku.
+
+### Odgovor i greške
+
+Uspjeh vraća `200 OK` s punim objektom prilike u istom obliku kao kod stvaranja,
+uz ažurirane vrijednosti i očuvane podatke o statusu i vlasniku.
+
+| HTTP | Kod | Razlog |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | neispravan UUID, JSON ili unos, nepostojeći šifrarnici ili nove neaktivne stavke |
+| 401 | `UNAUTHENTICATED` | nema valjane sesije |
+| 403 | `FORBIDDEN` | korisnik nije organizator ili vlasnik, račun nije aktivan ili CSRF token nije valjan |
+| 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
+| 403 | `USER_BLOCKED` | organizator je blokiran |
+| 404 | `NOT_FOUND` | prilika s navedenim ID-om ne postoji |
+
+Greške koriste istu zajedničku omotnicu kao kod stvaranja.
 
 ## `GET /api/v1/geocoding/search`
 

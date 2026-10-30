@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ApiError, apiFetch } from '../../../api/client'
 import type { ReactNode } from 'react'
@@ -42,6 +42,11 @@ function setCurrentUser(user: CurrentUser | null, error?: ApiError) {
   }
 }
 
+function LocationDisplay() {
+  const location = useLocation()
+  return <div data-testid="location">{location.pathname}</div>
+}
+
 function renderRoutes(element: ReactNode, initialEntry = '/private') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -50,9 +55,11 @@ function renderRoutes(element: ReactNode, initialEntry = '/private') {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[initialEntry]}>
+        <LocationDisplay />
         <Routes>
           <Route path="/" element={<h1 data-testid="home">Početna</h1>} />
           <Route path="/onboarding" element={<h1>Odabir uloge</h1>} />
+          <Route path="/profile" element={<h1>Profil</h1>} />
           <Route path="*" element={element} />
         </Routes>
       </MemoryRouter>
@@ -204,12 +211,14 @@ describe('OnboardingOnly', () => {
     ).toBeInTheDocument()
   })
 
-  it('preusmjerava korisnika koji je završio onboarding na početnu', async () => {
+  it('preusmjerava umjetnika koji je završio onboarding na profil', async () => {
     setCurrentUser(artist)
 
     renderRoutes(<OnboardingOnly />)
 
-    expect(await screen.findByTestId('home')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByTestId('location')).toHaveTextContent('/profile')
+    })
   })
 
   it('preusmjerava neprijavljenog korisnika na početnu', async () => {
@@ -220,14 +229,20 @@ describe('OnboardingOnly', () => {
     expect(await screen.findByTestId('home')).toBeInTheDocument()
   })
 
-  it.each(['ARTIST', 'ORGANIZER', 'ADMIN'] as const)(
-    'preusmjerava korisnika s ulogom %s na početnu',
-    async (role) => {
+  it.each([
+    ['ARTIST', '/profile'],
+    ['ORGANIZER', '/profile'],
+    ['ADMIN', '/'],
+  ] as const)(
+    'preusmjerava korisnika s ulogom %s na odgovarajuću stranicu',
+    async (role, expectedPath) => {
       setCurrentUser({ ...artist, role })
 
       renderRoutes(<OnboardingOnly />)
 
-      expect(await screen.findByTestId('home')).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByTestId('location')).toHaveTextContent(expectedPath)
+      })
     },
   )
 })

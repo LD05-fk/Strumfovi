@@ -41,14 +41,20 @@ public class PastExhibitionService {
 
     @Transactional
     public PastExhibitionDto update(UUID pastExhibitionId, PastExhibitionRequest request) {
-        PastExhibition exhibition = pastExhibitions.findById(pastExhibitionId)
-                .orElseThrow(PastExhibitionService::exhibitionNotFound);
-        User user = currentUserProvider.getCurrentUser();
-        if (!exhibition.getArtistProfile().getUserId().equals(user.getId())) {
-            throw exhibitionNotFound();
-        }
+        PastExhibition exhibition = findOwned(pastExhibitionId);
         exhibition.update(request.title(), request.year().shortValue(), request.place());
         return toDto(exhibition);
+    }
+
+    @Transactional
+    public void delete(UUID pastExhibitionId) {
+        pastExhibitions.delete(findOwned(pastExhibitionId));
+    }
+
+    private PastExhibition findOwned(UUID pastExhibitionId) {
+        User user = currentUserProvider.getCurrentUser();
+        return pastExhibitions.findByIdAndArtistProfile_UserId(pastExhibitionId, user.getId())
+                .orElseThrow(PastExhibitionService::exhibitionNotFound);
     }
 
     private static ApiException exhibitionNotFound() {
