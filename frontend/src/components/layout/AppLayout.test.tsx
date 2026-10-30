@@ -64,7 +64,7 @@ const roleCases: Array<{
   { role: null, expected: ['Prilike'] },
   {
     role: 'ARTIST',
-    expected: ['Prilike', 'Portfolio', 'Moje prijave'],
+    expected: ['Prilike', 'Moj profil', 'Moj portfolio', 'Moje prijave'],
   },
   {
     role: 'ORGANIZER',
@@ -137,7 +137,7 @@ describe('AppLayout', () => {
     expect(
       screen.getByRole('navigation', { name: 'Mobilna navigacija' }),
     ).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Portfolio' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Moj portfolio' })).toBeTruthy()
 
     await user.keyboard('{Escape}')
     await waitFor(() => {
@@ -157,7 +157,7 @@ describe('AppLayout', () => {
     renderLayout()
 
     await user.click(screen.getByRole('button', { name: 'Otvori izbornik' }))
-    await user.click(screen.getByRole('link', { name: 'Portfolio' }))
+    await user.click(screen.getByRole('link', { name: 'Moj portfolio' }))
 
     await waitFor(() => {
       expect(
@@ -181,7 +181,7 @@ describe('AppLayout', () => {
     expect(
       within(
         screen.getByRole('navigation', { name: 'Mobilna navigacija' }),
-      ).getByRole('link', { name: 'Portfolio' }),
+      ).getByRole('link', { name: 'Moj portfolio' }),
     ).toBeInTheDocument()
 
     await user.click(screen.getByTestId('user-menu'))
@@ -202,10 +202,10 @@ describe('AppLayout', () => {
     ).toHaveAttribute('href', '/oauth2/authorization/google')
   })
 
-  it('shows profile only to artists and organizers in the mobile drawer', async () => {
+  it('shows no duplicate profile entry to artists in the mobile drawer', async () => {
     const user = userEvent.setup()
     vi.mocked(useCurrentUser).mockReturnValue({
-      data: { ...mockUser, role: 'ADMIN' },
+      data: mockUser,
       isPending: false,
       isError: false,
     } as ReturnType<typeof useCurrentUser>)
@@ -217,10 +217,29 @@ describe('AppLayout', () => {
       name: 'Mobilna navigacija',
     })
     expect(
-      mobileNavigation.querySelector('a[href="/profile"]'),
-    ).not.toBeInTheDocument()
+      within(mobileNavigation).getByRole('link', { name: 'Moj profil' }),
+    ).toHaveAttribute('href', '/profile')
     expect(
-      within(mobileNavigation).getByRole('button', { name: 'Odjava' }),
+      within(mobileNavigation).queryByRole('button', { name: 'Profil' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows the organizer profile entry in the mobile drawer', async () => {
+    const user = userEvent.setup()
+    vi.mocked(useCurrentUser).mockReturnValue({
+      data: { ...mockUser, role: 'ORGANIZER' },
+      isPending: false,
+      isError: false,
+    } as ReturnType<typeof useCurrentUser>)
+    renderLayout()
+
+    await user.click(screen.getByRole('button', { name: 'Otvori izbornik' }))
+
+    const mobileNavigation = screen.getByRole('navigation', {
+      name: 'Mobilna navigacija',
+    })
+    expect(
+      within(mobileNavigation).getByRole('link', { name: 'Profil' }),
     ).toBeInTheDocument()
   })
 

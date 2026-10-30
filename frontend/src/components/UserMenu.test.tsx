@@ -110,7 +110,7 @@ describe('UserMenu', () => {
     expect(screen.getByText('TK')).toBeInTheDocument()
   })
 
-  it('otvara izbornik s podacima i opcijama korisnika', async () => {
+  it('prikazuje profil umjetnika u korisničkom izborniku', async () => {
     renderUserMenu()
 
     fireEvent.click(screen.getByTestId('user-menu'))
@@ -119,12 +119,26 @@ describe('UserMenu', () => {
     expect(screen.getByText('test@example.com')).toBeInTheDocument()
     expect(screen.getByText('Umjetnik')).toBeInTheDocument()
 
-    expect(screen.getByRole('menuitem', { name: 'Profil' })).toHaveAttribute(
-      'href',
-      '/profile',
-    )
+    expect(
+      screen.getByRole('menuitem', { name: 'Moj profil' }),
+    ).toHaveAttribute('href', '/profile')
 
     expect(screen.getByTestId('logout')).toBeInTheDocument()
+  })
+
+  it('zadržava profil u korisničkom izborniku organizatora', async () => {
+    vi.mocked(useCurrentUser).mockReturnValue({
+      data: { ...mockUser, role: 'ORGANIZER' },
+      isPending: false,
+      isError: false,
+    } as ReturnType<typeof useCurrentUser>)
+
+    renderUserMenu()
+    fireEvent.click(screen.getByTestId('user-menu'))
+
+    expect(
+      await screen.findByRole('menuitem', { name: 'Profil' }),
+    ).toHaveAttribute('href', '/profile')
   })
 
   it('ne prikazuje Profil administratoru', async () => {
@@ -138,7 +152,7 @@ describe('UserMenu', () => {
     fireEvent.click(screen.getByTestId('user-menu'))
 
     expect(await screen.findByTestId('logout')).toBeInTheDocument()
-    expect(screen.queryByRole('menuitem', { name: 'Profil' })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: 'Moj profil' })).toBeNull()
   })
 
   it('ne prikazuje praznu oznaku uloge tijekom onboardinga', async () => {

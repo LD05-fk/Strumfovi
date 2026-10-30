@@ -166,22 +166,37 @@ Detalji zahtjeva i odgovora nalaze se u
 
 ### Osnovni tijek
 
-1. Umjetnik u obrascu unosi ili uređuje biografiju i opis umjetničkog rada.
-2. Odabire do 10 područja iz aktivnog šifrarnika te unosi do 10 poveznica.
-3. Sučelje šalje `PUT /api/v1/me/artist-profile` sa svim poljima obrasca.
-4. Sustav validira ograničenja tekstova, jedinstvenost i dostupnost područja te
+1. Umjetnik otvara `/profile`; sučelje dohvaća `GET /api/v1/me/artist-profile`
+   i aktivna područja preko `GET /api/v1/art-fields?pageSize=100`.
+   Zaglavlje omogućuje pregled javnog profila i kopiranje poveznice
+   `/artists/{userId}`.
+2. Ako profil još ne postoji, sučelje prikazuje prazan obrazac. Umjetnik unosi
+   ili uređuje biografiju i opis umjetničkog rada.
+3. Odabire do 10 područja iz aktivnog šifrarnika te unosi do 10 poveznica.
+   Obrazac provjerava duljine, jedinstvenost područja i URL-ove prije slanja.
+4. Sučelje šalje `PUT /api/v1/me/artist-profile` sa svim poljima obrasca;
+   prazni tekstovi šalju se kao `null`, a redoslijed poveznica prati obrazac.
+5. Sustav validira ograničenja tekstova, jedinstvenost i dostupnost područja te
    HTTP(S) format svake poveznice.
-5. Sustav u jednoj transakciji stvara ili ažurira profil, potpuno zamjenjuje
+6. Sustav u jednoj transakciji stvara ili ažurira profil, potpuno zamjenjuje
    odabrana područja i poveznice te vraća spremljeni `ArtistProfile`.
+7. Sučelje ažurira predmemoriju profila, invalidira javni profil umjetnika i
+   prikazuje potvrdu „Profil spremljen”.
 
 ### Alternativni tijekovi
 
 - Prazni nizovi područja i poveznica brišu postojeće veze.
 - Postojeće neaktivno područje može ostati odabrano, ali se ne može dodati u
-  profil koji ga prethodno nije imao.
+  profil koji ga prethodno nije imao; ako je već odabrano, ostaje prikazano i
+  šalje se uz spremanje dok ga umjetnik ne ukloni.
 - Tekstovi se obrezuju; prazna oznaka poveznice sprema se kao `null`.
 - Nevaljana polja, duplikati, nedostupna područja ili neispravni URL-ovi vraćaju
-  `400 VALIDATION_ERROR` s detaljima polja.
+  `400 VALIDATION_ERROR` s detaljima polja, koji se prikazuju uz odgovarajuće
+  polje obrasca. Greška dohvata može se ponoviti; ostale greške spremanja
+  prikazuju se globalnom obavijesti.
+- Pri internoj navigaciji s nespremljenim izmjenama sučelje traži potvrdu; pri
+  osvježavanju ili zatvaranju kartice preglednik prikazuje vlastito upozorenje.
+- Neuspješno kopiranje javne poveznice prikazuje obavijest o pogrešci.
 - Bez prijave sustav vraća `401 UNAUTHENTICATED`; bez uloge umjetnika, bez
   valjanog CSRF tokena ili prije odabira uloge vraća odgovarajući `403`.
 
