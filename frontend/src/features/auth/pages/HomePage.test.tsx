@@ -1,4 +1,4 @@
-import { cleanup, screen } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, apiFetch } from '../../../api/client'
 import { hr } from '../../../i18n/hr'
@@ -42,6 +42,26 @@ function mockUnauthenticatedUser(): void {
 }
 
 describe('HomePage', () => {
+  it('neprijavljenom korisniku prikazuje Google prijavu i poveznicu „Pregledaj prilike”', async () => {
+    mockUnauthenticatedUser()
+
+    renderWithProviders(<HomePage />)
+
+    expect(
+      await screen.findByRole('heading', { name: hr.home.title }),
+    ).toBeInTheDocument()
+    expect(screen.getByText(hr.home.description)).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Prijava s Googleom' }),
+    ).toHaveAttribute('href', '/oauth2/authorization/google')
+    expect(
+      screen.getByRole('link', { name: hr.home.browseOpportunities }),
+    ).toHaveAttribute('href', '/opportunities')
+    await waitFor(() =>
+      expect(document.title).toBe(`${hr.home.title} | ${hr.appName}`),
+    )
+  })
+
   it('prikazuje se poruka greške na početnoj stranici nakon neuspješne prijave', async () => {
     mockUnauthenticatedUser()
 
@@ -65,14 +85,14 @@ describe('HomePage', () => {
     ).toHaveAttribute('href', '/opportunities')
   })
 
-  it('organizatoru suprikazane poveznice „Moje prilike” i „Prilike”', async () => {
+  it('organizatoru su prikazane poveznice „Moje prilike” i „Prilike”', async () => {
     vi.mocked(apiFetch).mockResolvedValue(makeUser('ORGANIZER'))
 
     renderWithProviders(<HomePage />)
 
     expect(
       await screen.findByRole('link', { name: hr.auth.home.myOpportunities }),
-    ).toHaveAttribute('href', '/organizer/opportunities')
+    ).toHaveAttribute('href', '/my-opportunities')
     expect(
       screen.getByRole('link', { name: hr.auth.home.opportunitiesAction }),
     ).toHaveAttribute('href', '/opportunities')

@@ -92,7 +92,7 @@ export function HomePage() {
             <HomeCard
               title={hr.auth.home.myOpportunities}
               description={hr.auth.home.myOpportunitiesDescription}
-              href="/organizer/opportunities"
+              href="/my-opportunities"
               actionLabel={hr.auth.home.myOpportunities}
             />
           )}
