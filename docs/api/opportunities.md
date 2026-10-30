@@ -1,6 +1,6 @@
 # Prilike
 
-Ovaj dokument opisuje stvaranje i uređivanje prilike te geokodiranje adrese.
+Ovaj dokument opisuje stvaranje, uređivanje i promjenu statusa prilike te geokodiranje adrese.
 
 ## POST /opportunities
 
@@ -185,18 +185,52 @@ uz ažurirane vrijednosti i očuvane podatke o statusu i vlasniku.
 
 Greške koriste istu zajedničku omotnicu kao kod stvaranja.
 
-## POST /opportunities/{opportunityId}/status — priprema
+## POST /opportunities/{opportunityId}/status
 
-`POST /api/v1/opportunities/{opportunityId}/status` zasad provjerava tijelo zahtjeva
-i pristup: valjanu sesiju, CSRF token, aktivnog organizatora i vlasništvo prilike.
-Tijelo je `{ "status": "OPEN" }`; dopuštene vrijednosti su `OPEN`, `CLOSED` i
-`SELECTION`. Nedostajući ili nepoznat status, uključujući `PREPARATION` i
-`FINISHED`, vraća `400 VALIDATION_ERROR`. Nepostojeća prilika vraća `404 NOT_FOUND`,
-a tuđa `403 FORBIDDEN`. Ostale provjere pristupa koriste iste kodove kao uređivanje.
+`POST /api/v1/opportunities/{opportunityId}/status` mijenja status vlastite prilike.
+Pristup ima prijavljeni, aktivni organizator uz sesijski kolačić i valjan CSRF
+token, kao kod uređivanja. Tijelo je `{ "status": "OPEN" }`; obavezni `status`
+prihvaća samo `OPEN`, `CLOSED` i `SELECTION`.
 
-Ovo je međukorak implementacije issuea #131. Pravila prijelaza i spremanje statusa
-još nisu dodani: zahtjev vlasnika koji prođe provjere završava s `501 Not Implemented`
-i zajedničkom omotnicom greške (`INTERNAL_ERROR`). Podaci prilike ostaju nepromijenjeni.
+| Trenutni status | Traženi status | Uvjet |
+| --- | --- | --- |
+| `PREPARATION` | `OPEN` | `deadline` mora biti strogo u budućnosti |
+| `OPEN` | `CLOSED` | neovisno o roku |
+| `CLOSED` | `OPEN` | `deadline` mora biti strogo u budućnosti |
+| `CLOSED` | `SELECTION` | neovisno o roku |
+
+Svaki drugi par, uključujući isti status, vraća `409 INVALID_STATUS_TRANSITION`.
+Arhivirana prilika odbija svaku promjenu tim kodom, neovisno o roku.
+Rok jednak trenutačnom vremenu već je istekao. Datumi se uspoređuju kao stvarni
+trenuci, neovisno o vremenskom pomaku. `FINISHED` se postiže isključivo objavom
+rezultata kroz zasebnu rutu; `PREPARATION` se postavlja stvaranjem nacrta.
+
+Uspjeh vraća `200 OK` s punim objektom prilike kao kod stvaranja. Mijenjaju se
+samo `status`, `updatedAt` i, pri prvom otvaranju, `publishedAt`. Ponovno otvaranje
+čuva vrijeme prve objave. Provjere prethode izmjenama; sve se sprema u jednoj
+transakciji i odbijeni zahtjev ne mijenja podatke.
+
+| HTTP | Kod | Razlog |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | neispravan UUID ili JSON, nedostajući ili nepoznat status, uključujući `PREPARATION` i `FINISHED` |
+| 401 | `UNAUTHENTICATED` | nema valjane sesije |
+| 403 | `FORBIDDEN` | korisnik nije aktivni organizator ili vlasnik, ili CSRF token nije valjan |
+| 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
+| 403 | `USER_BLOCKED` | organizator je blokiran |
+| 404 | `NOT_FOUND` | prilika ne postoji |
+| 409 | `INVALID_STATUS_TRANSITION` | nedopušten prijelaz ili arhivirana prilika |
+| 409 | `DEADLINE_PASSED` | pokušaj prvog ili ponovnog otvaranja na isteku roka ili nakon njega |
+
+Prema dogovoru u [issueu #131](https://github.com/LD05-fk/Strumfovi/issues/131),
+do implementacije ADM-02-BE svi organizatori smatraju se odobrenima za objavu,
+uključujući postojeći `PENDING` račun. `OpportunityStatusMachine` već prima
+`organizerApproved`; ADM-02-BE treba proslijediti stvarno odobrenje. Tada prva
+objava bez odobrenja vraća `403 ORGANIZER_NOT_APPROVED`.
+
+`OpportunityStatusMachine` sadrži pravila bez Springa i pristupa bazi. Posao
+automatskog zatvaranja (OPP-04-BE1) može koristiti istu provjeru za `OPEN → CLOSED`;
+taj posao nije dio ove rute. [Dijagram stanja](../puml/4-6-artconnect-opportunity-SM.puml)
+prikazuje životni ciklus i zasebnu objavu rezultata.
 
 ## `GET /api/v1/geocoding/search`
 
