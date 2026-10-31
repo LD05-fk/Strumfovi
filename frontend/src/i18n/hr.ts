@@ -136,7 +136,7 @@ export const hr = {
       linkLabelMaxLength: 'Naziv poveznice smije imati najviše 60 znakova.',
       linkUrlRequired: 'URL poveznice je obavezan.',
       linkUrlMaxLength: 'URL poveznice smije imati najviše 1024 znakova.',
-      linkUrlFormat: 
+      linkUrlFormat:
         'Unesite valjan URL koji počinje s http:// ili https://.',
       biographyMaxLength: 'Biografija smije imati najviše 5000 znakova.',
       artistStatementMaxLength:
