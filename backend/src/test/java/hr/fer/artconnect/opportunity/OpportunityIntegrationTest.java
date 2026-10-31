@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import hr.fer.artconnect.auth.domain.UserRepository;
 import hr.fer.artconnect.support.IntegrationTestBase;
 import hr.fer.artconnect.support.TestPrincipals;
+import jakarta.persistence.EntityManagerFactory;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -23,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -41,6 +43,7 @@ class OpportunityIntegrationTest extends IntegrationTestBase {
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper objectMapper;
     @Autowired UserRepository users;
+    @Autowired EntityManagerFactory entityManagerFactory;
     @MockitoBean(name = "geocodingClock") Clock clock;
     private UUID typeId;
     private UUID fieldId;
@@ -375,6 +378,35 @@ class OpportunityIntegrationTest extends IntegrationTestBase {
         mockMvc.perform(get("/api/v1/me/opportunities").param("status", "UNKNOWN"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void dohvatStraniceNeRadiNPlusJedanZaVrstuIPodrucja() throws Exception {
+        loginAs("ORGANIZER");
+        UUID first = createOpportunity(validRequest());
+        UUID second = createOpportunity(validRequest());
+        UUID third = createOpportunity(validRequest());
+        jdbc.update("UPDATE opportunities SET archived = true WHERE id IN (?, ?)", second, third);
+
+        var statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        statistics.setStatisticsEnabled(true);
+        statistics.clear();
+        try {
+            mockMvc.perform(get("/api/v1/me/opportunities"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.length()").value(1));
+            long oneOpportunityStatements = statistics.getPrepareStatementCount();
+
+            jdbc.update("UPDATE opportunities SET archived = false WHERE id IN (?, ?, ?)", first, second, third);
+            statistics.clear();
+            mockMvc.perform(get("/api/v1/me/opportunities"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.length()").value(3));
+
+            assertThat(statistics.getPrepareStatementCount()).isEqualTo(oneOpportunityStatements);
+        } finally {
+            statistics.setStatisticsEnabled(false);
+        }
     }
 
     @ParameterizedTest
