@@ -10,14 +10,17 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import hr.fer.artconnect.artwork.domain.Artwork;
+import hr.fer.artconnect.artwork.domain.ArtworkImageRepository;
 import hr.fer.artconnect.artwork.domain.ArtworkRepository;
 import hr.fer.artconnect.artwork.domain.ArtworkVisibility;
 import hr.fer.artconnect.artwork.service.ArtworkMapper;
 import hr.fer.artconnect.artwork.service.ArtworkService;
+import hr.fer.artconnect.artwork.service.ArtworkVisibilityPolicy;
 import hr.fer.artconnect.artwork.web.ArtworkDto;
 import hr.fer.artconnect.artwork.web.ArtworkRequest;
 import hr.fer.artconnect.auth.CurrentUserProvider;
 import hr.fer.artconnect.auth.domain.User;
+import hr.fer.artconnect.auth.domain.UserRepository;
 import hr.fer.artconnect.common.ApiException;
 import hr.fer.artconnect.common.ErrorCode;
 import hr.fer.artconnect.support.TestUsers;
@@ -37,10 +40,19 @@ class ArtworkServiceTest {
     ArtworkRepository artworks;
 
     @Mock
+    ArtworkImageRepository artworkImages;
+
+    @Mock
+    UserRepository users;
+
+    @Mock
     CurrentUserProvider currentUserProvider;
 
     @Mock
     ArtworkMapper artworkMapper;
+
+    @Mock
+    ArtworkVisibilityPolicy visibilityPolicy;
 
     @Test
     void spremaDjeloNaPrijavljenogUmjetnikaBezSlika() {
@@ -82,7 +94,8 @@ class ArtworkServiceTest {
     }
 
     private ArtworkService service() {
-        return new ArtworkService(artworks, currentUserProvider, artworkMapper);
+        return new ArtworkService(artworks, artworkImages, users,
+                currentUserProvider, artworkMapper, visibilityPolicy);
     }
 
     private static User artist() {
