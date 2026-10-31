@@ -103,10 +103,7 @@ const router = createBrowserRouter(
                     </RequireRole>
                 }
             />
-            <Route
-                path="artists/:artistId"
-                element={<Page title="Umjetnik" />}
-            />
+            <Route path="artists/:artistId" element={<Page title="Umjetnik" />} />
             <Route
                 path="onboarding"
                 element={
