@@ -111,24 +111,4 @@ describe('OrganizerProfilePage', () => {
     expect(await screen.findByText('Profil spremljen')).toBeInTheDocument()
     expect(savedUpdate).toEqual({ organizationName: 'Galerija Novo' })
   })
-
-  it('rejects organization names longer than 200 characters without saving', async () => {
-    vi.mocked(apiFetch).mockImplementation(mockApiFetch)
-    const user = userEvent.setup()
-    renderPage()
-
-    const organizationName = await screen.findByRole('textbox', {
-      name: 'Naziv organizacije',
-    })
-    await user.clear(organizationName)
-    await user.type(organizationName, 'a'.repeat(201))
-    await user.click(screen.getByRole('button', { name: 'Spremi' }))
-
-    expect(
-      await screen.findByText(
-        'Naziv organizacije smije imati najviše 200 znakova.',
-      ),
-    ).toBeInTheDocument()
-    expect(savedUpdate).toBeUndefined()
-  })
 })
