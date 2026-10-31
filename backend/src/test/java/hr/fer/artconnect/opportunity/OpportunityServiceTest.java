@@ -44,6 +44,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -227,6 +228,48 @@ class OpportunityServiceTest {
         assertThatThrownBy(() -> service.delete(OPPORTUNITY_ID)).isInstanceOfSatisfying(ApiException.class,
                 error -> assertThat(error.getCode()).isEqualTo(ErrorCode.HAS_APPLICATIONS));
         verify(opportunities, never()).delete(any());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"OPEN,CLOSED", "PREPARATION,PREPARATION", "CLOSED,CLOSED", "SELECTION,SELECTION",
+            "FINISHED,FINISHED"})
+    void arhiviranjeZatvaraSamoOtvorenuPriliku(OpportunityStatus current, OpportunityStatus expected) {
+        var opportunity = opportunityOf(currentUser.getCurrentUser());
+        ReflectionTestUtils.setField(opportunity, "status", current);
+        when(opportunities.findById(OPPORTUNITY_ID)).thenReturn(Optional.of(opportunity));
+
+        var result = service.archive(OPPORTUNITY_ID);
+
+        assertThat(result.archived()).isTrue();
+        assertThat(result.status()).isEqualTo(expected);
+        assertThat(result.updatedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void ponovnoArhiviranjeNeMijenjaPrilikuNiVrijemeIzmjene() {
+        var opportunity = opportunityOf(currentUser.getCurrentUser());
+        ReflectionTestUtils.setField(opportunity, "status", OpportunityStatus.SELECTION);
+        ReflectionTestUtils.setField(opportunity, "archived", true);
+        ReflectionTestUtils.setField(opportunity, "updatedAt", NOW.minusDays(5));
+        when(opportunities.findById(OPPORTUNITY_ID)).thenReturn(Optional.of(opportunity));
+
+        var result = service.archive(OPPORTUNITY_ID);
+
+        assertThat(result.archived()).isTrue();
+        assertThat(result.status()).isEqualTo(OpportunityStatus.SELECTION);
+        assertThat(result.updatedAt()).isEqualTo(NOW.minusDays(5));
+    }
+
+    @Test
+    void arhiviranjeTudjePrilikeVraca403() {
+        var other = TestUsers.user(UUID.randomUUID(), "google", "drugi@test.hr", UserRole.ORGANIZER,
+                UserStatus.ACTIVE);
+        var opportunity = opportunityOf(other);
+        when(opportunities.findById(OPPORTUNITY_ID)).thenReturn(Optional.of(opportunity));
+
+        assertThatThrownBy(() -> service.archive(OPPORTUNITY_ID)).isInstanceOfSatisfying(ApiException.class,
+                error -> assertThat(error.getCode()).isEqualTo(ErrorCode.FORBIDDEN));
+        assertThat(opportunity.isArchived()).isFalse();
     }
 
     private void invalid(OpportunityInput input, String field) {

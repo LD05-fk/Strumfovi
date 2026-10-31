@@ -45,4 +45,10 @@ public class OpportunityController {
         opportunities.delete(opportunityId);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{opportunityId}/archive")
+    @PreAuthorize("hasRole('ORGANIZER')")
+    public OpportunityDto archive(@PathVariable UUID opportunityId) {
+        return opportunities.archive(opportunityId);
+    }
 }

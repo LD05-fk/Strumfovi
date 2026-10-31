@@ -232,6 +232,33 @@ automatskog zatvaranja (OPP-04-BE1) može koristiti istu provjeru za `OPEN → C
 taj posao nije dio ove rute. [Dijagram stanja](../puml/4-6-artconnect-opportunity-SM.puml)
 prikazuje životni ciklus i zasebnu objavu rezultata.
 
+## POST /opportunities/{opportunityId}/archive
+
+`POST /api/v1/opportunities/{opportunityId}/archive` arhivira vlastitu priliku.
+Pristup ima prijavljeni, aktivni organizator uz sesijski kolačić i valjan CSRF
+token, kao kod promjene statusa. Zahtjev nema tijelo.
+
+Arhiviranje je dopušteno u svakom statusu, neovisno o roku i o tome ima li prilika
+prijave. Prilika u statusu `OPEN` istovremeno prelazi u `CLOSED`; ostali statusi
+ostaju nepromijenjeni. Zahtjev je idempotentan: arhiviranje već arhivirane prilike
+vraća `200 OK` i ne mijenja ni status ni `updatedAt`.
+
+Uspjeh vraća `200 OK` s punim objektom prilike kao kod stvaranja, uz `archived = true`
+i ažurirani `updatedAt`. Vraćanja iz arhive nema, a arhivirana prilika odbija svaku
+daljnju promjenu statusa s `409 INVALID_STATUS_TRANSITION`. Arhivirana prilika nije
+u javnoj pretrazi, ali ostaje dostupna organizatoru.
+
+| HTTP | Kod | Razlog |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | neispravan UUID |
+| 401 | `UNAUTHENTICATED` | nema valjane sesije |
+| 403 | `FORBIDDEN` | korisnik nije organizator ili vlasnik, račun nije aktivan ili CSRF token nije valjan |
+| 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
+| 403 | `USER_BLOCKED` | organizator je blokiran |
+| 404 | `NOT_FOUND` | prilika s navedenim ID-om ne postoji |
+
+Greške koriste istu zajedničku omotnicu kao kod stvaranja.
+
 ## DELETE /opportunities/{opportunityId}
 
 `DELETE /api/v1/opportunities/{opportunityId}` briše vlastitu priliku. Pristup ima

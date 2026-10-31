@@ -99,6 +99,15 @@ public class OpportunityService {
         opportunities.delete(opportunity);
     }
 
+    @Transactional
+    public OpportunityDto archive(UUID opportunityId) {
+        User organizer = requireOrganizer();
+        Opportunity opportunity = requireOwn(opportunityId, organizer,
+                "Možete arhivirati samo vlastite prilike.");
+        opportunity.archive(OffsetDateTime.now(clock));
+        return mapper.toDto(opportunity, profiles.findById(organizer.getId()).orElse(null));
+    }
+
     private User requireOrganizer() {
         var organizer = currentUser.getCurrentUser();
         if (organizer.getStatus() == UserStatus.ONBOARDING) {
