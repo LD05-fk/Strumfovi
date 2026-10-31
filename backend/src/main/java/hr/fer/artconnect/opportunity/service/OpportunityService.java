@@ -43,17 +43,19 @@ public class OpportunityService {
     private final OrganizerProfileRepository profiles;
     private final CurrentUserProvider currentUser;
     private final OpportunityMapper mapper;
+    private final OpportunityDeletionGuard deletionGuard;
     private final Clock clock;
 
     public OpportunityService(OpportunityRepository opportunities, OpportunityTypeRepository types,
             ArtFieldRepository artFields, OrganizerProfileRepository profiles, CurrentUserProvider currentUser,
-            OpportunityMapper mapper, @Qualifier("geocodingClock") Clock clock) {
+            OpportunityMapper mapper, OpportunityDeletionGuard deletionGuard, @Qualifier("geocodingClock") Clock clock) {
         this.opportunities = opportunities;
         this.types = types;
         this.artFields = artFields;
         this.profiles = profiles;
         this.currentUser = currentUser;
         this.mapper = mapper;
+        this.deletionGuard = deletionGuard;
         // Postojeći UTC Clock dijelimo s geokodiranjem umjesto dodavanja drugog UTC beana.
         this.clock = clock;
     }
@@ -67,22 +69,16 @@ public class OpportunityService {
     @Transactional
     public OpportunityDto update(UUID opportunityId, OpportunityInput input) {
         var organizer = requireOrganizer();
-        var opportunity = opportunities.findById(opportunityId)
-                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "Prilika nije pronađena."));
-        if (!opportunity.getOrganizer().getId().equals(organizer.getId())) {
-            throw new ApiException(ErrorCode.FORBIDDEN, "Možete uređivati samo vlastite prilike.");
-        }
+        var opportunity = requireOwn(opportunityId, organizer,
+                "Možete uređivati samo vlastite prilike.");
         return save(input, opportunity, organizer);
     }
 
     @Transactional
     public OpportunityDto changeStatus(UUID opportunityId, OpportunityStatusChange input) {
         var organizer = requireOrganizer();
-        var opportunity = opportunities.findById(opportunityId)
-                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "Prilika nije pronađena."));
-        if (!opportunity.getOrganizer().getId().equals(organizer.getId())) {
-            throw new ApiException(ErrorCode.FORBIDDEN, "Možete mijenjati status samo vlastitih prilika.");
-        }
+        var opportunity = requireOwn(opportunityId, organizer,
+                "Možete mijenjati status samo vlastitih prilika.");
 
         var target = OpportunityStatus.valueOf(input.status().name());
         var now = OffsetDateTime.now(clock);
@@ -92,6 +88,24 @@ public class OpportunityService {
         opportunity.changeStatus(target, now);
         var saved = opportunities.save(opportunity);
         return mapper.toDto(saved, profiles.findById(organizer.getId()).orElse(null));
+    }
+
+    @Transactional
+    public void delete(UUID opportunityId) {
+        User organizer = requireOrganizer();
+        Opportunity opportunity = requireOwn(opportunityId, organizer,
+                "Možete brisati samo vlastite prilike.");
+        deletionGuard.ensureDeletable(opportunity);
+        opportunities.delete(opportunity);
+    }
+
+    @Transactional
+    public OpportunityDto archive(UUID opportunityId) {
+        User organizer = requireOrganizer();
+        Opportunity opportunity = requireOwn(opportunityId, organizer,
+                "Možete arhivirati samo vlastite prilike.");
+        opportunity.archive(OffsetDateTime.now(clock));
+        return mapper.toDto(opportunity, profiles.findById(organizer.getId()).orElse(null));
     }
 
     private User requireOrganizer() {
@@ -190,5 +204,14 @@ public class OpportunityService {
     private static ApiException invalid(String field, String message) {
         return new ApiException(ErrorCode.VALIDATION_ERROR, "Podaci prilike nisu ispravni.",
                 List.of(new FieldIssue(field, message)));
+    }
+
+    private Opportunity requireOwn(UUID opportunityId, User organizer, String forbiddenMessage) {
+        Opportunity opportunity = opportunities.findById(opportunityId)
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "Prilika nije pronađena."));
+        if (!opportunity.getOrganizer().getId().equals(organizer.getId())) {
+            throw new ApiException(ErrorCode.FORBIDDEN, forbiddenMessage);
+        }
+        return opportunity;
     }
 }

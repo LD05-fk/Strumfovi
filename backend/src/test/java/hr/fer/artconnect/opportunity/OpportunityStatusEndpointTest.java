@@ -26,6 +26,7 @@ import hr.fer.artconnect.opportunity.domain.Location;
 import hr.fer.artconnect.opportunity.domain.Opportunity;
 import hr.fer.artconnect.opportunity.domain.OpportunityRepository;
 import hr.fer.artconnect.opportunity.domain.OpportunityStatus;
+import hr.fer.artconnect.opportunity.service.OpportunityDeletionGuard;
 import hr.fer.artconnect.opportunity.service.OpportunityMapper;
 import hr.fer.artconnect.opportunity.service.OpportunityService;
 import hr.fer.artconnect.opportunity.web.OpportunityController;
@@ -64,6 +65,8 @@ class OpportunityStatusEndpointTest {
     @MockitoBean OpportunityTypeRepository types;
     @MockitoBean ArtFieldRepository artFields;
     @MockitoBean OrganizerProfileRepository profiles;
+    // @WebMvcTest ne skenira @Component, pa guard iz OpportunityServicea dolazi kao mock.
+    @MockitoBean OpportunityDeletionGuard deletionGuard;
     @MockitoBean(name = "geocodingClock") Clock clock;
     private User organizer;
     private Opportunity opportunity;
