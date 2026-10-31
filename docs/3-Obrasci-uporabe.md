@@ -3,7 +3,7 @@
 ## 3.2 Prva prijava i odabir uloge
 
 - **Primarni sudionik:** novi korisnik.
-- **Zahtjevi:** FR-01 i FR-03 iz [analize zahtjeva](2-Analiza-zahtjeva.md#211-računi-i-prijava-1-ciklus-brisanje-računa-u-2).
+- **Zahtjev:** FR-01 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
 - **Preduvjet:** korisnik ima Google račun.
 - **Rezultat:** korisnik ima ulogu `ARTIST` ili `ORGANIZER`, status `ACTIVE` i nova prava u istoj sesiji.
 
@@ -28,7 +28,7 @@ Detalji su u [API dokumentaciji prijave](api/auth.md#post-merole).
 ## Objava prilike
 
 - **Primarni sudionik:** organizator, uključujući organizatora na čekanju odobrenja.
-- **Zahtjevi:** FR-15 i FR-16 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
+- **Zahtjev:** FR-03 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
 - **Preduvjet:** aktivni račun s ulogom `ORGANIZER`, prijavljena sesija i valjan CSRF token.
 - **Rezultat ovog koraka:** spremljen privatni nacrt u statusu `PREPARATION`.
   Javna objava i promjena statusa zasebni su koraci.
@@ -68,7 +68,7 @@ Detalji i primjeri su u [API dokumentaciji prilika](api/opportunities.md#post-op
 ## Uređivanje prilike
 
 - **Primarni sudionik:** organizator koji je vlasnik prilike.
-- **Zahtjevi:** FR-15 i FR-16 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
+- **Zahtjev:** FR-03 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
 - **Preduvjet:** aktivni račun s ulogom `ORGANIZER`, prijavljena sesija i valjan CSRF token.
 - **Rezultat:** sadržaj vlastite prilike ažuriran je bez promjene statusa.
 
