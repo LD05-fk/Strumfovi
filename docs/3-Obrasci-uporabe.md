@@ -203,6 +203,45 @@ Detalji zahtjeva i odgovora nalaze se u
 Detalji zahtjeva, odgovora i ograničenja nalaze se u
 [API dokumentaciji portfolija umjetnika](api/artists.md#put-meartist-profile).
 
+## Upravljanje prethodnim izložbama
+
+- **Primarni sudionik:** umjetnik.
+- **Cilj:** pregledati i upravljati prethodnim izložbama i projektima na profilu.
+- **Preduvjet:** valjana sesija s ulogom `ARTIST`; za promjene je potreban CSRF token.
+- **Rezultat:** prethodna izložba ili projekt dodan je, uređen ili uklonjen s profila.
+
+### Osnovni tijek
+
+1. Umjetnik otvara `/profile`. Uz obrazac profila, sučelje dohvaća javni profil
+   preko `GET /api/v1/artists/{artistId}`, pri čemu `artistId` dolazi iz
+   `GET /api/v1/me/artist-profile`.
+2. Sekcija prikazuje izložbe redoslijedom API-ja, s podebljanim naslovom te
+   godinom i mjestom ispod njega. Ako nema zapisa, prikazuje poruku da
+   prethodne izložbe još nisu dodane.
+3. Umjetnik odabire „+ Dodaj” ili uređivanje zapisa i unosi naslov, godinu i
+   mjesto. Naslov i mjesto obavezni su i nakon uklanjanja okolnih razmaka moraju
+   imati najviše 200 znakova; godina je cijeli broj od 1900. do tekuće godine
+   u zoni `Europe/Zagreb`.
+4. Sučelje šalje `POST /api/v1/past-exhibitions` za novi zapis ili
+   `PUT /api/v1/past-exhibitions/{pastExhibitionId}` za uređivanje.
+5. Za brisanje umjetnik odabire „Obriši” i potvrđuje radnju u dijalogu;
+   sučelje šalje `DELETE /api/v1/past-exhibitions/{pastExhibitionId}`.
+6. Nakon uspješne promjene sučelje osvježava javni profil i prikazuje potvrdu.
+
+### Alternativni tijekovi
+
+- Neispravan unos prikazuje grešku uz pripadajuće polje, bez slanja zahtjeva.
+- `400 VALIDATION_ERROR` prikazuje serverske greške uz polja obrasca.
+- Ako zapis više ne postoji (`404 NOT_FOUND`), sučelje prikazuje obavijest
+  „Izložba više ne postoji” i osvježava popis.
+- Greška dohvata popisa može se ponoviti; ostale greške spremanja prikazuju se
+  obavijesti o pogrešci.
+- Na uskom zaslonu dijalog za unos zauzima cijeli zaslon; fokus se pri zatvaranju
+  vraća na gumb koji ga je otvorio.
+
+Detalji ruta i odgovora nalaze se u
+[API dokumentaciji portfolija umjetnika](api/artists.md#post-past-exhibitions).
+
 ## Pregled korisnika
 
 - **Primarni sudionik:** administrator.

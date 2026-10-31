@@ -6,7 +6,12 @@ import { NotifyProvider } from '../../components/state/NotifyProvider'
 import { renderWithProviders } from '../../test/renderWithProviders'
 import type { CurrentUser } from '../auth/types'
 import { ArtistProfilePage } from './ArtistProfilePage'
-import type { ArtFieldPage, ArtistProfile, ArtistProfileUpdate } from './types'
+import type {
+  ArtFieldPage,
+  ArtistProfile,
+  ArtistProfileUpdate,
+  ArtistPublicProfile,
+} from './types'
 import { artistProfileQueryKey } from './artistProfileQueries'
 
 vi.mock('../../api/client', async (importOriginal) => {
@@ -57,6 +62,10 @@ const currentUser: CurrentUser = {
 let savedUpdate: ArtistProfileUpdate | undefined
 let saveError: ApiError | undefined
 let profileResponse = profile
+const publicProfile: ArtistPublicProfile = {
+  ...profile,
+  pastExhibitions: [],
+}
 
 async function mockApiFetch<T>(
   path: string,
@@ -68,6 +77,7 @@ async function mockApiFetch<T>(
     return profileResponse as T
   }
   if (path === '/me/artist-profile') return profileResponse as T
+  if (path === `/artists/${profile.userId}`) return publicProfile as T
   if (path === '/art-fields?pageSize=100') return artFields as T
   if (path === '/me') return currentUser as T
   throw new Error(`Unexpected API request: ${path}`)
@@ -94,7 +104,7 @@ describe('ArtistProfilePage', () => {
     vi.mocked(apiFetch).mockImplementation(mockApiFetch)
     const user = userEvent.setup()
     const { queryClient } = renderPage()
-    queryClient.setQueryData(['artists', profile.userId], { ...profile })
+    queryClient.setQueryData(['artists', profile.userId], publicProfile)
 
     const biography = await screen.findByRole('textbox', { name: 'Biografija' })
     await user.clear(biography)
@@ -117,8 +127,14 @@ describe('ArtistProfilePage', () => {
     })
     expect(queryClient.getQueryData(artistProfileQueryKey)).toEqual(profile)
     expect(
-      queryClient.getQueryState(['artists', profile.userId])?.isInvalidated,
-    ).toBe(true)
+      vi
+        .mocked(apiFetch)
+        .mock.calls.filter(([path]) => path === `/artists/${profile.userId}`)
+        .length,
+    ).toBeGreaterThanOrEqual(2)
+    expect(queryClient.getQueryData(['artists', profile.userId])).toEqual(
+      publicProfile,
+    )
   })
 
   it('renders the blank form for an artist with no saved profile fields', async () => {

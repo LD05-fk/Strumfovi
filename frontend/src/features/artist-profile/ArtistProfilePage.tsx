@@ -8,6 +8,7 @@ import { useCurrentUser } from '../auth/useCurrentUser'
 import { hr } from '../../i18n/hr'
 import { useArtFields, useMyArtistProfile } from './artistProfileQueries'
 import { ArtistProfileForm } from './ArtistProfileForm'
+import { PastExhibitionsSection } from './PastExhibitionsSection'
 import { ShareLinkButton } from './ShareLinkButton'
 
 export function ArtistProfilePage() {
@@ -89,6 +90,7 @@ export function ArtistProfilePage() {
         artFields={artFields.data.data}
         email={user?.email}
       />
+      <PastExhibitionsSection userId={user?.id ?? profile.data.userId} />
     </Box>
   )
 }

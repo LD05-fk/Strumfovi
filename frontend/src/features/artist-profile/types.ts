@@ -19,6 +19,23 @@ export type ArtistProfile = {
   links: ArtistProfileLink[]
 }
 
+export type PastExhibition = {
+  id: string
+  title: string
+  year: number
+  place: string
+}
+
+export type ArtistPublicProfile = ArtistProfile & {
+  pastExhibitions: PastExhibition[]
+}
+
+export type PastExhibitionInput = {
+  title: string
+  year: number
+  place: string
+}
+
 export type ArtFieldOption = ArtistProfileField & {
   active: boolean
   position: number
