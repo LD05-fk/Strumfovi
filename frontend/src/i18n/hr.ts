@@ -8,6 +8,18 @@ export const hr = {
     description:
       'ArtConnect povezuje umjetnike s organizatorima izložbi, natječaja i rezidencija.',
     browseOpportunities: 'Pregledaj prilike',
+    googleSignIn: 'Prijava s Googleom',
+  },
+
+  navigation: {
+    opportunities: 'Prilike',
+    artistProfile: 'Moj profil',
+    artistPortfolio: 'Moj portfolio',
+    artistApplications: 'Moje prijave',
+    organizerOpportunities: 'Moje prilike',
+    statistics: 'Statistika',
+    administration: 'Administracija',
+    organizerProfile: 'Profil',
   },
 
   common: {
@@ -30,6 +42,19 @@ export const hr = {
     loginRequiredDescription:
       'Za pristup ovoj stranici prijavite se svojim Google računom.',
     onboardingTitle: 'Odabir uloge',
+    home: {
+      greeting: 'Bok, {name}!',
+      subtitle: 'Što želite danas napraviti?',
+      loginError: 'Prijava nije uspjela. Pokušajte ponovno.',
+      myPortfolio: 'Moj portfolio',
+      myPortfolioDescription: 'Dodajte i uredite svoja djela.',
+      portfolioAction: 'Portfolio',
+      myOpportunities: 'Moje prilike',
+      myOpportunitiesDescription: 'Upravljajte svojim prilikama.',
+      browseOpportunitiesDescription:
+        'Pronađite natječaje i izložbe za svoj rad.',
+      opportunitiesAction: 'Prilike',
+    },
     roles: {
       ARTIST: 'Umjetnik',
       ORGANIZER: 'Organizator',
@@ -71,6 +96,55 @@ export const hr = {
     ACCEPTED: 'Prihvaćena',
     REJECTED: 'Odbijena',
     WITHDRAWN: 'Povučena',
+  },
+
+  artistProfile: {
+    pageTitle: 'Uređivanje profila',
+    biography: 'Biografija',
+    biographyHint: 'Recite nešto o sebi.',
+    artistStatement: 'Opis umjetničkog rada',
+    artistStatementHint: 'Opišite svoj pristup i teme kojima se bavite.',
+    artFields: 'Područja umjetnosti',
+    upToTen: '(do 10)',
+    artFieldsHint: 'Odaberite do 10 područja.',
+    artFieldsEmpty: 'Nema dostupnih područja umjetnosti.',
+    inactiveField: 'neaktivno',
+    links: 'Poveznice',
+    linksHint: 'Dodajte poveznice na svoje stranice i društvene mreže.',
+    noLinks: 'Još nema poveznica.',
+    linkLabel: 'Naziv poveznice',
+    linkUrl: 'URL poveznice',
+    characterCount: (count: number) => `${count} / 5000`,
+    addLink: 'Dodaj poveznicu',
+    removeLink: 'Ukloni poveznicu',
+    moveLinkUp: 'Pomakni poveznicu gore',
+    moveLinkDown: 'Pomakni poveznicu dolje',
+    addLinkLimit: 'Dosegnut je najveći broj poveznica (10).',
+    saveProfile: 'Spremi profil',
+    saved: 'Profil spremljen',
+    viewPublicProfile: 'Pogledaj javni profil',
+    copyPublicLink: 'Kopiraj javnu poveznicu',
+    copiedPublicLink: 'Javna poveznica kopirana.',
+    copyFailed: 'Nije moguće kopirati poveznicu. Pokušajte ponovno.',
+    emptyProfileHint:
+      'Popunite biografiju i dodajte područja umjetnosti kako bi vas organizatori lakše pronašli.',
+    leaveTitle: 'Napuštate stranicu?',
+    leaveMessage: 'Imate nespremljene promjene koje će biti izgubljene.',
+    continueEditing: 'Nastavi uređivati',
+    discardChanges: 'Odbaci promjene',
+    validation: {
+      linkLabelMaxLength: 'Naziv poveznice smije imati najviše 60 znakova.',
+      linkUrlRequired: 'URL poveznice je obavezan.',
+      linkUrlMaxLength: 'URL poveznice smije imati najviše 1024 znakova.',
+      linkUrlFormat:
+        'Unesite valjan URL koji počinje s http:// ili https://.',
+      biographyMaxLength: 'Biografija smije imati najviše 5000 znakova.',
+      artistStatementMaxLength:
+        'Opis umjetničkog rada smije imati najviše 5000 znakova.',
+      artFieldsMaxCount: 'Možete odabrati najviše 10 područja umjetnosti.',
+      artFieldsUnique: 'Područja umjetnosti ne smiju se ponavljati.',
+      linksMaxCount: 'Možete unijeti najviše 10 poveznica.',
+    },
   },
 
   map: {

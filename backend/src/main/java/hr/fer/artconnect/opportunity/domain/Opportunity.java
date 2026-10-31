@@ -120,6 +120,14 @@ public class Opportunity {
         this.updatedAt = now;
     }
 
+    public void changeStatus(OpportunityStatus status, OffsetDateTime now) {
+        this.status = status;
+        this.updatedAt = now;
+        if (status == OpportunityStatus.OPEN && publishedAt == null) {
+            this.publishedAt = now;
+        }
+    }
+
     public UUID getId() {
         return id;
     }
