@@ -1,0 +1,30 @@
+@startuml
+title ArtConnect — stanja prilike
+hide empty description
+
+[*] --> PREPARATION : stvaranje nacrta
+PREPARATION --> OPEN : objava [deadline > sada]
+OPEN --> CLOSED : zatvori prijave
+CLOSED --> OPEN : ponovno otvori [deadline > sada]
+CLOSED --> SELECTION : započni odabir
+SELECTION --> FINISHED : objava rezultata (RES-01-BE1)
+
+note right of PREPARATION
+  Prva objava postavlja publishedAt.
+  Ponovno otvaranje ga ne mijenja.
+  Do ADM-02-BE organizatori se
+  smatraju odobrenima za objavu.
+end note
+
+note bottom of CLOSED
+  Arhiviranost je zasebna oznaka:
+  arhivirana prilika ne mijenja status ovom rutom.
+  Isti status i svi ostali prijelazi su zabranjeni.
+  Automatsko zatvaranje dodaje OPP-04-BE1.
+end note
+
+note right of FINISHED
+  FINISHED nije dopušten cilj rute za status.
+  Objavu rezultata dodaje zaseban zadatak.
+end note
+@enduml
