@@ -136,8 +136,7 @@ export const hr = {
       linkLabelMaxLength: 'Naziv poveznice smije imati najviše 60 znakova.',
       linkUrlRequired: 'URL poveznice je obavezan.',
       linkUrlMaxLength: 'URL poveznice smije imati najviše 1024 znakova.',
-      linkUrlFormat:
-        'Unesite valjan URL koji počinje s http:// ili https://.',
+      linkUrlFormat: 'Unesite valjan URL koji počinje s http:// ili https://.',
       biographyMaxLength: 'Biografija smije imati najviše 5000 znakova.',
       artistStatementMaxLength:
         'Opis umjetničkog rada smije imati najviše 5000 znakova.',
@@ -145,6 +144,26 @@ export const hr = {
       artFieldsUnique: 'Područja umjetnosti ne smiju se ponavljati.',
       linksMaxCount: 'Možete unijeti najviše 10 poveznica.',
     },
+  },
+
+  organizerProfile: {
+    pageTitle: 'Moj profil',
+    displayName: 'Ime i prezime (s Google računa)',
+    approval: 'Status odobrenja',
+    approved: 'Odobren',
+    pendingApproval: 'Čeka odobrenje',
+    pendingHint:
+      'Dok administrator ne odobri vaš račun, ne možete objavljivati prilike.',
+    organizationName: 'Naziv organizacije',
+    organizationNameMissing: 'Naziv organizacije nije unesen',
+    organizationNamePlaceholder: 'Npr. Galerija Gradec',
+    organizationNameCharacterCount: (count: number) => `${count}/200`,
+    organizationNameRequired: 'Naziv organizacije je obavezan.',
+    saveProfile: 'Spremi',
+    saving: 'Spremanje…',
+    saved: 'Profil spremljen',
+    organizationNameTooLong:
+      'Naziv organizacije smije imati najviše 200 znakova.',
   },
 
   map: {
