@@ -19,6 +19,7 @@ import { useCurrentUser } from './features/auth/useCurrentUser'
 import { ArtistProfilePage } from './features/artist-profile/ArtistProfilePage'
 import { HomePage } from './features/auth/pages/HomePage'
 import { hr } from './i18n/hr'
+import { OrganizerProfilePage } from './features/organizer-profile/OrganizerProfilePage'
 
 type PageProps = {
     title: string
@@ -56,7 +57,7 @@ function ProfileRoute() {
     return user?.role === 'ARTIST' ? (
         <ArtistProfilePage />
     ) : (
-        <Page title={hr.navigation.organizerProfile} />
+        <OrganizerProfilePage />
     )
 }
 
