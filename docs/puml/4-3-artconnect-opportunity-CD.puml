@@ -1,0 +1,114 @@
+@startuml
+title ArtConnect — reprezentativni model razreda prilika
+
+left to right direction
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+package "Web" {
+    class OpportunityController {
+        +create(input): OpportunityDto
+        +update(opportunityId, input): OpportunityDto
+    }
+}
+
+package "Servis" {
+    class OpportunityService {
+        +create(input): OpportunityDto
+        +update(opportunityId, input): OpportunityDto
+    }
+
+    class OpportunityMapper {
+        +toDto(opportunity, profile): OpportunityDto
+    }
+}
+
+package "Domena prilike" {
+    class Opportunity {
+        -id: UUID
+        -title: String
+        -description: String
+        -deadline: OffsetDateTime
+        -criteria: String
+        -prize: String
+        -eventStart: OffsetDateTime
+        -eventEnd: OffsetDateTime
+        -status: OpportunityStatus
+        -archived: boolean
+        +create(...): Opportunity
+        +update(...): void
+    }
+
+    class Location <<value object>> {
+        -type: LocationType
+        -streetAddress: String
+        -city: String
+        -postalCode: String
+        -latitude: BigDecimal
+        -longitude: BigDecimal
+        -onlineUrl: String
+        +physical(...): Location
+        +online(url): Location
+    }
+
+    interface OpportunityRepository {
+    }
+
+    enum OpportunityStatus {
+        PREPARATION
+        OPEN
+        CLOSED
+        SELECTION
+        FINISHED
+    }
+
+    enum LocationType {
+        PHYSICAL
+        ONLINE
+    }
+}
+
+package "Korisnik i šifrarnici" {
+    class User {
+        -id: UUID
+        -displayName: String
+    }
+
+    class OpportunityType {
+    }
+
+    class ArtField {
+    }
+}
+
+OpportunityController --> OpportunityService : poziva
+OpportunityService --> OpportunityRepository : sprema / dohvaća
+OpportunityService --> OpportunityMapper : oblikuje odgovor
+OpportunityService ..> Opportunity : stvara / ažurira
+OpportunityRepository ..> Opportunity : pohranjuje
+OpportunityMapper ..> Opportunity : čita
+
+User "1" <-- "0..*" Opportunity : organizator
+OpportunityType "1" <-- "0..*" Opportunity : vrsta
+Opportunity "0..*" -- "1..*" ArtField : područja umjetnosti
+Opportunity "1" *-- "1" Location : lokacija
+Opportunity --> OpportunityStatus
+Location --> LocationType
+
+note right of Opportunity
+Pri stvaranju: 1–10 aktivnih područja,
+budući rok i početni status PREPARATION.
+end note
+
+note bottom of OpportunityService
+Prateći suradnici (trenutni korisnik,
+repozitoriji šifrarnika i profila te Clock)
+izostavljeni su radi čitljivosti.
+end note
+
+note bottom of OpportunityController
+Input i DTO razredi izostavljeni su:
+dijagram ističe domenu i raspodjelu odgovornosti.
+end note
+
+@enduml
