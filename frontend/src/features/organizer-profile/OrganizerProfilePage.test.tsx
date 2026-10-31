@@ -1,7 +1,7 @@
-import { screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { apiFetch, type ApiFetchOptions } from '../../api/client'
+import { ApiError, apiFetch, type ApiFetchOptions } from '../../api/client'
 import { NotifyProvider } from '../../components/state/NotifyProvider'
 import { renderWithProviders } from '../../test/renderWithProviders'
 import type { CurrentUser } from '../auth/types'
@@ -32,6 +32,7 @@ const currentUser: CurrentUser = {
 
 let profileResponse = profile
 let savedUpdate: OrganizerProfileUpdate | undefined
+let updateError: ApiError | undefined
 
 async function mockApiFetch<T>(
   path: string,
@@ -46,6 +47,10 @@ async function mockApiFetch<T>(
   }
 
   if (options.method === 'PUT') {
+    if (updateError) {
+      throw updateError
+    }
+
     savedUpdate = options.json as OrganizerProfileUpdate
     profileResponse = { ...profileResponse, ...savedUpdate }
   }
@@ -66,6 +71,7 @@ afterEach(() => {
   vi.clearAllMocks()
   profileResponse = profile
   savedUpdate = undefined
+  updateError = undefined
 })
 
 describe('OrganizerProfilePage', () => {
@@ -110,5 +116,69 @@ describe('OrganizerProfilePage', () => {
 
     expect(await screen.findByText('Profil spremljen')).toBeInTheDocument()
     expect(savedUpdate).toEqual({ organizationName: 'Galerija Novo' })
+  })
+
+  it('sends null when the organization name is cleared', async () => {
+    vi.mocked(apiFetch).mockImplementation(mockApiFetch)
+    const user = userEvent.setup()
+    renderPage()
+
+    const organizationName = await screen.findByRole('textbox', {
+      name: 'Naziv organizacije',
+    })
+    await user.clear(organizationName)
+    await user.click(screen.getByRole('button', { name: 'Spremi' }))
+
+    expect(await screen.findByText('Profil spremljen')).toBeInTheDocument()
+    expect(savedUpdate).toEqual({ organizationName: null })
+  })
+
+  it('rejects organization names longer than 200 characters without saving', async () => {
+    vi.mocked(apiFetch).mockImplementation(mockApiFetch)
+    const user = userEvent.setup()
+    renderPage()
+
+    const organizationName = await screen.findByRole('textbox', {
+      name: 'Naziv organizacije',
+    })
+    await user.clear(organizationName)
+    fireEvent.change(organizationName, {
+      target: { value: 'a'.repeat(201) },
+    })
+    await user.click(screen.getByRole('button', { name: 'Spremi' }))
+
+    expect(
+      await screen.findByText(
+        'Naziv organizacije smije imati najviše 200 znakova.',
+      ),
+    ).toBeInTheDocument()
+    expect(savedUpdate).toBeUndefined()
+  })
+
+  it('shows server validation details beside the organization name field', async () => {
+    vi.mocked(apiFetch).mockImplementation(mockApiFetch)
+    updateError = new ApiError(400, {
+      code: 'VALIDATION_ERROR',
+      message: 'Neispravni podaci.',
+      details: [
+        {
+          field: 'organizationName',
+          issue: 'Naziv organizacije nije prihvaćen.',
+        },
+      ],
+    })
+    const user = userEvent.setup()
+    renderPage()
+
+    const organizationName = await screen.findByRole('textbox', {
+      name: 'Naziv organizacije',
+    })
+    await user.type(organizationName, ' Novo')
+    await user.click(screen.getByRole('button', { name: 'Spremi' }))
+
+    expect(
+      await screen.findByText('Naziv organizacije nije prihvaćen.'),
+    ).toBeInTheDocument()
+    expect(organizationName).toHaveAttribute('aria-invalid', 'true')
   })
 })

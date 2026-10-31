@@ -158,7 +158,6 @@ export const hr = {
     organizationNameMissing: 'Naziv organizacije nije unesen',
     organizationNamePlaceholder: 'Npr. Galerija Gradec',
     organizationNameCharacterCount: (count: number) => `${count}/200`,
-    organizationNameRequired: 'Naziv organizacije je obavezan.',
     saveProfile: 'Spremi',
     saving: 'Spremanje…',
     saved: 'Profil spremljen',
