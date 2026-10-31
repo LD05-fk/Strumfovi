@@ -15,9 +15,12 @@ import hr.fer.artconnect.opportunity.domain.Location;
 import hr.fer.artconnect.opportunity.domain.LocationType;
 import hr.fer.artconnect.opportunity.domain.Opportunity;
 import hr.fer.artconnect.opportunity.domain.OpportunityRepository;
+import hr.fer.artconnect.opportunity.domain.OpportunityStatus;
+import hr.fer.artconnect.opportunity.domain.OpportunityStatusMachine;
 import hr.fer.artconnect.opportunity.web.LocationInput;
 import hr.fer.artconnect.opportunity.web.OpportunityDto;
 import hr.fer.artconnect.opportunity.web.OpportunityInput;
+import hr.fer.artconnect.opportunity.web.OpportunityStatusChange;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Clock;
@@ -72,13 +75,32 @@ public class OpportunityService {
         return save(input, opportunity, organizer);
     }
 
+    @Transactional
+    public OpportunityDto changeStatus(UUID opportunityId, OpportunityStatusChange input) {
+        var organizer = requireOrganizer();
+        var opportunity = opportunities.findById(opportunityId)
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "Prilika nije pronađena."));
+        if (!opportunity.getOrganizer().getId().equals(organizer.getId())) {
+            throw new ApiException(ErrorCode.FORBIDDEN, "Možete mijenjati status samo vlastitih prilika.");
+        }
+
+        var target = OpportunityStatus.valueOf(input.status().name());
+        var now = OffsetDateTime.now(clock);
+        // Do ADM-02-BE svi organizatori smiju objaviti priliku, prema dogovoru u issueu #131.
+        OpportunityStatusMachine.validate(opportunity.getStatus(), target, opportunity.isArchived(),
+                opportunity.getDeadline(), now, true);
+        opportunity.changeStatus(target, now);
+        var saved = opportunities.save(opportunity);
+        return mapper.toDto(saved, profiles.findById(organizer.getId()).orElse(null));
+    }
+
     private User requireOrganizer() {
         var organizer = currentUser.getCurrentUser();
         if (organizer.getStatus() == UserStatus.ONBOARDING) {
             throw new ApiException(ErrorCode.ONBOARDING_REQUIRED, "Potrebno je odabrati ulogu.");
         }
         if (organizer.getRole() != UserRole.ORGANIZER) {
-            throw new ApiException(ErrorCode.FORBIDDEN, "Samo organizator može stvarati i uređivati prilike.");
+            throw new ApiException(ErrorCode.FORBIDDEN, "Samo organizator može upravljati prilikama.");
         }
         if (organizer.getStatus() == UserStatus.BLOCKED) {
             throw new ApiException(ErrorCode.USER_BLOCKED, "Korisnički račun je blokiran.");

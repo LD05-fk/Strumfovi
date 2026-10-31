@@ -270,6 +270,23 @@ Dijagram prikazuje odabir fizičke ili online lokacije. Za fizičku lokaciju org
 
 **Cilj:** Prikazati važna stanja jednog domenskog objekta ili eksplicitno upravljanog načina rada sustava te događaje ili uvjete koji ih mijenjaju.
 
+Prilika (`opportunities.status`) prolazi kroz sljedeća stanja:
+
+![Dijagram stanja prilike](assets/diagrams/4-6-artconnect-opportunity-SM.svg)
+
+**PlantUML izvor:** [stanja prilike](puml/4-6-artconnect-opportunity-SM.puml).
+Ručne prijelaze provjerava čista Java klasa `OpportunityStatusMachine`.
+`OpportunityService` provjerava organizatora i vlasništvo, poziva pravila te u
+jednoj transakciji sprema status i `updatedAt`. Prvo otvaranje postavlja
+`publishedAt`; ponovno otvaranje čuva taj datum. Arhivirana prilika, isti status
+i nedopušten par daju `INVALID_STATUS_TRANSITION`; otvaranje na isteku roka ili
+nakon njega daje `DEADLINE_PASSED`. Do ADM-02-BE svi organizatori smatraju se
+odobrenima; klasa već ima ulaz za buduću provjeru odobrenja pri prvoj objavi.
+`FINISHED` i automatsko zatvaranje prikazuju zasebne zadatke RES-01-BE1 i OPP-04-BE1.
+Ugovor rute opisan je u [API dokumentaciji prilika](api/opportunities.md#post-opportunitiesopportunityidstatus).
+Pravila pokriva [jedinični test](../backend/src/test/java/hr/fer/artconnect/opportunity/OpportunityStatusMachineTest.java),
+a spremanje i HTTP odgovore [integracijski test](../backend/src/test/java/hr/fer/artconnect/opportunity/OpportunityStatusIntegrationTest.java).
+
 Vlasnik stanja je korisnički račun (`users.status`). Nova Google prijava stvara
 račun u stanju `ONBOARDING`, dok pozvani račun ima unaprijed zadanu ulogu.
 Jednokratni odabir uloge aktivira novi račun i osvježava prava u istoj sesiji.

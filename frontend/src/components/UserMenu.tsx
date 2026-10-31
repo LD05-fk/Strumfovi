@@ -12,7 +12,6 @@ import { useEffect, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { useCurrentUser } from '../features/auth/useCurrentUser'
 import { useLogout } from '../features/auth/useLogout'
-import { hasRole } from '../features/auth/hasRole'
 import { hr } from '../i18n/hr'
 import { GoogleSignInButton } from './GoogleSignInButton'
 import { RoleChip } from './state/RoleChip'
@@ -118,9 +117,11 @@ export function UserMenu() {
           {user.role !== null && <RoleChip role={user.role} />}
         </Stack>
 
-        {hasRole(user, 'ARTIST', 'ORGANIZER') && (
+        {(user.role === 'ARTIST' || user.role === 'ORGANIZER') && (
           <MenuItem component={RouterLink} to="/profile" onClick={closeMenu}>
-            Profil
+            {user.role === 'ARTIST'
+              ? hr.navigation.artistProfile
+              : hr.navigation.organizerProfile}
           </MenuItem>
         )}
 

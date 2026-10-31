@@ -9,14 +9,23 @@ import { SessionGate } from './SessionGate'
 type RequireRoleProps = {
   roles: UserRole[]
   children?: ReactNode
+  unauthenticatedRedirect?: string
 }
 
-export function RequireRole({ roles, children }: RequireRoleProps) {
+export function RequireRole({
+  roles,
+  children,
+  unauthenticatedRedirect,
+}: RequireRoleProps) {
   return (
     <SessionGate>
       {(user) => {
         if (!user) {
-          return <LoginRequiredPanel />
+          return unauthenticatedRedirect ? (
+            <Navigate to={unauthenticatedRedirect} replace />
+          ) : (
+            <LoginRequiredPanel />
+          )
         }
 
         if (user.status === 'ONBOARDING') {
