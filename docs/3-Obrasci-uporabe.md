@@ -1,19 +1,65 @@
 # 3. Obrasci uporabe
 
-## 3.2 Prva prijava i odabir uloge
+## 3.1 Pregled obrazaca uporabe
+
+Tablica povezuje ciljeve korisnika s akterima, sažetim funkcijskim zahtjevima i
+projektnim issueima iz kojih su izvedeni. Oznake `UC-xx` koriste se i u
+dijagramu obrazaca uporabe. Detaljni scenariji u nastavku postupno se razrađuju
+prema fazama projekta; sažeti pregled obuhvaća i planirane funkcionalnosti.
+Opcionalni obrasci uporabe označeni su s **(opcionalno)**.
+
+| ID | Obrazac uporabe | Akter(i) | FR | Izvor |
+| --- | --- | --- | --- | --- |
+| UC-01 | Prijaviti se Google računom | Posjetitelj, Google OIDC | FR-01 | [AUTH-01](https://github.com/LD05-fk/Strumfovi/issues/33) |
+| UC-02 | Odabrati ulogu | Novi prijavljeni korisnik | FR-01 | [AUTH-02](https://github.com/LD05-fk/Strumfovi/issues/34) |
+| UC-03 | Upravljati vlastitim računom | Prijavljeni korisnik | FR-01 | [AUTH-01](https://github.com/LD05-fk/Strumfovi/issues/33), [AUTH-04](https://github.com/LD05-fk/Strumfovi/issues/59) |
+| UC-04 | Urediti umjetnički profil | Umjetnik | FR-02 | [PORT-01](https://github.com/LD05-fk/Strumfovi/issues/36) |
+| UC-05 | Urediti profil organizatora | Organizator | FR-02 | [AUTH-03](https://github.com/LD05-fk/Strumfovi/issues/35) |
+| UC-06 | Upravljati portfolijem | Umjetnik | FR-02 | [PORT-02](https://github.com/LD05-fk/Strumfovi/issues/37), [PORT-03](https://github.com/LD05-fk/Strumfovi/issues/38), [PORT-04](https://github.com/LD05-fk/Strumfovi/issues/39) |
+| UC-07 | Pregledati javni portfolio | Posjetitelj | FR-02, FR-07 | [PORT-05](https://github.com/LD05-fk/Strumfovi/issues/40), [RES-02](https://github.com/LD05-fk/Strumfovi/issues/55) |
+| UC-08 | Stvoriti ili urediti priliku | Organizator, OpenStreetMap/Nominatim | FR-03 | [OPP-01](https://github.com/LD05-fk/Strumfovi/issues/41) |
+| UC-09 | Pretražiti i pregledati prilike | Posjetitelj, OpenStreetMap | FR-04 | [OPP-02](https://github.com/LD05-fk/Strumfovi/issues/42) |
+| UC-10 | Upravljati vlastitim prilikama | Organizator | FR-04 | [OPP-03](https://github.com/LD05-fk/Strumfovi/issues/43) |
+| UC-11 | Automatski zatvoriti priliku nakon isteka roka | Planer | FR-04 | [OPP-04](https://github.com/LD05-fk/Strumfovi/issues/44) |
+| UC-12 | Odrediti ili izmijeniti uvjete prijave | Organizator | FR-05 | [APP-01](https://github.com/LD05-fk/Strumfovi/issues/45), [APP-05](https://github.com/LD05-fk/Strumfovi/issues/49) |
+| UC-13 | Predati prijavu na priliku | Umjetnik | FR-05 | [APP-02](https://github.com/LD05-fk/Strumfovi/issues/46) |
+| UC-14 | Pregledati i upravljati vlastitim prijavama | Umjetnik | FR-05, FR-06 | [APP-03](https://github.com/LD05-fk/Strumfovi/issues/47) |
+| UC-15 | Pregledati prijave i odlučiti o njima | Organizator | FR-06 | [APP-04](https://github.com/LD05-fk/Strumfovi/issues/48) |
+| UC-16 | Objaviti ili ispraviti rezultate | Organizator | FR-07 | [RES-01](https://github.com/LD05-fk/Strumfovi/issues/54), [RES-03](https://github.com/LD05-fk/Strumfovi/issues/60) — plasmani su opcionalni |
+| UC-17 | Dodati prihvaćeno događanje u Google kalendar | Umjetnik, Google Calendar | FR-07 | [CAL-01](https://github.com/LD05-fk/Strumfovi/issues/56), [CAL-02](https://github.com/LD05-fk/Strumfovi/issues/61) — izravno umetanje API-jem je opcionalno |
+| UC-18 | Upravljati korisnicima i odobriti organizatora | Administrator | FR-09 | [ADM-01](https://github.com/LD05-fk/Strumfovi/issues/50), [ADM-02](https://github.com/LD05-fk/Strumfovi/issues/51) |
+| UC-19 | Sakriti ili vratiti sadržaj | Administrator | FR-09 | [ADM-03](https://github.com/LD05-fk/Strumfovi/issues/52) |
+| UC-20 | Upravljati šifrarnicima i postavkama | Administrator | FR-09 | [ADM-04](https://github.com/LD05-fk/Strumfovi/issues/53) |
+| UC-21 | Pregledati statistiku prilika | Organizator | FR-08 | [STAT-01](https://github.com/LD05-fk/Strumfovi/issues/57), [STAT-02](https://github.com/LD05-fk/Strumfovi/issues/62) — grafikoni su opcionalni |
+| UC-22 | Automatski izraditi mjesečni izvještaj | Planer | FR-08 | [REP-01](https://github.com/LD05-fk/Strumfovi/issues/58) |
+| UC-23 | Pregledati izvještaje | Administrator | FR-08 | [REP-01](https://github.com/LD05-fk/Strumfovi/issues/58), [REP-02](https://github.com/LD05-fk/Strumfovi/issues/64) — povijest i ručno generiranje su opcionalni |
+| UC-24 | Pregledati i označiti obavijesti | Prijavljeni korisnik | FR-10 | [NOTIF-01](https://github.com/LD05-fk/Strumfovi/issues/65), [NOTIF-02](https://github.com/LD05-fk/Strumfovi/issues/66) — opcionalno |
+| UC-25 | Pregledati dnevnik administratorskih radnji **(opcionalno)** | Administrator | FR-09 | [ADM-05](https://github.com/LD05-fk/Strumfovi/issues/63) |
+
+## UC-01 Prijaviti se Google računom
+
+- **Primarni sudionik:** posjetitelj.
+- **Vanjski sudionik:** Google OIDC.
+- **Zahtjev:** FR-01 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
+- **Preduvjet:** korisnik ima Google račun.
+- **Rezultat:** korisnik je autentificiran i ima poslužiteljsku sesiju; novi korisnik nastavlja odabirom uloge.
+
+Redoslijed poruka, provjere Google odgovora i alternativni ishodi prijave
+prikazani su u [sekvencijskom dijagramu Google prijave](4-Arhitektura-i-oblikovanje.md#441-reprezentativni-uml-sekvencijski-dijagram).
+
+## UC-02 Odabrati ulogu
 
 - **Primarni sudionik:** novi korisnik.
 - **Zahtjev:** FR-01 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
-- **Preduvjet:** korisnik ima Google račun.
+- **Preduvjet:** korisnik se prijavio Google računom i ima status `ONBOARDING`.
 - **Rezultat:** korisnik ima ulogu `ARTIST` ili `ORGANIZER`, status `ACTIVE` i nova prava u istoj sesiji.
 
 ### Osnovni tijek
 
-1. Korisnik se prijavljuje Google računom.
-2. Sustav stvara novi račun u statusu `ONBOARDING`, bez uloge, i usmjerava ga na `/onboarding`.
-3. Korisnik odabire karticu „Umjetnik” ili „Organizator” i potvrđuje odabir gumbom „Potvrdi”. Frontend šalje `POST /api/v1/me/role` uz sesiju i CSRF token.
-4. Sustav jednom postavlja ulogu i aktivira račun. Organizatoru stvara prazan profil i automatski postavlja odobrenje `APPROVED`.
-5. Sustav osvježava prava u postojećoj sesiji, a sučelje preusmjerava korisnika na `/profile` bez ponovne prijave.
+1. Sustav usmjerava novog korisnika na `/onboarding`.
+2. Korisnik odabire karticu „Umjetnik” ili „Organizator” i potvrđuje odabir gumbom „Potvrdi”. Frontend šalje `POST /api/v1/me/role` uz sesiju i CSRF token.
+3. Sustav jednom postavlja ulogu i aktivira račun. Organizatoru stvara prazan profil i automatski postavlja odobrenje `APPROVED`.
+4. Sustav osvježava prava u postojećoj sesiji, a sučelje preusmjerava korisnika na `/profile` bez ponovne prijave.
 
 ### Alternativni tijekovi
 
@@ -25,7 +71,9 @@
 
 Detalji su u [API dokumentaciji prijave](api/auth.md#post-merole).
 
-## Objava prilike
+## UC-08 Stvoriti ili urediti priliku
+
+### Stvaranje prilike
 
 - **Primarni sudionik:** organizator, uključujući organizatora na čekanju odobrenja.
 - **Zahtjev:** FR-03 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
@@ -56,6 +104,12 @@ Detalji su u [API dokumentaciji prijave](api/auth.md#post-merole).
 - Fizička lokacija bez adrese, grada ili koordinata i online lokacija bez valjane
   HTTP/HTTPS poveznice odbijaju se. Za online lokaciju fizička polja se zanemaruju,
   a za fizičku lokaciju zanemaruje se online poveznica.
+- Pretraživanje adrese vraća do pet kandidata; prvi se odabire automatski, a
+  organizator može odabrati drugi i ispraviti oznaku na karti. Prazan rezultat,
+  ograničenje učestalosti (`429 RATE_LIMITED`) ili nedostupni Nominatim
+  (`502 GEOCODING_UNAVAILABLE`) prikazuju odgovarajuću poruku, nakon čega
+  organizator može ručno odabrati koordinate. Ako kartografske pločice ne rade,
+  sučelje prikazuje upozorenje, a kontrole za odabir lokacije ostaju dostupne.
 - Neispravan zahtjev ne sprema djelomičnu priliku.
 - Bez prijave sustav vraća `401 UNAUTHENTICATED`; bez uloge organizatora ili
   valjanog CSRF tokena `403 FORBIDDEN`; prije odabira uloge `403 ONBOARDING_REQUIRED`.
@@ -65,7 +119,7 @@ Detalji su u [API dokumentaciji prijave](api/auth.md#post-merole).
 
 Detalji i primjeri su u [API dokumentaciji prilika](api/opportunities.md#post-opportunities).
 
-## Uređivanje prilike
+### Uređivanje prilike
 
 - **Primarni sudionik:** organizator koji je vlasnik prilike.
 - **Zahtjev:** FR-03 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
@@ -97,9 +151,10 @@ Detalji i primjeri su u [API dokumentaciji prilika](api/opportunities.md#post-op
   s neaktivnim računom ili nevaljanim CSRF tokenom odgovarajući `403`.
 
 Detalji su u [API dokumentaciji prilika](api/opportunities.md#put-opportunitiesopportunityid).
-## Uređivanje profila organizatora
+## UC-05 Urediti profil organizatora
 
 - **Primarni sudionik:** organizator.
+- **Zahtjev:** FR-02 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
 - **Cilj:** pregledati profil i promijeniti naziv organizacije.
 - **Preduvjet:** valjana sesija s ulogom `ORGANIZER`; za spremanje je potreban CSRF token.
 - **Rezultat:** naziv organizacije je spremljen ili obrisan; ime i odobrenje ostaju nepromijenjeni.
@@ -121,9 +176,10 @@ Detalji su u [API dokumentaciji prilika](api/opportunities.md#put-opportunitieso
 - Naziv dulji od 200 znakova vraća `400 VALIDATION_ERROR`.
 - Bez valjane sesije sustav vraća `401 UNAUTHENTICATED`; bez uloge organizatora, uz onboarding, blokiran račun ili nedostajući/nevaljan CSRF token vraća odgovarajući `403`.
 
-## Dodavanje djela u portfolio
+## UC-06 Upravljati portfolijem
 
 - **Primarni sudionik:** umjetnik.
+- **Zahtjev:** FR-02 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
 - **Cilj:** dodati djelo u vlastiti portfolio i odabrati njegovu vidljivost.
 - **Preduvjet:** valjana prijavljena sesija s ulogom `ARTIST` i CSRF token.
 - **Rezultat:** djelo je spremljeno u portfoliju bez slika; slike se mogu dodati
@@ -153,10 +209,13 @@ Detalji su u [API dokumentaciji prilika](api/opportunities.md#put-opportunitieso
 
 Detalji zahtjeva i odgovora nalaze se u
 [API dokumentaciji djela](api/artworks.md#post-artworks).
+Ovaj scenarij detaljno opisuje dodavanje djela; uređivanje, brisanje, slike i
+prethodne izložbe također pripadaju ovom obrascu uporabe.
 
-## Uređivanje profila umjetnika
+## UC-04 Urediti umjetnički profil
 
 - **Primarni sudionik:** umjetnik.
+- **Zahtjev:** FR-02 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
 - **Cilj:** urediti biografiju, opis umjetničkog rada, područja umjetnosti i
   poveznice na vlastitom profilu.
 - **Preduvjet:** valjana prijavljena sesija s ulogom `ARTIST` i CSRF token.
@@ -186,9 +245,10 @@ Detalji zahtjeva i odgovora nalaze se u
 Detalji zahtjeva, odgovora i ograničenja nalaze se u
 [API dokumentaciji portfolija umjetnika](api/artists.md#put-meartist-profile).
 
-## Pregled korisnika
+## UC-18 Upravljati korisnicima i odobriti organizatora
 
 - **Primarni sudionik:** administrator.
+- **Zahtjev:** FR-09 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
 - **Cilj:** pronaći korisnika i pregledati stanje računa ili pronaći organizatore koji čekaju odobrenje.
 - **Preduvjet:** korisnik ima valjanu sesiju i ulogu `ADMIN`.
 - **Rezultat:** dohvaćen je popis korisnika s ukupnim brojem rezultata; podaci računa se ne mijenjaju.
@@ -210,13 +270,14 @@ Detalji zahtjeva, odgovora i ograničenja nalaze se u
 - Ako nema valjane sesije, sustav vraća 401 `UNAUTHENTICATED`.
 - Ako pozivatelj nema administratorsku ulogu, sustav vraća 403 `FORBIDDEN`.
 
-Ovdje je opisan obrazac uporabe. Backend dio implementiran je u ADM-01-BE2;
-administratorsko sučelje, promjena uloga, blokiranje i odobravanje zasebni su zadaci.
+Ovaj scenarij detaljno opisuje pregled korisnika; promjena uloga, blokiranje i
+odobravanje organizatora također pripadaju ovom obrascu uporabe.
 Detalji parametara i odgovora nalaze se u [API dokumentaciji administracije](api/admin.md).
 
-## Uređivanje šifrarnika
+## UC-20 Upravljati šifrarnicima i postavkama
 
 - **Primarni sudionik:** administrator.
+- **Zahtjev:** FR-09 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
 - **Cilj:** održavati popise područja umjetnosti i vrsta prilika.
 - **Preduvjet:** valjana administratorska sesija; za promjene valjan CSRF token.
 - **Rezultat:** stavka je dodana, uređena, deaktivirana, ponovno aktivirana ili obrisana.
@@ -244,3 +305,5 @@ Detalji parametara i odgovora nalaze se u [API dokumentaciji administracije](api
 Backend dio pripada ADM-04-BE1 (#218), a administratorsko sučelje zasebnom
 zadatku. Detalji ruta i ograničenja nalaze se u
 [API dokumentaciji administracije](api/admin.md#administracija-šifrarnika).
+Ovaj scenarij detaljno opisuje šifrarnike; upravljanje ograničenjima uploada
+također pripada ovom obrascu uporabe.

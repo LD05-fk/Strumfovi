@@ -1,0 +1,145 @@
+@startuml
+title ArtConnect — UC-08 Stvoriti priliku
+
+autonumber
+
+actor "Organizator" as Organizer
+participant "Web obrazac\nOpportunityForm / LocationPicker" as FE
+participant "OpenStreetMap\nTile Service" as Tiles
+participant "Spring Security /\nREST API" as API
+participant "GeocodingService /\nNominatimClient" as Geocoder
+participant "OSM Nominatim" as Nominatim
+participant "OpportunityService" as OpportunityService
+participant "Repositories\n(User, Catalog, Opportunity)" as Repositories
+database "PostgreSQL" as DB
+
+Organizer -> FE: Otvara obrazac nove prilike
+FE -> FE: Učitava aktivne vrste prilika i područja umjetnosti
+
+alt Fizička lokacija
+    Organizer -> FE: Unosi adresu, grad i poštanski broj
+    FE -> Tiles: Dohvaća kartografske pločice
+    alt Pločice su dostupne
+        Tiles --> FE: Prikaz karte
+    else Pločice nisu dostupne
+        Tiles --> FE: Pogreška pločica
+        FE --> Organizer: Upozorenje; kontrole karte ostaju uporabive
+    end
+
+    Organizer -> FE: Odabire "Pronađi na karti"
+    FE -> API: GET /api/v1/geocoding/search\n(street, city, postalCode)
+    API -> Geocoder: search(street, city, postalCode)\n(ORGANIZER)
+
+    alt Nominatim zahtjev može se poslati
+        Geocoder -> Nominatim: GET /search\n(format=jsonv2, limit=5, jezik=hr)
+        alt Pronađeni kandidati
+            Nominatim --> Geocoder: Do pet rezultata
+            Geocoder --> API: Koordinate i nazivi
+            API --> FE: 200 + kandidati
+            FE -> FE: Odabire prvi rezultat i postavlja oznaku
+            FE --> Organizer: Prikazuje kandidate na izbor
+            opt Organizator odabire drugi rezultat
+                Organizer -> FE: Odabire kandidata
+                FE -> FE: Ažurira oznaku i koordinate
+            end
+        else Adresa nije pronađena
+            Nominatim --> Geocoder: Prazan popis
+            Geocoder --> API: Prazan popis
+            API --> FE: 200 + []
+            FE --> Organizer: Adresa nije pronađena;\npostavite oznaku ručno
+            Organizer -> FE: Klikne kartu ili postavi oznaku\nu središte karte tipkovnicom
+            FE -> FE: Sprema ručno odabrane koordinate
+        else Vanjski servis ne odgovara ili vraća neispravan odgovor
+            Nominatim --> Geocoder: Mrežna pogreška ili HTTP 4xx/5xx
+            Geocoder --> API: GEOCODING_UNAVAILABLE
+            API --> FE: 502 GEOCODING_UNAVAILABLE
+            FE --> Organizer: Usluga nije dostupna;\npostavite oznaku ručno
+            Organizer -> FE: Klikne kartu ili postavi oznaku\nu središte karte tipkovnicom
+            FE -> FE: Sprema ručno odabrane koordinate
+        end
+    else Ograničenje zahtjeva nije dostupno unutar dvije sekunde
+        Geocoder --> API: RATE_LIMITED
+        API --> FE: 429 RATE_LIMITED
+        FE --> Organizer: Previše upita;\npokušajte kasnije ili postavite oznaku ručno
+        Organizer -> FE: Klikne kartu ili postavi oznaku\nu središte karte tipkovnicom
+        FE -> FE: Sprema ručno odabrane koordinate
+    end
+
+    opt Oznaka je postavljena
+        Organizer -> FE: Po potrebi klikne kartu ili povuče oznaku
+        FE -> FE: Ažurira koordinate na šest decimala
+    end
+else Online lokacija
+    Organizer -> FE: Odabire Online i unosi HTTP/HTTPS poveznicu
+    FE -> FE: Ne prikazuje kartu ni ne poziva geokodiranje
+end
+
+Organizer -> FE: Unosi ostale podatke i odabire "Spremi"
+FE -> FE: Provjerava polja i odabranu lokaciju
+
+alt Unos ne prolazi provjeru sučelja
+    FE --> Organizer: Prikazuje pogreške uz polja;\nzahtjev se ne šalje
+else Unos prolazi provjeru sučelja
+    FE -> API: POST /api/v1/opportunities\n(session + CSRF, OpportunityInput)
+    alt Nema valjane sesije
+        API --> FE: 401 UNAUTHENTICATED
+        FE --> Organizer: Traži ponovnu prijavu
+    else Nema dopuštene uloge ili valjanog CSRF tokena
+        API --> FE: 403 FORBIDDEN
+        FE --> Organizer: Prikazuje zabranu pristupa
+    else Organizator je ovlašten
+        API -> OpportunityService: create(input)
+        OpportunityService -> Repositories: Dohvaća prijavljenog korisnika
+        Repositories -> DB: SELECT korisnika
+        DB --> Repositories: Podaci korisnika
+        Repositories --> OpportunityService: Organizator
+
+        alt Račun je u onboardingu, blokiran ili neaktivan
+            OpportunityService --> API: 403 ONBOARDING_REQUIRED /\nUSER_BLOCKED / FORBIDDEN
+            API --> FE: 403
+            FE --> Organizer: Prikazuje zabranu pristupa
+        else Račun organizatora je aktivan
+            OpportunityService -> OpportunityService: Provjerava lokaciju,\ndatume i oblik polja
+            alt Datumi ili polja nisu valjani
+                OpportunityService --> API: VALIDATION_ERROR
+                API --> FE: 400 + pogreške polja
+                FE --> Organizer: Prikazuje pogreške;\nnacrt nije spremljen
+            else Osnovni podaci su valjani
+                OpportunityService -> Repositories: Dohvaća vrstu i područja umjetnosti
+                Repositories -> DB: SELECT aktivnih šifrarnika
+                DB --> Repositories: Rezultati provjere
+                Repositories --> OpportunityService: Šifrarnici
+
+                alt Vrsta ili područja nisu dopušteni
+                    OpportunityService --> API: VALIDATION_ERROR
+                    API --> FE: 400 + pogreške polja
+                    FE --> Organizer: Prikazuje pogreške;\nnacrt nije spremljen
+                else Šifrarnici su valjani
+                    OpportunityService -> OpportunityService: Stvara Opportunity\n(status PREPARATION)
+                    OpportunityService -> Repositories: Sprema priliku i područja
+                    Repositories -> DB: INSERT opportunities i\nopportunity_art_fields (transakcija)
+                    DB --> Repositories: Potvrđuje spremanje
+                    Repositories --> OpportunityService: Spremljena prilika
+                    OpportunityService --> API: DTO prilike
+                    API --> FE: 201 Created + Location + DTO
+                    FE --> Organizer: Prikazuje potvrdu i otvara detalj nacrta
+                end
+            end
+        end
+    end
+end
+
+note over API,Geocoder
+Odlazni zahtjevi ograničeni su na jedan u sekundi.
+Geokodiranje se pokreće samo na zahtjev organizatora,
+a ne automatski pri tipkanju.
+end note
+
+note over OpportunityService,DB
+Nova prilika ima status PREPARATION i nema publishedAt.
+Organizator na čekanju odobrenja smije spremiti nacrt;
+odobrenje se provjerava pri zasebnoj javnoj objavi.
+Neispravan zahtjev ne ostavlja djelomično spremljenu priliku.
+end note
+
+@enduml

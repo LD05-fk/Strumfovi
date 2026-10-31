@@ -183,9 +183,22 @@ Indeksi: `ix_stored_files_owner (owner_id)`, `ix_artworks_artist_visibility (art
 
 **Cilj:** Prije implementacije reprezentativnog dijela sustava modelirati i prikazati razrede ili sučelja potrebna za dodjelu odgovornosti, operacija i veza. Oblikovanje ažurirajte kada se te odluke promijene.
 
-**Dijagram razreda:** [Ugradite čitljiv UML dijagram razreda za reprezentativni dio oblikovanja.]  
-**PlantUML izvor:** [Poveznica na odgovarajuću `.puml` datoteku.]  
-**Referenca na kod pri završnom pregledu:** [Poveznica na odgovarajuću implementaciju.]
+**Dijagram razreda:**
+
+![Reprezentativni dijagram razreda prilika sustava ArtConnect](assets/diagrams/4-3-artconnect-opportunity-CD.svg)
+
+**Slika 4.3. Reprezentativni dijagram razreda prilika**
+
+**PlantUML izvor:** [`docs/puml/4-3-artconnect-opportunity-CD.puml`](puml/4-3-artconnect-opportunity-CD.puml)
+**Referenca na kod:** [`opportunity`](../backend/src/main/java/hr/fer/artconnect/opportunity), [`User`](../backend/src/main/java/hr/fer/artconnect/auth/domain/User.java), [`OpportunityType`](../backend/src/main/java/hr/fer/artconnect/catalog/domain/OpportunityType.java) i [`ArtField`](../backend/src/main/java/hr/fer/artconnect/catalog/domain/ArtField.java).
+
+Dijagram prikazuje priliku, njezinu lokaciju kao sastavni vrijednosni objekt,
+organizatora i šifrarnike te ključne odgovornosti kontrolera, servisa,
+repozitorija i mappera. `Opportunity` sadrži pravila i podatke domene; servis
+koordinira stvaranje i uređivanje, a repozitorij i mapper podržavaju pohranu i
+oblikovanje odgovora. Detalji polja zahtjeva i DTO-ova, podržavajući suradnici
+servisa te vanjska geokoderska integracija namjerno su izostavljeni radi
+čitljivosti i prikazani u API dokumentaciji odnosno sekvencijskom dijagramu.
 
 <details>
 <summary><strong>Oblikovanje odgovornosti prijave i dopuštenih promjena</strong></summary>
@@ -210,7 +223,7 @@ Indeksi: `ix_stored_files_owner (owner_id)`, `ix_artworks_artist_visibility (art
 
 **Cilj:** Prikazati redoslijed poruka za jedan reprezentativni scenarij i odgovore na važne alternative.
 
-**Scenarij:** Prijava korisnika putem Google OIDC-a (AUTH-01).
+**Scenarij:** UC-01 — prijava posjetitelja putem Google OIDC-a (AUTH-01).
 
 **Sekvencijski dijagram:**
 
@@ -220,13 +233,23 @@ Indeksi: `ix_stored_files_owner (owner_id)`, `ix_artworks_artist_visibility (art
 
 **Izvor dijagrama:** [`docs/puml/4-4-artconnect-google-login-SD.puml`](puml/4-4-artconnect-google-login-SD.puml)
 
-Korisnik pokreće prijavu putem Googlea. Spring Security obrađuje OIDC povratni poziv i provjerava ID token prije predaje korisničkih podataka komponenti `ArtConnectOidcUserService`. Servis zahtijeva potvrđenu e-mail adresu te u jednoj transakciji pronalazi ili stvara zapis u tablici `users`.
+Posjetitelj pokreće prijavu putem Googlea. Spring Security obrađuje OIDC povratni poziv i provjerava ID token prije predaje korisničkih podataka komponenti `ArtConnectOidcUserService`. Servis zahtijeva dostupnu i potvrđenu e-mail adresu te u jednoj transakciji pronalazi ili stvara zapis u tablici `users`.
 
-Postojeći korisnik pronalazi se prema Googleovu identifikatoru `sub`, a njegovi se profilni podaci i vrijeme posljednje prijave ažuriraju. Ako korisnik nije pronađen, pokušava se povezivanje pozvanog računa sa statusom `INVITED` prema e-mail adresi. Sukob s računom u drugom statusu odbija prijavu. Ako odgovarajući račun ne postoji, stvara se korisnik sa statusom `ONBOARDING` bez dodijeljene uloge. Obrisani korisnički računi ne pronalaze se prema `google_sub` ili e-mail adresi jer su te vrijednosti poništene.
+Postojeći korisnik pronalazi se prema Googleovu identifikatoru `sub`, a njegovi se profilni podaci i vrijeme posljednje prijave ažuriraju. Ako korisnik nije pronađen, pokušava se povezivanje pozvanog računa sa statusom `INVITED` prema e-mail adresi; to uključuje i unaprijed stvorenog administratora iz konfiguracije. Sukob s računom u drugom statusu odbija prijavu. Ako odgovarajući račun ne postoji, stvara se korisnik sa statusom `ONBOARDING` bez dodijeljene uloge. Obrisani korisnički računi ne pronalaze se prema `google_sub` ili e-mail adresi jer su te vrijednosti poništene.
 
 Nakon uspješne obrade stvara se poslužiteljska sesija putem Spring Session JDBC. `ArtConnectPrincipal.getName()` vraća interni ID korisnika iz tablice `users`, što omogućuje indeksiranje sesija po korisniku. Korisnik sa statusom `ONBOARDING` preusmjerava se na `/onboarding`, a ostali dopušteni korisnici na `/`. Neuspjela autentikacija ili obrada korisnika vodi na `/?login=error`.
 
 **Sigurnosno ponašanje:** API zahtjevi bez valjane sesije vraćaju `401 UNAUTHENTICATED`; ne pokreću OAuth preusmjeravanje. Sesija istječe nakon osam sati neaktivnosti, a kolačić `SESSION` koristi `HttpOnly`, `SameSite=Lax` i `Secure` u produkciji.
+
+**Scenarij:** UC-08 — organizator stvara priliku i sprema je kao privatni nacrt.
+
+![Sekvencijski dijagram stvaranja prilike](assets/diagrams/4-5-artconnect-opportunity-create-SD.svg)
+
+**Slika 4.5. Sekvencijski dijagram stvaranja prilike**
+
+**Izvor dijagrama:** [`docs/puml/4-5-artconnect-opportunity-create-SD.puml`](puml/4-5-artconnect-opportunity-create-SD.puml)
+
+Dijagram prikazuje odabir fizičke ili online lokacije. Za fizičku lokaciju organizator može odabrati jedan od geokodiranih kandidata ili ručno postaviti odnosno ispraviti oznaku; prazan rezultat, ograničenje učestalosti i nedostupnost Nominatima vode u ručni odabir. Neuspjeh kartografskih pločica prikazuje upozorenje, bez ukidanja kontrola za odabir lokacije. Nakon provjere unosa API sprema priliku i područja umjetnosti u jednoj transakciji, u statusu `PREPARATION`; objava nije dio ovog scenarija.
 
 <details>
 <summary><strong>Odabir lokacije, provjera valjanosti i podnošenje prijave</strong></summary>

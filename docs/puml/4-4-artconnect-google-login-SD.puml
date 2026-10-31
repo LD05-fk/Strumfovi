@@ -1,80 +1,88 @@
-
 @startuml
-title ArtConnect — Google OIDC prijava i uspostava sesije
+title ArtConnect — UC-01 Prijaviti se Google računom
 
 autonumber
 
-actor "Korisnik" as User
+actor "Posjetitelj" as User
 participant "Frontend" as FE
 participant "Caddy / Vite proxy" as Proxy
 participant "Spring Security" as Security
 participant "Google OIDC" as Google
 participant "ArtConnectOidcUserService" as OidcService
-database "PostgreSQL\n(users)" as DB
+participant "UserRepository" as UserRepository
 participant "Spring Session JDBC" as Session
+database "PostgreSQL\n(users, spring_session)" as DB
 
 User -> FE: Odabire "Prijava s Googleom"
 FE -> Proxy: GET /oauth2/authorization/google
 Proxy -> Security: Prosljeđuje OAuth zahtjev
-Security -> Google: Preusmjeravanje na Google OIDC
-Google --> User: Prijava i privola
-Google --> Proxy: Povratak na /login/oauth2/code/google
+Security --> Proxy: 302 redirect na Google OIDC
+Proxy --> User: Preusmjeravanje na Google
+User -> Google: GET authorization URL
+Google --> User: Prikazuje prijavu i privolu
+User -> Google: Unosi vjerodajnice i odobrava prijavu
+Google --> User: Preusmjerava s authorization codeom
+User -> Proxy: GET /login/oauth2/code/google?code=...&state=...
 Proxy -> Security: OIDC callback i authorization code
-Security -> Google: Zamjena koda za tokene\n+ provjera OIDC odgovora
-Google --> Security: ID token i korisnički podaci
-Security -> OidcService: Učitavanje OIDC korisnika
+Security -> Google: Mijenja authorization code za tokene
+Google --> Security: ID token i access token
+Security -> OidcService: loadUser(OidcUserRequest)
+OidcService -> Google: Dohvaća OIDC korisničke podatke
+Google --> OidcService: sub, email, email_verified,\nime i avatar
 
-OidcService -> OidcService: Provjera email_verified == true
-
-alt E-mail nije potvrđen
+OidcService -> OidcService: Provjerava e-mail i normalizira ga
+alt E-mail nedostaje ili nije potvrđen
     OidcService --> Security: OAuth2AuthenticationException
-    Security -> FE: Preusmjeravanje na /?login=error
-else E-mail je potvrđen
-    OidcService -> DB: Traži korisnika prema google_sub
-    alt Postoji korisnik s istim google_sub
-        DB --> OidcService: Postojeći korisnik
-        OidcService -> DB: Ažurira ime, avatar, e-mail\n i last_login_at
-    else Korisnik nije pronađen po google_sub
-        OidcService -> DB: Traži isti e-mail, status INVITED
-        alt Pronađen INVITED korisnik
-            DB --> OidcService: Pozvani korisnik
-            OidcService -> DB: Postavlja google_sub,\nprofil i status ACTIVE
-        else Nije pronađen INVITED korisnik
-            OidcService -> DB: Provjerava postoji li isti e-mail\nu drugom statusu
-            alt E-mail postoji u drugom statusu
-                DB --> OidcService: Sukob računa
-                OidcService --> Security: OAuth2AuthenticationException
-                Security -> FE: Preusmjeravanje na /?login=error
-            else E-mail ne postoji
-                OidcService -> DB: Stvara korisnika\nrole=NULL, status=ONBOARDING
-                DB --> OidcService: Novi korisnik
+    Security --> Proxy: Preusmjeravanje na /?login=error
+    Proxy --> User: Prikazuje neuspjelu prijavu
+else E-mail je dostupan i potvrđen
+    OidcService -> UserRepository: findByGoogleSub(sub)
+    UserRepository -> DB: Dohvaća korisnika
+    DB --> UserRepository: Rezultat pretrage
+    UserRepository --> OidcService: Korisnik ili prazno
+
+    alt Pronađen postojeći Google račun
+        OidcService -> OidcService: Ažurira profil i lastLoginAt
+    else Google račun nije pronađen
+        OidcService -> UserRepository: findByEmailIgnoreCase(email)
+        UserRepository -> DB: Dohvaća račun prema e-mailu
+        DB --> UserRepository: Rezultat pretrage
+        UserRepository --> OidcService: Korisnik ili prazno
+
+        alt Pronađen pozvani račun (INVITED), uključujući unaprijed stvorenog ADMIN-a
+            OidcService -> OidcService: Povezuje Google sub i aktivira račun
+        else Pronađen račun koji nije INVITED
+            break Sukob s postojećim računom
+            OidcService --> Security: OAuth2AuthenticationException\n(sukob računa)
+            Security --> Proxy: Preusmjeravanje na /?login=error
+            Proxy --> User: Prikazuje neuspjelu prijavu
             end
+        else Račun nije pronađen
+            OidcService -> UserRepository: Sprema novog korisnika
+            UserRepository -> DB: INSERT users\nrole=NULL, status=ONBOARDING
+            DB --> UserRepository: Spremljeni korisnik
+            UserRepository --> OidcService: Novi korisnik
         end
     end
 
-    DB --> OidcService: ID korisnika i ažurirani podaci
     OidcService --> Security: ArtConnectPrincipal\ngetName() = users.id
-    Security -> Session: Sprema sigurnosni kontekst\nu poslužiteljsku JDBC sesiju
-    Session -> DB: Sprema sesiju i PRINCIPAL_NAME
+    Security -> Session: Sprema SecurityContext\n(PRINCIPAL_NAME = users.id)
+    Session -> DB: Zapisuje sesiju
     DB --> Session: Sesija spremljena
+    Session --> Security: Sesija spremljena
     Security --> Proxy: Uspješna autentikacija
-    alt Status ONBOARDING
-        Proxy --> User: Preusmjeravanje na /onboarding
-    else Ostali dopušteni statusi
-        Proxy --> User: Preusmjeravanje na /
+    alt Status je ONBOARDING
+        Proxy --> User: Preusmjerava na /onboarding
+    else Drugi status
+        Proxy --> User: Preusmjerava na /
     end
 end
 
-note over Session,DB
+note over Security,DB
+Sesija se sprema poslužiteljski putem Spring Session JDBC.
 Sesija istječe nakon 8 sati neaktivnosti.
-Kolačić: SESSION; HttpOnly; SameSite=Lax.
+Kolačić SESSION je HttpOnly i SameSite=Lax;
 Secure je uključen u produkciji.
-end note
-
-note over OidcService,DB
-Obrisani korisnici imaju google_sub=NULL
-i email=NULL pa se ne pronalaze.
-Ponovna prijava stvara novi korisnički račun.
 end note
 
 @enduml
