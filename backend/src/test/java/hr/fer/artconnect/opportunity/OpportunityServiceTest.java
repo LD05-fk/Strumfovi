@@ -3,6 +3,7 @@ package hr.fer.artconnect.opportunity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -11,6 +12,7 @@ import static org.mockito.Mockito.when;
 import hr.fer.artconnect.auth.CurrentUserProvider;
 import hr.fer.artconnect.auth.domain.OrganizerApproval;
 import hr.fer.artconnect.auth.domain.OrganizerProfileRepository;
+import hr.fer.artconnect.auth.domain.User;
 import hr.fer.artconnect.auth.domain.UserRole;
 import hr.fer.artconnect.auth.domain.UserStatus;
 import hr.fer.artconnect.catalog.domain.ArtField;
@@ -19,9 +21,12 @@ import hr.fer.artconnect.catalog.domain.OpportunityType;
 import hr.fer.artconnect.catalog.domain.OpportunityTypeRepository;
 import hr.fer.artconnect.common.ApiException;
 import hr.fer.artconnect.common.ErrorCode;
+import hr.fer.artconnect.opportunity.domain.Location;
 import hr.fer.artconnect.opportunity.domain.LocationType;
+import hr.fer.artconnect.opportunity.domain.Opportunity;
 import hr.fer.artconnect.opportunity.domain.OpportunityRepository;
 import hr.fer.artconnect.opportunity.domain.OpportunityStatus;
+import hr.fer.artconnect.opportunity.service.OpportunityDeletionGuard;
 import hr.fer.artconnect.opportunity.service.OpportunityMapper;
 import hr.fer.artconnect.opportunity.service.OpportunityService;
 import hr.fer.artconnect.opportunity.web.LocationInput;
@@ -34,6 +39,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,14 +52,16 @@ class OpportunityServiceTest {
     private static final OffsetDateTime NOW = OffsetDateTime.parse("2026-10-26T10:00:00Z");
     private static final UUID TYPE_ID = UUID.randomUUID();
     private static final UUID FIELD_ID = UUID.randomUUID();
+    private static final UUID OPPORTUNITY_ID = UUID.randomUUID();
     private final OpportunityRepository opportunities = mock(OpportunityRepository.class);
     private final OpportunityTypeRepository types = mock(OpportunityTypeRepository.class);
     private final ArtFieldRepository fields = mock(ArtFieldRepository.class);
     private final OrganizerProfileRepository profiles = mock(OrganizerProfileRepository.class);
     private final CurrentUserProvider currentUser = mock(CurrentUserProvider.class);
+    private final OpportunityDeletionGuard deletionGuard = mock(OpportunityDeletionGuard.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-10-26T10:00:00Z"), ZoneOffset.UTC);
     private final OpportunityService service = new OpportunityService(
-            opportunities, types, fields, profiles, currentUser, new OpportunityMapper(), clock);
+            opportunities, types, fields, profiles, currentUser, new OpportunityMapper(), deletionGuard, clock);
 
     @BeforeEach
     void organizer() {
@@ -176,6 +184,51 @@ class OpportunityServiceTest {
         verify(opportunities, never()).save(any());
     }
 
+    @Test
+    void vlasnikBriseSvojuPrilikuNakonProvjereGuarda() {
+        var opportunity = opportunityOf(currentUser.getCurrentUser());
+        when(opportunities.findById(OPPORTUNITY_ID)).thenReturn(Optional.of(opportunity));
+
+        service.delete(OPPORTUNITY_ID);
+
+        verify(deletionGuard).ensureDeletable(opportunity);
+        verify(opportunities).delete(opportunity);
+    }
+
+    @Test
+    void brisanjeNepostojecePrilikeVraca404() {
+        when(opportunities.findById(OPPORTUNITY_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.delete(OPPORTUNITY_ID)).isInstanceOfSatisfying(ApiException.class,
+                error -> assertThat(error.getCode()).isEqualTo(ErrorCode.NOT_FOUND));
+        verify(opportunities, never()).delete(any());
+    }
+
+    @Test
+    void brisanjeTudjePrilikeVraca403IneTrosiGuard() {
+        var other = TestUsers.user(UUID.randomUUID(), "google", "drugi@test.hr", UserRole.ORGANIZER,
+                UserStatus.ACTIVE);
+        when(opportunities.findById(OPPORTUNITY_ID)).thenReturn(Optional.of(opportunityOf(other)));
+
+        assertThatThrownBy(() -> service.delete(OPPORTUNITY_ID)).isInstanceOfSatisfying(ApiException.class,
+                error -> assertThat(error.getCode()).isEqualTo(ErrorCode.FORBIDDEN));
+        // Vlasništvo se provjerava prije guarda, pa tuđa prilika ne otkriva ima li prijava.
+        verify(deletionGuard, never()).ensureDeletable(any());
+        verify(opportunities, never()).delete(any());
+    }
+
+    @Test
+    void guardOdbijaBrisanjeIPrilikaOstaje() {
+        var opportunity = opportunityOf(currentUser.getCurrentUser());
+        when(opportunities.findById(OPPORTUNITY_ID)).thenReturn(Optional.of(opportunity));
+        doThrow(new ApiException(ErrorCode.HAS_APPLICATIONS, "Prilika ima prijave."))
+                .when(deletionGuard).ensureDeletable(opportunity);
+
+        assertThatThrownBy(() -> service.delete(OPPORTUNITY_ID)).isInstanceOfSatisfying(ApiException.class,
+                error -> assertThat(error.getCode()).isEqualTo(ErrorCode.HAS_APPLICATIONS));
+        verify(opportunities, never()).delete(any());
+    }
+
     private void invalid(OpportunityInput input, String field) {
         assertThatThrownBy(() -> service.create(input)).isInstanceOfSatisfying(ApiException.class, error -> {
             assertThat(error.getCode()).isEqualTo(ErrorCode.VALIDATION_ERROR);
@@ -198,6 +251,13 @@ class OpportunityServiceTest {
         ReflectionTestUtils.setField(field, "id", FIELD_ID);
         when(fields.findAllById(List.of(FIELD_ID))).thenReturn(List.of(field));
         when(opportunities.save(any())).thenAnswer(call -> call.getArgument(0));
+    }
+
+    private Opportunity opportunityOf(User owner) {
+        var type = new OpportunityType();
+        type.update("exhibition", "Izložba", true, (short) 0);
+        return Opportunity.create(owner, type, Set.of(), "Naslov", "Opis", NOW.plusDays(1), null, null,
+                Location.online("https://example.org"), null, null, NOW);
     }
 
     private LocationInput physical() {

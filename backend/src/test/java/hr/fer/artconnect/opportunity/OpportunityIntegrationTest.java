@@ -5,8 +5,10 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -343,6 +345,40 @@ class OpportunityIntegrationTest extends IntegrationTestBase {
                 .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
     }
 
+    @Test
+    void vlasnikBriseSvojuPrilikuIVezeSPodrucjima() throws Exception {
+        loginAs("ORGANIZER");
+        UUID id = createOpportunity(validRequest());
+
+        remove(id).andExpect(status().isNoContent()).andExpect(content().string(""));
+
+        assertEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ORGANIZER", "ARTIST"})
+    void drugiKorisnikNeMozeObrisatiPriliku(String role) throws Exception {
+        loginAs("ORGANIZER");
+        UUID id = createOpportunity(validRequest());
+        var before = jdbc.queryForMap("SELECT * FROM opportunities WHERE id = ?", id);
+        loginAs(role);
+
+        remove(id).andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+
+        assertThat(jdbc.queryForMap("SELECT * FROM opportunities WHERE id = ?", id)).isEqualTo(before);
+    }
+
+    @Test
+    void brisanjeTraziSesijuIPostojecuPriliku() throws Exception {
+        mockMvc.perform(delete(PATH + "/" + UUID.randomUUID()).with(anonymous()).with(withCsrf()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
+        loginAs("ORGANIZER");
+        remove(UUID.randomUUID()).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+
     private UUID createOpportunity(Map<String, Object> request) throws Exception {
         var response = send(request).andExpect(status().isCreated()).andReturn().getResponse();
         return UUID.fromString(objectMapper.readTree(response.getContentAsString()).get("id").asString());
@@ -351,6 +387,10 @@ class OpportunityIntegrationTest extends IntegrationTestBase {
     private ResultActions update(UUID id, Map<String, Object> request) throws Exception {
         return mockMvc.perform(put(PATH + "/" + id).with(withCsrf()).contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)));
+    }
+
+    private ResultActions remove(UUID id) throws Exception {
+        return mockMvc.perform(delete(PATH + "/" + id).with(withCsrf()));
     }
 
     private void invalid(Map<String, Object> request, String field) throws Exception {
