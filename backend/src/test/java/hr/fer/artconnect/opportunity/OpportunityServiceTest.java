@@ -63,7 +63,7 @@ class OpportunityServiceTest {
     private final OpportunityDeletionGuard deletionGuard = mock(OpportunityDeletionGuard.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-10-26T10:00:00Z"), ZoneOffset.UTC);
     private final OpportunityService service = new OpportunityService(
-            opportunities, types, fields, profiles, currentUser, new OpportunityMapper(), deletionGuard, new ZeroApplicationCountsProvider() clock);
+            opportunities, types, fields, profiles, currentUser, new OpportunityMapper(), deletionGuard, new ZeroApplicationCountsProvider(), clock);
 
     @BeforeEach
     void organizer() {
