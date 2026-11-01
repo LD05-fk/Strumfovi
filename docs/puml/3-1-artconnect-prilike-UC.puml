@@ -1,0 +1,43 @@
+@startuml
+top to bottom direction
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+skinparam actor {
+    BackgroundColor #F8F9FA
+    BorderColor #212529
+    BackgroundColor<<vanjski sustav>> #FFF3CD
+    BorderColor<<vanjski sustav>> #856404
+    BackgroundColor<<vremenski okidač>> #E2E3E5
+    BorderColor<<vremenski okidač>> #6C757D
+}
+
+skinparam usecase {
+    BackgroundColor #E7F1FF
+    BorderColor #0D6EFD
+}
+
+actor "Posjetitelj" as Posjetitelj
+actor "Umjetnik" as Umjetnik
+actor "Organizator" as Organizator
+
+rectangle "ArtConnect" {
+  package "Prilike" {
+    usecase "UC-04\nUpravljati prilikama" as UC04
+    usecase "UC-05\nPregledati prilike" as UC05
+  }
+}
+
+together {
+  actor "OpenStreetMap / Nominatim" as OSM <<vanjski sustav>>
+  actor "Planer" as Planer <<vremenski okidač>>
+}
+
+Posjetitelj -- UC05
+Umjetnik -- UC05
+Organizator -- UC04
+
+UC04 -- OSM
+UC05 -- OSM
+UC04 -- Planer
+@enduml
