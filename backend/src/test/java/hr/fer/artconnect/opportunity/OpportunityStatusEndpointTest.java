@@ -26,6 +26,7 @@ import hr.fer.artconnect.opportunity.domain.Location;
 import hr.fer.artconnect.opportunity.domain.Opportunity;
 import hr.fer.artconnect.opportunity.domain.OpportunityRepository;
 import hr.fer.artconnect.opportunity.domain.OpportunityStatus;
+import hr.fer.artconnect.opportunity.service.ApplicationCountsProvider;
 import hr.fer.artconnect.opportunity.service.OpportunityMapper;
 import hr.fer.artconnect.opportunity.service.OpportunityService;
 import hr.fer.artconnect.opportunity.web.OpportunityController;
@@ -64,6 +65,7 @@ class OpportunityStatusEndpointTest {
     @MockitoBean OpportunityTypeRepository types;
     @MockitoBean ArtFieldRepository artFields;
     @MockitoBean OrganizerProfileRepository profiles;
+    @MockitoBean ApplicationCountsProvider applicationCounts;
     @MockitoBean(name = "geocodingClock") Clock clock;
     private User organizer;
     private Opportunity opportunity;

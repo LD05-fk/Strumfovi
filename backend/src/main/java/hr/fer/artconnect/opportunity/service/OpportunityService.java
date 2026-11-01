@@ -11,6 +11,7 @@ import hr.fer.artconnect.catalog.domain.OpportunityTypeRepository;
 import hr.fer.artconnect.common.ApiException;
 import hr.fer.artconnect.common.ErrorCode;
 import hr.fer.artconnect.common.FieldIssue;
+import hr.fer.artconnect.common.PageResponse;
 import hr.fer.artconnect.opportunity.domain.Location;
 import hr.fer.artconnect.opportunity.domain.LocationType;
 import hr.fer.artconnect.opportunity.domain.Opportunity;
@@ -21,6 +22,8 @@ import hr.fer.artconnect.opportunity.web.LocationInput;
 import hr.fer.artconnect.opportunity.web.OpportunityDto;
 import hr.fer.artconnect.opportunity.web.OpportunityInput;
 import hr.fer.artconnect.opportunity.web.OpportunityStatusChange;
+import hr.fer.artconnect.opportunity.web.OrganizerOpportunity;
+import hr.fer.artconnect.opportunity.web.OrganizerOpportunityQueryParams;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Clock;
@@ -32,6 +35,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,19 +47,33 @@ public class OpportunityService {
     private final OrganizerProfileRepository profiles;
     private final CurrentUserProvider currentUser;
     private final OpportunityMapper mapper;
+    private final ApplicationCountsProvider applicationCounts;
     private final Clock clock;
 
     public OpportunityService(OpportunityRepository opportunities, OpportunityTypeRepository types,
             ArtFieldRepository artFields, OrganizerProfileRepository profiles, CurrentUserProvider currentUser,
-            OpportunityMapper mapper, @Qualifier("geocodingClock") Clock clock) {
+            OpportunityMapper mapper, ApplicationCountsProvider applicationCounts,
+            @Qualifier("geocodingClock") Clock clock) {
         this.opportunities = opportunities;
         this.types = types;
         this.artFields = artFields;
         this.profiles = profiles;
         this.currentUser = currentUser;
         this.mapper = mapper;
+        this.applicationCounts = applicationCounts;
         // Postojeći UTC Clock dijelimo s geokodiranjem umjesto dodavanja drugog UTC beana.
         this.clock = clock;
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<OrganizerOpportunity> getMyOpportunities(OrganizerOpportunityQueryParams params) {
+        User organizer = requireOrganizer();
+        var page = opportunities.findOrganizerOpportunities(organizer.getId(), params.isArchived(),
+                params.getStatus(), params.toPageable(Sort.by(
+                        Sort.Order.desc("createdAt"), Sort.Order.asc("id"))));
+        var profile = profiles.findById(organizer.getId()).orElse(null);
+        return PageResponse.from(page.map(opportunity -> mapper.toOrganizerOpportunity(opportunity, profile,
+                applicationCounts.getCounts(opportunity.getId()))));
     }
 
     @Transactional

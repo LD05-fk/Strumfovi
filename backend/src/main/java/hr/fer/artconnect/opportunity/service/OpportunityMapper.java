@@ -4,10 +4,12 @@ import hr.fer.artconnect.auth.domain.OrganizerProfile;
 import hr.fer.artconnect.catalog.domain.CatalogEntry;
 import hr.fer.artconnect.opportunity.domain.Location;
 import hr.fer.artconnect.opportunity.domain.Opportunity;
+import hr.fer.artconnect.opportunity.web.ApplicationCounts;
 import hr.fer.artconnect.opportunity.web.CatalogRef;
 import hr.fer.artconnect.opportunity.web.LocationDto;
 import hr.fer.artconnect.opportunity.web.OpportunityDto;
 import hr.fer.artconnect.opportunity.web.OpportunitySummary;
+import hr.fer.artconnect.opportunity.web.OrganizerOpportunity;
 import hr.fer.artconnect.opportunity.web.OrganizerSummary;
 import java.util.Comparator;
 import java.util.List;
@@ -34,6 +36,16 @@ public class OpportunityMapper {
                 artFields(opportunity), opportunity.getDeadline(), opportunity.getStatus(),
                 location.getType(), location.getCity(), location.getLatitude(), location.getLongitude(),
                 opportunity.getEventStart(), organizer(opportunity, profile));
+    }
+
+    public OrganizerOpportunity toOrganizerOpportunity(Opportunity opportunity, OrganizerProfile profile,
+            ApplicationCounts applicationCounts) {
+        OpportunitySummary summary = toSummary(opportunity, profile);
+        return new OrganizerOpportunity(
+                summary.id(), summary.title(), summary.type(), summary.artFields(), summary.deadline(),
+                summary.status(), summary.locationType(), summary.city(), summary.latitude(), summary.longitude(),
+                summary.eventStart(), summary.organizer(), opportunity.isArchived(), opportunity.isHiddenByAdmin(),
+                applicationCounts);
     }
 
     private CatalogRef catalogRef(CatalogEntry entry) {
