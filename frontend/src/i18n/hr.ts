@@ -147,6 +147,25 @@ export const hr = {
     },
   },
 
+  organizerProfile: {
+    pageTitle: 'Moj profil',
+    displayName: 'Ime i prezime (s Google računa)',
+    approval: 'Status odobrenja',
+    approved: 'Odobren',
+    pendingApproval: 'Čeka odobrenje',
+    pendingHint:
+      'Dok administrator ne odobri vaš račun, ne možete objavljivati prilike.',
+    organizationName: 'Naziv organizacije',
+    organizationNameMissing: 'Naziv organizacije nije unesen',
+    organizationNamePlaceholder: 'Npr. Galerija Gradec',
+    organizationNameCharacterCount: (count: number) => `${count}/200`,
+    saveProfile: 'Spremi',
+    saving: 'Spremanje…',
+    saved: 'Profil spremljen',
+    organizationNameTooLong:
+      'Naziv organizacije smije imati najviše 200 znakova.',
+  },
+
   map: {
     ariaLabel: 'Karta lokacije prilike',
     unavailable: 'Karta trenutno nije dostupna.',

@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
+import org.hibernate.annotations.BatchSize;
 
 @Entity
 @Table(name = "opportunities")
@@ -39,6 +40,7 @@ public class Opportunity {
     private OpportunityType type;
 
     @ManyToMany
+    @BatchSize(size = 50)
     @JoinTable(name = "opportunity_art_fields",
             joinColumns = @JoinColumn(name = "opportunity_id"),
             inverseJoinColumns = @JoinColumn(name = "art_field_id"))

@@ -185,6 +185,61 @@ uz ažurirane vrijednosti i očuvane podatke o statusu i vlasniku.
 
 Greške koriste istu zajedničku omotnicu kao kod stvaranja.
 
+## GET /api/v1/me/opportunities
+
+Vraća prilike prijavljenog organizatora, uključujući sve statuse i prilike
+skrivene od administratora. Prilike drugih organizatora nikad se ne vraćaju.
+Potrebna je aktivna sesija i uloga `ORGANIZER`; status odobrenja organizatora
+ne ograničava čitanje.
+
+| Parametar | Obavezno | Zadano | Ograničenje |
+| --- | --- | --- | --- |
+| `status` | ne | — | jedan `OpportunityStatus`: `PREPARATION`, `OPEN`, `CLOSED`, `SELECTION` ili `FINISHED` |
+| `archived` | ne | `false` | `false` vraća nearhivirane, `true` arhivirane prilike |
+| `page` | ne | `1` | najmanje 1 |
+| `pageSize` | ne | `20` | 1–100 |
+
+Poredak je `createdAt DESC`, pa `id ASC` za stabilan redoslijed. Odgovor
+koristi uobičajenu omotnicu stranice (`data`, `meta`) i u svakom zapisu
+sadrži `OpportunitySummary` te `archived`, `hiddenByAdmin` i `applicationCounts`.
+Primjer:
+
+```json
+{
+  "data": [{
+    "id": "00000000-0000-4000-8000-000000000001",
+    "title": "Izložba mladih umjetnika",
+    "type": { "id": "00000000-0000-4000-8000-000000000002", "code": "exhibition", "name": "Izložba" },
+    "artFields": [],
+    "deadline": "2027-01-10T23:00:00+01:00",
+    "status": "OPEN",
+    "locationType": "PHYSICAL",
+    "city": "Zagreb",
+    "latitude": 45.813123,
+    "longitude": 15.977123,
+    "eventStart": null,
+    "organizer": { "id": "00000000-0000-4000-8000-000000000003", "displayName": "Galerija", "organizationName": null },
+    "archived": false,
+    "hiddenByAdmin": false,
+    "applicationCounts": {
+      "total": 0, "submitted": 0, "underReview": 0,
+      "needsInfo": 0, "accepted": 0, "rejected": 0
+    }
+  }],
+  "meta": { "page": 1, "pageSize": 20, "total": 1 }
+}
+```
+
+`applicationCounts` zasad uvijek sadrži nule jer tablica prijava još ne postoji.
+Stvarni brojevi bit će dodani u APP-02-BE5.
+
+| HTTP | Kod | Razlog |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | neispravan status, `archived`, stranica ili veličina stranice |
+| 401 | `UNAUTHENTICATED` | nema valjane sesije |
+| 403 | `FORBIDDEN` | korisnik nema ulogu organizatora |
+| 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
+
 ## POST /opportunities/{opportunityId}/status
 
 `POST /api/v1/opportunities/{opportunityId}/status` mijenja status vlastite prilike.
