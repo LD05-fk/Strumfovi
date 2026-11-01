@@ -1,0 +1,50 @@
+@startuml
+' Obrasci uporabe: računi i portfolio (DOC-10, §3.1). UC-11 je opcionalan.
+left to right direction
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+skinparam actor {
+    BackgroundColor #F8F9FA
+    BorderColor #212529
+    BackgroundColor<<vanjski sustav>> #FFF3CD
+    BorderColor<<vanjski sustav>> #856404
+}
+
+skinparam usecase {
+    BackgroundColor #E7F1FF
+    BorderColor #0D6EFD
+}
+
+actor "Posjetitelj" as Posjetitelj
+actor "Prijavljeni korisnik" as Prijavljeni
+actor "Umjetnik" as Umjetnik
+actor "Organizator" as Organizator
+actor "Google OAuth 2.0" as GoogleOAuth <<vanjski sustav>>
+
+Umjetnik --|> Prijavljeni
+Organizator --|> Prijavljeni
+
+rectangle "ArtConnect" {
+  package "Računi i portfolio" {
+    usecase "UC-01\nPrijaviti se i upravljati računom" as UC01
+    usecase "UC-02\nUrediti profil i portfolio" as UC02
+    usecase "UC-03\nPregledati javne profile i portfolije" as UC03
+  }
+
+  package "Opcionalno" #line.dashed {
+    usecase "UC-11\nPregledati obavijesti" as UC11
+  }
+}
+
+Posjetitelj -- UC01
+Posjetitelj -- UC03
+
+Prijavljeni -- UC01
+Prijavljeni -- UC11
+
+Umjetnik -- UC02
+Organizator -- UC02
+
+UC01 -right- GoogleOAuth
+@enduml

@@ -1,0 +1,38 @@
+@startuml
+' Obrasci uporabe: prijave i rezultati (DOC-10, §3.1).
+left to right direction
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+skinparam actor {
+    BackgroundColor #F8F9FA
+    BorderColor #212529
+    BackgroundColor<<vanjski sustav>> #FFF3CD
+    BorderColor<<vanjski sustav>> #856404
+}
+
+skinparam usecase {
+    BackgroundColor #E7F1FF
+    BorderColor #0D6EFD
+}
+
+actor "Umjetnik" as Umjetnik
+actor "Organizator" as Organizator
+actor "Google Calendar" as GoogleCalendar <<vanjski sustav>>
+
+rectangle "ArtConnect" {
+  package "Prijave i rezultati" {
+    usecase "UC-06\nPostaviti uvjete i prijaviti se na priliku" as UC06
+    usecase "UC-07\nOdlučivati o prijavama" as UC07
+    usecase "UC-08\nObjaviti rezultate i dodati u kalendar" as UC08
+  }
+}
+
+Umjetnik -- UC06
+Umjetnik -- UC07
+Umjetnik -- UC08
+Organizator -- UC06
+Organizator -- UC07
+Organizator -- UC08
+UC08 -right- GoogleCalendar
+@enduml
