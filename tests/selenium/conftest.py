@@ -19,6 +19,7 @@ def driver():
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
     browser = webdriver.Chrome(options=options)
     browser.implicitly_wait(0)
 
@@ -28,8 +29,11 @@ def driver():
 
 @pytest.fixture
 def login_as(driver, base_url):
+    sessions = []
+
     def _login_as(email):
         session = requests.Session()
+        sessions.append(session)
         response = session.post(
             f"{base_url}/api/v1/dev/login-as",
             json={"email": email},
@@ -39,14 +43,59 @@ def login_as(driver, base_url):
             raise RuntimeError("dev/login-as ne postoji.")
         response.raise_for_status()
 
+        csrf = session.get(f"{base_url}/api/v1/auth/csrf", timeout=10)
+        csrf.raise_for_status()
+        session.headers["X-XSRF-TOKEN"] = csrf.json()["token"]
+
         driver.get(base_url)
         for cookie in session.cookies:
             driver.add_cookie(
                 {"name": cookie.name, "value": cookie.value, "path": "/"}
             )
         driver.refresh()
+        return session
 
-    return _login_as
+    yield _login_as
+    for session in sessions:
+        try:
+            response = session.post(f"{base_url}/api/v1/auth/logout", timeout=10)
+            response.raise_for_status()
+        finally:
+            session.close()
+
+
+@pytest.fixture
+def portfolio_artist(login_as, base_url):
+    """Svaki test počinje praznim obrascem, a zatim vraća izvorni dev profil."""
+    session = login_as("umjetnik@artconnect.test")
+    path = f"{base_url}/api/v1/me/artist-profile"
+    response = session.get(path, timeout=10)
+    response.raise_for_status()
+    original = response.json()
+    original_update = {
+        "biography": original["biography"],
+        "artistStatement": original["artistStatement"],
+        "artFieldIds": [field["id"] for field in original["artFields"]],
+        "links": [
+            {"label": link["label"], "url": link["url"]}
+            for link in original["links"]
+        ],
+    }
+    try:
+        response = session.put(path, json={
+            "biography": None,
+            "artistStatement": None,
+            "artFieldIds": [],
+            "links": [],
+        }, timeout=10)
+        response.raise_for_status()
+        fields = session.get(f"{base_url}/api/v1/art-fields?pageSize=100", timeout=10)
+        fields.raise_for_status()
+        yield fields.json()["data"]
+    finally:
+        # I kod pada testa uklanjamo njegove unose i vraćamo spremljeni sadržaj.
+        restored = session.put(path, json=original_update, timeout=10)
+        restored.raise_for_status()
 
 
 @pytest.fixture
