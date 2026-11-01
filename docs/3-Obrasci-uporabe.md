@@ -105,22 +105,25 @@ Detalji su u [API dokumentaciji prilika](api/opportunities.md#put-opportunitieso
 - **Cilj:** pregledati profil i promijeniti naziv organizacije.
 - **Preduvjet:** valjana sesija s ulogom `ORGANIZER`; za spremanje je potreban CSRF token.
 - **Rezultat:** naziv organizacije je spremljen ili obrisan; ime i odobrenje ostaju nepromijenjeni.
+- **Sučelje:** `/profile` prikazuje ime s Google računa samo za čitanje, status odobrenja i obrazac za naziv organizacije. Za `APPROVED` prikazuje „Odobren”, a za `PENDING` „Čeka odobrenje” uz napomenu da organizator još ne može objavljivati prilike.
 
 ### Osnovni tijek
 
 1. Organizator otvara stranicu `/profile`.
-2. Sučelje dohvaća `GET /api/v1/me/organizer-profile`.
+2. Sučelje prikazuje stanje učitavanja i dohvaća `GET /api/v1/me/organizer-profile`.
 3. Sustav vraća ime organizatora, naziv organizacije i status odobrenja. Ako profilni red ne postoji, naziv je `null`.
-4. Organizator unosi ili mijenja naziv organizacije i sprema obrazac.
-5. Sučelje šalje `PUT /api/v1/me/organizer-profile` uz sesiju i CSRF token.
-6. Sustav obrezuje naziv, sprema ga (ili `null` za praznu vrijednost), osvježava `updated_at` i vraća spremljeni profil.
+4. Sučelje prikazuje profil; `null` naziv prikazuje se kao prazno polje. Organizator unosi ili mijenja naziv organizacije i sprema obrazac.
+5. Sučelje obrezuje unos, provjerava da naziv ne prelazi 200 znakova i onemogućuje gumb dok je spremanje u tijeku.
+6. Sučelje šalje `PUT /api/v1/me/organizer-profile` uz sesiju i CSRF token. Prazan ili samo razmacima ispunjen naziv šalje se kao `null`.
+7. Sustav sprema naziv, osvježava `updated_at` i vraća spremljeni profil. Sučelje osvježava podatke profila i prikazuje poruku „Profil spremljen”.
 
 ### Alternativni tijekovi
 
 - Organizator koji čeka odobrenje može urediti profil; odobrenje se ovim zahtjevom ne mijenja.
 - Ako profilni red ne postoji, uspješan PUT stvara ga.
 - Izostavljeno polje `organizationName`, `null`, prazan niz ili niz samo od razmaka sprema se kao `null`.
-- Naziv dulji od 200 znakova vraća `400 VALIDATION_ERROR`.
+- Naziv dulji od 200 znakova zaustavlja se klijentskom validacijom; polje prikazuje poruku o pogrešci i PUT se ne šalje. Ako API vrati `400 VALIDATION_ERROR` s detaljem za `organizationName`, poruka se prikazuje uz polje.
+- Ako učitavanje ne uspije, sučelje prikazuje grešku i mogućnost ponovnog pokušaja. Greške spremanja koje nisu mapirane na polje prikazuju se kao obavijest.
 - Bez valjane sesije sustav vraća `401 UNAUTHENTICATED`; bez uloge organizatora, uz onboarding, blokiran račun ili nedostajući/nevaljan CSRF token vraća odgovarajući `403`.
 
 ## Dodavanje djela u portfolio
