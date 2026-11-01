@@ -30,7 +30,7 @@ Detaljni dijagrami po skupinama obrazaca:
 | UC-11 | Pregledati obavijesti **(opcionalno)** | Prijavljeni korisnik |
 | UC-12 | Pregledati dnevnik administratorskih radnji **(opcionalno)** | Administrator |
 
-Veze između obrazaca i zahtjeva nalaze se u [matrici sljedivosti](2-Analiza-zahtjeva.md#26-sljedivost-zahtjeva).
+Veze između obrazaca i zahtjeva bit će u [matrici sljedivosti](2-Analiza-zahtjeva.md#26-sljedivost-zahtjeva) kad ona bude ispunjena.
 
 ## 3.2 Specifikacije obrazaca uporabe
 
@@ -188,6 +188,6 @@ Detalji su u [API dokumentaciji administracije](api/admin.md).
 | Provjera | Pitanje za tim |
 | --- | --- |
 | Dijagram i tablica | Imaju li svi obrasci na dijagramu ID u tablici u 3.1 i odjeljak u 3.2? |
-| Zahtjevi | Je li svaki obrazac povezan s odobrenim funkcijskim zahtjevom u [matrici sljedivosti](2-Analiza-zahtjeva.md#26-sljedivost-zahtjeva)? |
-| Akteri | Odgovaraju li akteri ulogama iz [analize](2-Analiza-zahtjeva.md#23-dionici-i-akteri) i dopuštenim radnjama? |
+| Zahtjevi | Je li svaki obrazac povezan s odobrenim funkcijskim zahtjevom? Veze će biti u matrici sljedivosti (§2.6) kad bude ispunjena. |
+| Akteri | Odgovaraju li akteri ulogama koje će biti opisane u §2.3 i dopuštenim radnjama? |
 | Aplikacija | Može li tim demonstrirati glavni tok i važnu alternativu? |
