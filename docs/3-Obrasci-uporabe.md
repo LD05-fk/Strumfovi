@@ -77,7 +77,7 @@ Detalji su u [API dokumentaciji umjetnika](api/artists.md) i [djela](api/artwork
 | Element specifikacije | Opis |
 | :--- | :--- |
 | **Primarni akter** | Organizator (vlasnik prilike) |
-| **Vanjski akter** | Planer (automatsko zatvaranje prijava nakon roka) |
+| **Vanjski akter** | OpenStreetMap/Nominatim (geokodiranje adrese), Planer (automatsko zatvaranje prijava nakon roka) |
 | **Povezani zahtjevi** | FR-03, FR-04 |
 | **Preduvjeti** | Organizator ima aktivan račun s ulogom `ORGANIZER` i prijavljenu sesiju. |
 | **Glavni uspješni tok** | 1. Organizator unosi naslov, opis, vrstu, područja umjetnosti, rok i lokaciju (fizička s koordinatama ili online s poveznicom); sustav sprema nacrt u statusu `PREPARATION`.<br>2. Organizator uređuje priliku (`PUT /api/v1/opportunities/{id}`); status ostaje isti.<br>3. Organizator pregledava svoje prilike (`GET /api/v1/me/opportunities`) i filtrira ih po statusu ili arhiviranosti.<br>4. Organizator mijenja status prilike (`POST /api/v1/opportunities/{id}/status`): `PREPARATION` → `OPEN`, `OPEN` → `CLOSED` ili `CLOSED` → `SELECTION`.<br>5. Organizator briše priliku ili je arhivira. |
@@ -91,6 +91,7 @@ Detalji su u [API dokumentaciji prilika](api/opportunities.md), za [pregled](api
 | Element specifikacije | Opis |
 | :--- | :--- |
 | **Primarni akter** | Posjetitelj, umjetnik |
+| **Vanjski akter** | OpenStreetMap/Nominatim (karta i pretraga lokacija) |
 | **Povezani zahtjevi** | FR-04 |
 | **Preduvjeti** | Nema; pregled ne traži prijavu. |
 | **Glavni uspješni tok** | 1. Korisnik otvara popis prilika ili kartu.<br>2. Pretražuje i filtrira prilike (područje umjetnosti, vrsta prilike).<br>3. Otvara pojedinu priliku. |
