@@ -5,13 +5,19 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import hr.fer.artconnect.auth.domain.UserRepository;
 import hr.fer.artconnect.support.IntegrationTestBase;
+import hr.fer.artconnect.support.TestPrincipals;
+import jakarta.persistence.EntityManagerFactory;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -20,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,6 +34,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.test.context.TestSecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.ObjectMapper;
@@ -36,6 +44,8 @@ class OpportunityIntegrationTest extends IntegrationTestBase {
     private static final String NOW = "2026-10-26T10:00:00Z";
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper objectMapper;
+    @Autowired UserRepository users;
+    @Autowired EntityManagerFactory entityManagerFactory;
     @MockitoBean(name = "geocodingClock") Clock clock;
     private UUID typeId;
     private UUID fieldId;
@@ -294,6 +304,113 @@ class OpportunityIntegrationTest extends IntegrationTestBase {
         }
     }
 
+    @Test
+    void organizatorDohvacaSamoSvojePrilikeUArhivskimIStatusnimFiltrima() throws Exception {
+        UUID owner = loginAs("ORGANIZER");
+        UUID preparation = createOpportunity(validRequest());
+        UUID open = createOpportunity(validRequest());
+        UUID closed = createOpportunity(validRequest());
+        UUID archived = createOpportunity(validRequest());
+        jdbc.update("UPDATE opportunities SET created_at = '2026-10-24T10:00:00Z' WHERE id = ?", preparation);
+        jdbc.update("UPDATE opportunities SET status = 'OPEN', hidden_by_admin = true, "
+                + "created_at = '2026-10-26T09:00:00Z' WHERE id = ?", open);
+        jdbc.update("UPDATE opportunities SET status = 'CLOSED', "
+                + "created_at = '2026-10-25T10:00:00Z' WHERE id = ?", closed);
+        jdbc.update("UPDATE opportunities SET status = 'OPEN', archived = true, hidden_by_admin = true, "
+                + "created_at = '2026-10-26T08:00:00Z' WHERE id = ?", archived);
+
+        UUID otherOwner = loginAs("ORGANIZER");
+        UUID otherOpportunity = createOpportunity(validRequest());
+        TestSecurityContextHolder.setAuthentication(
+                TestPrincipals.authentication(users.findById(owner).orElseThrow()));
+
+        mockMvc.perform(get("/api/v1/me/opportunities"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(3))
+                .andExpect(jsonPath("$.data[0].id").value(open.toString()))
+                .andExpect(jsonPath("$.data[0].hiddenByAdmin").value(true))
+                .andExpect(jsonPath("$.data[1].id").value(closed.toString()))
+                .andExpect(jsonPath("$.data[2].id").value(preparation.toString()))
+                .andExpect(jsonPath("$.meta.page").value(1))
+                .andExpect(jsonPath("$.meta.pageSize").value(20))
+                .andExpect(jsonPath("$.meta.total").value(3))
+                .andExpect(jsonPath("$.data[0].applicationCounts.total").value(0))
+                .andExpect(jsonPath("$.data[0].applicationCounts.submitted").value(0))
+                .andExpect(jsonPath("$.data[0].applicationCounts.underReview").value(0))
+                .andExpect(jsonPath("$.data[0].applicationCounts.needsInfo").value(0))
+                .andExpect(jsonPath("$.data[0].applicationCounts.accepted").value(0))
+                .andExpect(jsonPath("$.data[0].applicationCounts.rejected").value(0));
+
+        mockMvc.perform(get("/api/v1/me/opportunities").param("status", "OPEN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].id").value(open.toString()));
+
+        mockMvc.perform(get("/api/v1/me/opportunities").param("archived", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].id").value(archived.toString()))
+                .andExpect(jsonPath("$.data[0].archived").value(true))
+                .andExpect(jsonPath("$.data[0].hiddenByAdmin").value(true));
+
+        assertThat(otherOwner).isNotEqualTo(owner);
+        assertThat(otherOpportunity).isNotIn(open, closed, preparation, archived);
+    }
+
+    @Test
+    void artistNeMozeDohvatitiOrganizatorovePrilike() throws Exception {
+        loginAs("ARTIST");
+
+        mockMvc.perform(get("/api/v1/me/opportunities"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    void anonimniKorisnikNeMozeDohvatitiOrganizatorovePrilike() throws Exception {
+        mockMvc.perform(get("/api/v1/me/opportunities").with(anonymous()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
+    }
+
+    @Test
+    void neispravanFilterVracaValidationError() throws Exception {
+        loginAs("ORGANIZER");
+
+        mockMvc.perform(get("/api/v1/me/opportunities").param("status", "UNKNOWN"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void dohvatStraniceNeRadiNPlusJedanZaVrstuIPodrucja() throws Exception {
+        loginAs("ORGANIZER");
+        UUID first = createOpportunity(validRequest());
+        UUID second = createOpportunity(validRequest());
+        UUID third = createOpportunity(validRequest());
+        jdbc.update("UPDATE opportunities SET archived = true WHERE id IN (?, ?)", second, third);
+
+        var statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        statistics.setStatisticsEnabled(true);
+        statistics.clear();
+        try {
+            mockMvc.perform(get("/api/v1/me/opportunities"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.length()").value(1));
+            long oneOpportunityStatements = statistics.getPrepareStatementCount();
+
+            jdbc.update("UPDATE opportunities SET archived = false WHERE id IN (?, ?, ?)", first, second, third);
+            statistics.clear();
+            mockMvc.perform(get("/api/v1/me/opportunities"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.length()").value(3));
+
+            assertThat(statistics.getPrepareStatementCount()).isEqualTo(oneOpportunityStatements);
+        } finally {
+            statistics.setStatisticsEnabled(false);
+        }
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"typeId", "artFieldIds"})
     void uredivanjeOdbijaNoviNeaktivniSifrarnikBezPromjena(String field) throws Exception {
@@ -343,6 +460,84 @@ class OpportunityIntegrationTest extends IntegrationTestBase {
                 .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
     }
 
+    @Test
+    void vlasnikBriseSvojuPrilikuIVezeSPodrucjima() throws Exception {
+        loginAs("ORGANIZER");
+        UUID id = createOpportunity(validRequest());
+
+        remove(id).andExpect(status().isNoContent()).andExpect(content().string(""));
+
+        assertEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ORGANIZER", "ARTIST"})
+    void drugiKorisnikNeMozeObrisatiPriliku(String role) throws Exception {
+        loginAs("ORGANIZER");
+        UUID id = createOpportunity(validRequest());
+        var before = jdbc.queryForMap("SELECT * FROM opportunities WHERE id = ?", id);
+        loginAs(role);
+
+        remove(id).andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+
+        assertThat(jdbc.queryForMap("SELECT * FROM opportunities WHERE id = ?", id)).isEqualTo(before);
+    }
+
+    @Test
+    void brisanjeTraziSesijuIPostojecuPriliku() throws Exception {
+        mockMvc.perform(delete(PATH + "/" + UUID.randomUUID()).with(anonymous()).with(withCsrf()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
+        loginAs("ORGANIZER");
+        remove(UUID.randomUUID()).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void vlasnikArhiviraOtvorenuPrilikuIPonovljeniZahtjevNistaNeMijenja() throws Exception {
+        loginAs("ORGANIZER");
+        UUID id = createOpportunity(validRequest());
+        jdbc.update("UPDATE opportunities SET status = 'OPEN' WHERE id = ?", id);
+
+        archive(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.archived").value(true))
+                .andExpect(jsonPath("$.status").value("CLOSED"))
+                .andExpect(jsonPath("$.updatedAt").value(NOW));
+
+        // Pomaknuto vrijeme izmjene pokazuje da ponovljeni zahtjev ne piše u bazu.
+        jdbc.update("UPDATE opportunities SET updated_at = '2026-01-01T00:00:00Z' WHERE id = ?", id);
+        archive(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.archived").value(true))
+                .andExpect(jsonPath("$.status").value("CLOSED"));
+        assertThat(jdbc.queryForObject("SELECT updated_at = '2026-01-01T00:00:00Z' FROM opportunities WHERE id = ?",
+                Boolean.class, id)).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ORGANIZER", "ARTIST"})
+    void drugiKorisnikNeMozeArhiviratiPriliku(String role) throws Exception {
+        loginAs("ORGANIZER");
+        UUID id = createOpportunity(validRequest());
+        var before = jdbc.queryForMap("SELECT * FROM opportunities WHERE id = ?", id);
+        loginAs(role);
+
+        archive(id).andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+
+        assertThat(jdbc.queryForMap("SELECT * FROM opportunities WHERE id = ?", id)).isEqualTo(before);
+    }
+
+    @Test
+    void arhiviranjeTraziSesijuIPostojecuPriliku() throws Exception {
+        mockMvc.perform(post(PATH + "/" + UUID.randomUUID() + "/archive").with(anonymous()).with(withCsrf()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
+        loginAs("ORGANIZER");
+        archive(UUID.randomUUID()).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+
     private UUID createOpportunity(Map<String, Object> request) throws Exception {
         var response = send(request).andExpect(status().isCreated()).andReturn().getResponse();
         return UUID.fromString(objectMapper.readTree(response.getContentAsString()).get("id").asString());
@@ -351,6 +546,14 @@ class OpportunityIntegrationTest extends IntegrationTestBase {
     private ResultActions update(UUID id, Map<String, Object> request) throws Exception {
         return mockMvc.perform(put(PATH + "/" + id).with(withCsrf()).contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)));
+    }
+
+    private ResultActions archive(UUID id) throws Exception {
+        return mockMvc.perform(post(PATH + "/" + id + "/archive").with(withCsrf()));
+    }
+
+    private ResultActions remove(UUID id) throws Exception {
+        return mockMvc.perform(delete(PATH + "/" + id).with(withCsrf()));
     }
 
     private void invalid(Map<String, Object> request, String field) throws Exception {

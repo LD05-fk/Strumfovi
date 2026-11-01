@@ -185,6 +185,61 @@ uz ažurirane vrijednosti i očuvane podatke o statusu i vlasniku.
 
 Greške koriste istu zajedničku omotnicu kao kod stvaranja.
 
+## GET /api/v1/me/opportunities
+
+Vraća prilike prijavljenog organizatora, uključujući sve statuse i prilike
+skrivene od administratora. Prilike drugih organizatora nikad se ne vraćaju.
+Potrebna je aktivna sesija i uloga `ORGANIZER`; status odobrenja organizatora
+ne ograničava čitanje.
+
+| Parametar | Obavezno | Zadano | Ograničenje |
+| --- | --- | --- | --- |
+| `status` | ne | — | jedan `OpportunityStatus`: `PREPARATION`, `OPEN`, `CLOSED`, `SELECTION` ili `FINISHED` |
+| `archived` | ne | `false` | `false` vraća nearhivirane, `true` arhivirane prilike |
+| `page` | ne | `1` | najmanje 1 |
+| `pageSize` | ne | `20` | 1–100 |
+
+Poredak je `createdAt DESC`, pa `id ASC` za stabilan redoslijed. Odgovor
+koristi uobičajenu omotnicu stranice (`data`, `meta`) i u svakom zapisu
+sadrži `OpportunitySummary` te `archived`, `hiddenByAdmin` i `applicationCounts`.
+Primjer:
+
+```json
+{
+  "data": [{
+    "id": "00000000-0000-4000-8000-000000000001",
+    "title": "Izložba mladih umjetnika",
+    "type": { "id": "00000000-0000-4000-8000-000000000002", "code": "exhibition", "name": "Izložba" },
+    "artFields": [],
+    "deadline": "2027-01-10T23:00:00+01:00",
+    "status": "OPEN",
+    "locationType": "PHYSICAL",
+    "city": "Zagreb",
+    "latitude": 45.813123,
+    "longitude": 15.977123,
+    "eventStart": null,
+    "organizer": { "id": "00000000-0000-4000-8000-000000000003", "displayName": "Galerija", "organizationName": null },
+    "archived": false,
+    "hiddenByAdmin": false,
+    "applicationCounts": {
+      "total": 0, "submitted": 0, "underReview": 0,
+      "needsInfo": 0, "accepted": 0, "rejected": 0
+    }
+  }],
+  "meta": { "page": 1, "pageSize": 20, "total": 1 }
+}
+```
+
+`applicationCounts` zasad uvijek sadrži nule jer tablica prijava još ne postoji.
+Stvarni brojevi bit će dodani u APP-02-BE5.
+
+| HTTP | Kod | Razlog |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | neispravan status, `archived`, stranica ili veličina stranice |
+| 401 | `UNAUTHENTICATED` | nema valjane sesije |
+| 403 | `FORBIDDEN` | korisnik nema ulogu organizatora |
+| 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
+
 ## POST /opportunities/{opportunityId}/status
 
 `POST /api/v1/opportunities/{opportunityId}/status` mijenja status vlastite prilike.
@@ -231,6 +286,61 @@ objava bez odobrenja vraća `403 ORGANIZER_NOT_APPROVED`.
 automatskog zatvaranja (OPP-04-BE1) može koristiti istu provjeru za `OPEN → CLOSED`;
 taj posao nije dio ove rute. [Dijagram stanja](../puml/4-6-artconnect-opportunity-SM.puml)
 prikazuje životni ciklus i zasebnu objavu rezultata.
+
+## POST /opportunities/{opportunityId}/archive
+
+`POST /api/v1/opportunities/{opportunityId}/archive` arhivira vlastitu priliku.
+Pristup ima prijavljeni, aktivni organizator uz sesijski kolačić i valjan CSRF
+token, kao kod promjene statusa. Zahtjev nema tijelo.
+
+Arhiviranje je dopušteno u svakom statusu, neovisno o roku i o tome ima li prilika
+prijave. Prilika u statusu `OPEN` istovremeno prelazi u `CLOSED`; ostali statusi
+ostaju nepromijenjeni. Zahtjev je idempotentan: arhiviranje već arhivirane prilike
+vraća `200 OK` i ne mijenja ni status ni `updatedAt`.
+
+Uspjeh vraća `200 OK` s punim objektom prilike kao kod stvaranja, uz `archived = true`
+i ažurirani `updatedAt`. Vraćanja iz arhive nema, a arhivirana prilika odbija svaku
+daljnju promjenu statusa s `409 INVALID_STATUS_TRANSITION`. Arhivirana prilika nije
+u javnoj pretrazi, ali ostaje dostupna organizatoru.
+
+| HTTP | Kod | Razlog |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | neispravan UUID |
+| 401 | `UNAUTHENTICATED` | nema valjane sesije |
+| 403 | `FORBIDDEN` | korisnik nije organizator ili vlasnik, račun nije aktivan ili CSRF token nije valjan |
+| 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
+| 403 | `USER_BLOCKED` | organizator je blokiran |
+| 404 | `NOT_FOUND` | prilika s navedenim ID-om ne postoji |
+
+Greške koriste istu zajedničku omotnicu kao kod stvaranja.
+
+## DELETE /opportunities/{opportunityId}
+
+`DELETE /api/v1/opportunities/{opportunityId}` briše vlastitu priliku. Pristup ima
+prijavljeni, aktivni organizator uz sesijski kolačić i valjan CSRF token, kao kod
+uređivanja. Zahtjev nema tijelo.
+
+Brisanje je dopušteno u svakom statusu, uključujući arhivirane i skrivene prilike.
+Uspjeh vraća `204 No Content` bez tijela. Uz red u `opportunities` kaskadno nestaju
+i veze u `opportunity_art_fields`. Ponovljeni zahtjev za istim ID-om vraća `404`.
+
+Prilika koja ima prijave ne briše se nego arhivira. Provjera je izdvojena u sučelje
+`OpportunityDeletionGuard`; u Fazi 1 tablica `applications` još ne postoji pa
+implementacija uvijek dopušta brisanje, a OPP-04-BE2 je zamjenjuje stvarnom
+provjerom i tek tada je `409 HAS_APPLICATIONS` moguć. Vlasništvo se provjerava
+prije te provjere, pa tuđa prilika uvijek vraća `403`, neovisno o prijavama.
+
+| HTTP | Kod | Razlog |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | neispravan UUID |
+| 401 | `UNAUTHENTICATED` | nema valjane sesije |
+| 403 | `FORBIDDEN` | korisnik nije organizator ili vlasnik, račun nije aktivan ili CSRF token nije valjan |
+| 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
+| 403 | `USER_BLOCKED` | organizator je blokiran |
+| 404 | `NOT_FOUND` | prilika s navedenim ID-om ne postoji |
+| 409 | `HAS_APPLICATIONS` | prilika ima prijave (aktivno od OPP-04-BE2) |
+
+Greške koriste istu zajedničku omotnicu kao kod stvaranja.
 
 ## `GET /api/v1/geocoding/search`
 

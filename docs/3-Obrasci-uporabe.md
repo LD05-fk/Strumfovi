@@ -151,29 +151,77 @@ Detalji i primjeri su u [API dokumentaciji prilika](api/opportunities.md#post-op
   s neaktivnim računom ili nevaljanim CSRF tokenom odgovarajući `403`.
 
 Detalji su u [API dokumentaciji prilika](api/opportunities.md#put-opportunitiesopportunityid).
-## UC-05 Urediti profil organizatora
+## Brisanje ili arhiviranje prilike
+
+- **Primarni sudionik:** organizator koji je vlasnik prilike.
+- **Zahtjevi:** FR-20 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
+- **Preduvjet:** aktivni račun s ulogom `ORGANIZER`, prijavljena sesija i valjan CSRF token.
+- **Rezultat:** vlastita prilika bez prijava trajno je uklonjena, a prilika s prijavama arhivirana.
+
+### Osnovni tijek
+
+1. Organizator na popisu svojih prilika traži brisanje i potvrđuje radnju.
+2. Sučelje šalje `DELETE /api/v1/opportunities/{opportunityId}` bez tijela.
+3. Sustav provjerava postoji li prilika i pripada li prijavljenom organizatoru.
+4. Sustav provjerava smije li se prilika obrisati, odnosno nema li prijava.
+5. Sustav u jednoj transakciji briše priliku i njezine veze s područjima umjetnosti.
+6. Sustav vraća `204 No Content` bez tijela.
+
+### Alternativni tijekovi
+
+- Brisanje je dopušteno u svakom statusu, i za arhivirane ili skrivene prilike.
+- Prilika s prijavama ne briše se nego arhivira; sustav vraća `409 HAS_APPLICATIONS`,
+  a sučelje nudi arhiviranje. Provjera je izdvojena u `OpportunityDeletionGuard` i
+  u Fazi 1 uvijek dopušta brisanje jer tablica prijava još ne postoji.
+- Nepostojeća prilika vraća `404 NOT_FOUND`, a tuđa prilika `403 FORBIDDEN`;
+  vlasništvo se provjerava prije provjere prijava.
+- Ponovljeni zahtjev za već obrisanom prilikom vraća `404 NOT_FOUND`.
+- Bez sesije sustav vraća `401 UNAUTHENTICATED`; bez uloge organizatora,
+  s neaktivnim računom ili nevaljanim CSRF tokenom odgovarajući `403`.
+
+### Arhiviranje
+
+1. Organizator uz priliku odabire arhiviranje i potvrđuje radnju.
+2. Sučelje šalje `POST /api/v1/opportunities/{opportunityId}/archive` bez tijela.
+3. Sustav provjerava postoji li prilika i pripada li prijavljenom organizatoru.
+4. Sustav označava priliku arhiviranom i, ako je bila otvorena, zatvara prijave.
+5. Sustav vraća `200 OK` i arhiviranu priliku.
+
+Arhiviranje je dopušteno u svakom statusu i neovisno o prijavama. Ponovljeni zahtjev
+vraća `200 OK` bez promjene. Arhivirana prilika nije u javnoj pretrazi, ostaje
+dostupna organizatoru i umjetnicima s prijavom, i ne može se vratiti iz arhive
+niti joj se status može dalje mijenjati. Greške su iste kao kod brisanja, bez `409`.
+
+Detalji su u API dokumentaciji prilika, za
+[brisanje](api/opportunities.md#delete-opportunitiesopportunityid) i
+[arhiviranje](api/opportunities.md#post-opportunitiesopportunityidarchive).
+
+## Uređivanje profila organizatora
 
 - **Primarni sudionik:** organizator.
 - **Zahtjev:** FR-02 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
 - **Cilj:** pregledati profil i promijeniti naziv organizacije.
 - **Preduvjet:** valjana sesija s ulogom `ORGANIZER`; za spremanje je potreban CSRF token.
 - **Rezultat:** naziv organizacije je spremljen ili obrisan; ime i odobrenje ostaju nepromijenjeni.
+- **Sučelje:** `/profile` prikazuje ime s Google računa samo za čitanje, status odobrenja i obrazac za naziv organizacije. Za `APPROVED` prikazuje „Odobren”, a za `PENDING` „Čeka odobrenje” uz napomenu da organizator još ne može objavljivati prilike.
 
 ### Osnovni tijek
 
 1. Organizator otvara stranicu `/profile`.
-2. Sučelje dohvaća `GET /api/v1/me/organizer-profile`.
+2. Sučelje prikazuje stanje učitavanja i dohvaća `GET /api/v1/me/organizer-profile`.
 3. Sustav vraća ime organizatora, naziv organizacije i status odobrenja. Ako profilni red ne postoji, naziv je `null`.
-4. Organizator unosi ili mijenja naziv organizacije i sprema obrazac.
-5. Sučelje šalje `PUT /api/v1/me/organizer-profile` uz sesiju i CSRF token.
-6. Sustav obrezuje naziv, sprema ga (ili `null` za praznu vrijednost), osvježava `updated_at` i vraća spremljeni profil.
+4. Sučelje prikazuje profil; `null` naziv prikazuje se kao prazno polje. Organizator unosi ili mijenja naziv organizacije i sprema obrazac.
+5. Sučelje obrezuje unos, provjerava da naziv ne prelazi 200 znakova i onemogućuje gumb dok je spremanje u tijeku.
+6. Sučelje šalje `PUT /api/v1/me/organizer-profile` uz sesiju i CSRF token. Prazan ili samo razmacima ispunjen naziv šalje se kao `null`.
+7. Sustav sprema naziv, osvježava `updated_at` i vraća spremljeni profil. Sučelje osvježava podatke profila i prikazuje poruku „Profil spremljen”.
 
 ### Alternativni tijekovi
 
 - Organizator koji čeka odobrenje može urediti profil; odobrenje se ovim zahtjevom ne mijenja.
 - Ako profilni red ne postoji, uspješan PUT stvara ga.
 - Izostavljeno polje `organizationName`, `null`, prazan niz ili niz samo od razmaka sprema se kao `null`.
-- Naziv dulji od 200 znakova vraća `400 VALIDATION_ERROR`.
+- Naziv dulji od 200 znakova zaustavlja se klijentskom validacijom; polje prikazuje poruku o pogrešci i PUT se ne šalje. Ako API vrati `400 VALIDATION_ERROR` s detaljem za `organizationName`, poruka se prikazuje uz polje.
+- Ako učitavanje ne uspije, sučelje prikazuje grešku i mogućnost ponovnog pokušaja. Greške spremanja koje nisu mapirane na polje prikazuju se kao obavijest.
 - Bez valjane sesije sustav vraća `401 UNAUTHENTICATED`; bez uloge organizatora, uz onboarding, blokiran račun ili nedostajući/nevaljan CSRF token vraća odgovarajući `403`.
 
 ## UC-06 Upravljati portfolijem
