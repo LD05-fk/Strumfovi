@@ -9,6 +9,8 @@ skinparam actor {
     BorderColor #212529
     BackgroundColor<<vanjski sustav>> #FFF3CD
     BorderColor<<vanjski sustav>> #856404
+    BackgroundColor<<vremenski okidač>> #E2E3E5
+    BorderColor<<vremenski okidač>> #6C757D
 }
 
 skinparam rectangle {
@@ -33,6 +35,8 @@ Administrator --|> Prijavljeni
 together {
   actor "Google OAuth 2.0" as GoogleOAuth <<vanjski sustav>>
   actor "Google Calendar" as GoogleCalendar <<vanjski sustav>>
+  actor "OpenStreetMap / Nominatim" as OSM <<vanjski sustav>>
+  actor "Planer" as Planer <<vremenski okidač>>
 }
 
 rectangle "ArtConnect" {
@@ -61,8 +65,11 @@ Organizator -- Izvjestaji
 Administrator -- Izvjestaji
 Administrator -- Opcionalno
 
-Opcionalno ..> Izvjestaji : <<extend>>
-
 Racuni -- GoogleOAuth
 Prijave -- GoogleCalendar
+Prilike -- OSM
+Prilike -- Planer
+Izvjestaji -- Planer
+
+Opcionalno ..> Izvjestaji : <<extend>>
 @enduml

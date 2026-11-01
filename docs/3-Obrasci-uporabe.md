@@ -20,8 +20,8 @@ Detaljni dijagrami po skupinama obrazaca:
 | UC-01 | Prijaviti se i upravljati računom | Posjetitelj, prijavljeni korisnik, Google OAuth 2.0 |
 | UC-02 | Urediti profil i portfolio | Umjetnik, organizator |
 | UC-03 | Pregledati javne profile i portfolije | Posjetitelj |
-| UC-04 | Upravljati prilikama | Organizator, Planer (automatsko zatvaranje) |
-| UC-05 | Pregledati prilike | Posjetitelj, umjetnik |
+| UC-04 | Upravljati prilikama | Organizator, OpenStreetMap/Nominatim, Planer (automatsko zatvaranje) |
+| UC-05 | Pregledati prilike | Posjetitelj, umjetnik, OpenStreetMap/Nominatim |
 | UC-06 | Postaviti uvjete i prijaviti se na priliku | Organizator, umjetnik |
 | UC-07 | Odlučivati o prijavama | Organizator, umjetnik |
 | UC-08 | Objaviti rezultate i dodati u kalendar | Organizator, umjetnik, Google Calendar |
@@ -80,11 +80,11 @@ Detalji su u [API dokumentaciji umjetnika](api/artists.md) i [djela](api/artwork
 | **Vanjski akter** | Planer (automatsko zatvaranje prijava nakon roka) |
 | **Povezani zahtjevi** | FR-03, FR-04 |
 | **Preduvjeti** | Organizator ima aktivan račun s ulogom `ORGANIZER` i prijavljenu sesiju. |
-| **Glavni uspješni tok** | 1. Organizator unosi naslov, opis, vrstu, područja umjetnosti, rok i lokaciju (fizička s koordinatama ili online s poveznicom); sustav sprema nacrt u statusu `PREPARATION`.<br>2. Organizator uređuje priliku (`PUT /api/v1/opportunities/{id}`); status ostaje isti.<br>3. Organizator briše priliku ili je arhivira. |
-| **Alternativni tokovi** | **1a — Nevaljani unos ili rok u prošlosti:** sustav odbija spremanje (`400`).<br>**1b — Adresa nije pronađena:** organizator ručno odabire koordinate na karti.<br>**3a — Prilika ima prijave:** brisanje je odbijeno (`409 HAS_APPLICATIONS`), a organizator može samo arhivirati.<br>**3b — Automatsko zatvaranje:** Planer zatvara prijave kad rok istekne (zadatak OPP-04, 2. ciklus). |
+| **Glavni uspješni tok** | 1. Organizator unosi naslov, opis, vrstu, područja umjetnosti, rok i lokaciju (fizička s koordinatama ili online s poveznicom); sustav sprema nacrt u statusu `PREPARATION`.<br>2. Organizator uređuje priliku (`PUT /api/v1/opportunities/{id}`); status ostaje isti.<br>3. Organizator pregledava svoje prilike (`GET /api/v1/me/opportunities`) i filtrira ih po statusu ili arhiviranosti.<br>4. Organizator mijenja status prilike (`POST /api/v1/opportunities/{id}/status`): `PREPARATION` → `OPEN`, `OPEN` → `CLOSED` ili `CLOSED` → `SELECTION`.<br>5. Organizator briše priliku ili je arhivira. |
+| **Alternativni tokovi** | **1a — Nevaljani unos ili rok u prošlosti:** sustav odbija spremanje (`400`).<br>**1b — Adresa nije pronađena:** organizator ručno odabire koordinate na karti.<br>**3a — Pregled bez prilika:** prazan popis uz podatke o stranici.<br>**4a — Nedopušten prijelaz** (npr. isti status ili `FINISHED`): `409 INVALID_STATUS_TRANSITION`, a `FINISHED` postiže se samo objavom rezultata (UC-08).<br>**4b — Otvaranje s rokom u prošlosti:** `409 DEADLINE_PASSED`; prijelaz `PREPARATION` → `OPEN` i `CLOSED` → `OPEN` traže rok u budućnosti.<br>**4c — Objava bez odobrenja:** dok ADM-02-BE nije gotov, svi organizatori smatraju se odobrenima; nakon toga prvo otvaranje bez odobrenja vraća `403 ORGANIZER_NOT_APPROVED`.<br>**4d — Arhivirana prilika:** svaka promjena statusa odbijena je s `409 INVALID_STATUS_TRANSITION`.<br>**5a — Prilika ima prijave:** brisanje je odbijeno (`409 HAS_APPLICATIONS`), a organizator može samo arhivirati.<br>**5b — Automatsko zatvaranje:** Planer zatvara prijave kad rok istekne (zadatak OPP-04, 2. ciklus). |
 | **Rezultat** | Prilika je spremljena, uređena, arhivirana ili obrisana. |
 
-Detalji su u [API dokumentaciji prilika](api/opportunities.md).
+Detalji su u [API dokumentaciji prilika](api/opportunities.md), za [pregled](api/opportunities.md#get-apiv1meopportunities) i [promjenu statusa](api/opportunities.md#post-opportunitiesopportunityidstatus).
 
 ### UC-05 Pregledati prilike
 

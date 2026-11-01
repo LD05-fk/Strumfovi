@@ -241,7 +241,7 @@ Nakon uspješne obrade stvara se poslužiteljska sesija putem Spring Session JDB
 
 **Sigurnosno ponašanje:** API zahtjevi bez valjane sesije vraćaju `401 UNAUTHENTICATED`; ne pokreću OAuth preusmjeravanje. Sesija istječe nakon osam sati neaktivnosti, a kolačić `SESSION` koristi `HttpOnly`, `SameSite=Lax` i `Secure` u produkciji.
 
-**Scenarij:** UC-08 — organizator stvara priliku i sprema je kao privatni nacrt.
+**Scenarij:** UC-04 — organizator stvara priliku i sprema je kao privatni nacrt.
 
 ![Sekvencijski dijagram stvaranja prilike](assets/diagrams/4-5-artconnect-opportunity-create-SD.svg)
 

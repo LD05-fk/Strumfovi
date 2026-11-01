@@ -7,6 +7,8 @@ skinparam defaultFontName Arial
 skinparam actor {
     BackgroundColor #F8F9FA
     BorderColor #212529
+    BackgroundColor<<vremenski okidač>> #E2E3E5
+    BorderColor<<vremenski okidač>> #6C757D
 }
 
 skinparam usecase {
@@ -16,6 +18,7 @@ skinparam usecase {
 
 actor "Organizator" as Organizator
 actor "Administrator" as Administrator
+actor "Planer" as Planer <<vremenski okidač>>
 
 rectangle "ArtConnect" {
   package "Izvještaji i administracija" {
@@ -32,5 +35,6 @@ Organizator -- UC09
 Administrator -- UC09
 Administrator -- UC10
 Administrator -- UC12
+Planer -- UC09
 UC12 ..> UC10 : <<extend>>
 @enduml
