@@ -7,12 +7,7 @@ import java.net.URI;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping(OpportunityController.PATH)
@@ -42,5 +37,18 @@ public class OpportunityController {
     public OpportunityDto changeStatus(@PathVariable UUID opportunityId,
             @Valid @RequestBody OpportunityStatusChange input) {
         return opportunities.changeStatus(opportunityId, input);
+    }
+
+    @DeleteMapping("/{opportunityId}")
+    @PreAuthorize("hasRole('ORGANIZER')")
+    public ResponseEntity<Void> delete(@PathVariable UUID opportunityId) {
+        opportunities.delete(opportunityId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{opportunityId}/archive")
+    @PreAuthorize("hasRole('ORGANIZER')")
+    public OpportunityDto archive(@PathVariable UUID opportunityId) {
+        return opportunities.archive(opportunityId);
     }
 }

@@ -99,6 +99,51 @@ Detalji i primjeri su u [API dokumentaciji prilika](api/opportunities.md#post-op
   s neaktivnim računom ili nevaljanim CSRF tokenom odgovarajući `403`.
 
 Detalji su u [API dokumentaciji prilika](api/opportunities.md#put-opportunitiesopportunityid).
+## Brisanje ili arhiviranje prilike
+
+- **Primarni sudionik:** organizator koji je vlasnik prilike.
+- **Zahtjevi:** FR-20 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
+- **Preduvjet:** aktivni račun s ulogom `ORGANIZER`, prijavljena sesija i valjan CSRF token.
+- **Rezultat:** vlastita prilika bez prijava trajno je uklonjena, a prilika s prijavama arhivirana.
+
+### Osnovni tijek
+
+1. Organizator na popisu svojih prilika traži brisanje i potvrđuje radnju.
+2. Sučelje šalje `DELETE /api/v1/opportunities/{opportunityId}` bez tijela.
+3. Sustav provjerava postoji li prilika i pripada li prijavljenom organizatoru.
+4. Sustav provjerava smije li se prilika obrisati, odnosno nema li prijava.
+5. Sustav u jednoj transakciji briše priliku i njezine veze s područjima umjetnosti.
+6. Sustav vraća `204 No Content` bez tijela.
+
+### Alternativni tijekovi
+
+- Brisanje je dopušteno u svakom statusu, i za arhivirane ili skrivene prilike.
+- Prilika s prijavama ne briše se nego arhivira; sustav vraća `409 HAS_APPLICATIONS`,
+  a sučelje nudi arhiviranje. Provjera je izdvojena u `OpportunityDeletionGuard` i
+  u Fazi 1 uvijek dopušta brisanje jer tablica prijava još ne postoji.
+- Nepostojeća prilika vraća `404 NOT_FOUND`, a tuđa prilika `403 FORBIDDEN`;
+  vlasništvo se provjerava prije provjere prijava.
+- Ponovljeni zahtjev za već obrisanom prilikom vraća `404 NOT_FOUND`.
+- Bez sesije sustav vraća `401 UNAUTHENTICATED`; bez uloge organizatora,
+  s neaktivnim računom ili nevaljanim CSRF tokenom odgovarajući `403`.
+
+### Arhiviranje
+
+1. Organizator uz priliku odabire arhiviranje i potvrđuje radnju.
+2. Sučelje šalje `POST /api/v1/opportunities/{opportunityId}/archive` bez tijela.
+3. Sustav provjerava postoji li prilika i pripada li prijavljenom organizatoru.
+4. Sustav označava priliku arhiviranom i, ako je bila otvorena, zatvara prijave.
+5. Sustav vraća `200 OK` i arhiviranu priliku.
+
+Arhiviranje je dopušteno u svakom statusu i neovisno o prijavama. Ponovljeni zahtjev
+vraća `200 OK` bez promjene. Arhivirana prilika nije u javnoj pretrazi, ostaje
+dostupna organizatoru i umjetnicima s prijavom, i ne može se vratiti iz arhive
+niti joj se status može dalje mijenjati. Greške su iste kao kod brisanja, bez `409`.
+
+Detalji su u API dokumentaciji prilika, za
+[brisanje](api/opportunities.md#delete-opportunitiesopportunityid) i
+[arhiviranje](api/opportunities.md#post-opportunitiesopportunityidarchive).
+
 ## Uređivanje profila organizatora
 
 - **Primarni sudionik:** organizator.

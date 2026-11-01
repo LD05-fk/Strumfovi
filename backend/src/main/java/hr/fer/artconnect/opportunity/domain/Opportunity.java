@@ -128,6 +128,17 @@ public class Opportunity {
         }
     }
 
+    public void archive(OffsetDateTime now) {
+        if (this.archived) {
+            return;
+        }
+        this.archived = true;
+        if (this.status == OpportunityStatus.OPEN) {
+            this.status = OpportunityStatus.CLOSED;
+        }
+        this.updatedAt = now;
+    }
+
     public UUID getId() {
         return id;
     }
