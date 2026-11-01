@@ -1,0 +1,36 @@
+@startuml
+' Obrasci uporabe: izvještaji i administracija (DOC-10, §3.1). UC-12 je opcionalan.
+left to right direction
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+skinparam actor {
+    BackgroundColor #F8F9FA
+    BorderColor #212529
+}
+
+skinparam usecase {
+    BackgroundColor #E7F1FF
+    BorderColor #0D6EFD
+}
+
+actor "Organizator" as Organizator
+actor "Administrator" as Administrator
+
+rectangle "ArtConnect" {
+  package "Izvještaji i administracija" {
+    usecase "UC-09\nPregledati statistiku i izvještaje" as UC09
+    usecase "UC-10\nUpravljati platformom" as UC10
+  }
+
+  package "Opcionalno" #line.dashed {
+    usecase "UC-12\nPregledati dnevnik administratorskih radnji" as UC12
+  }
+}
+
+Organizator -- UC09
+Administrator -- UC09
+Administrator -- UC10
+Administrator -- UC12
+UC12 ..> UC10 : <<extend>>
+@enduml

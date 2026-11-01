@@ -1,28 +1,69 @@
 @startuml
-' Probni dijagram obrazaca uporabe (DOC-05). Proširuje se kad se razradi poglavlje 3.
-left to right direction
+' Pokus v3: akteri gore, skupine obrazaca u sredini, vanjski sustavi dolje.
+title ArtConnect: obrasci uporabe
+top to bottom direction
+skinparam shadowing false
+skinparam defaultFontName Arial
 
-actor Umjetnik
-actor Organizator
-actor Administrator
-
-rectangle ArtConnect {
-  usecase "Prijava Googleom" as UC1
-  usecase "Uređivanje portfolija" as UC2
-  usecase "Pretraživanje prilika" as UC3
-  usecase "Prijava na priliku" as UC4
-  usecase "Objava prilike" as UC5
-  usecase "Odluka o prijavi" as UC6
-  usecase "Upravljanje korisnicima" as UC7
+skinparam actor {
+    BackgroundColor #F8F9FA
+    BorderColor #212529
+    BackgroundColor<<vanjski sustav>> #FFF3CD
+    BorderColor<<vanjski sustav>> #856404
 }
 
-Umjetnik --> UC1
-Umjetnik --> UC2
-Umjetnik --> UC3
-Umjetnik --> UC4
-Organizator --> UC1
-Organizator --> UC5
-Organizator --> UC6
-Administrator --> UC1
-Administrator --> UC7
+skinparam rectangle {
+    BackgroundColor #E7F1FF
+    BorderColor #0D6EFD
+    FontSize 13
+}
+
+together {
+  actor "Posjetitelj" as Posjetitelj
+  actor "Umjetnik" as Umjetnik
+  actor "Organizator" as Organizator
+  actor "Administrator" as Administrator
+}
+
+actor "Prijavljeni korisnik" as Prijavljeni
+
+Umjetnik --|> Prijavljeni
+Organizator --|> Prijavljeni
+Administrator --|> Prijavljeni
+
+together {
+  actor "Google OAuth 2.0" as GoogleOAuth <<vanjski sustav>>
+  actor "Google Calendar" as GoogleCalendar <<vanjski sustav>>
+}
+
+rectangle "ArtConnect" {
+  rectangle "**Računi i portfolio**\nUC-01 Prijaviti se i upravljati računom\nUC-02 Urediti profil i portfolio\nUC-03 Pregledati javne profile i portfolije" as Racuni
+  rectangle "**Prilike**\nUC-04 Upravljati prilikama\nUC-05 Pregledati prilike" as Prilike
+  rectangle "**Prijave i rezultati**\nUC-06 Postaviti uvjete i prijaviti se na priliku\nUC-07 Odlučivati o prijavama\nUC-08 Objaviti rezultate i dodati u kalendar" as Prijave
+  rectangle "**Izvještaji i administracija**\nUC-09 Pregledati statistiku i izvještaje\nUC-10 Upravljati platformom" as Izvjestaji
+  rectangle "**Opcionalno**\nUC-11 Pregledati obavijesti\nUC-12 Pregledati dnevnik administratorskih radnji" as Opcionalno #line.dashed
+}
+
+Posjetitelj -- Racuni
+Posjetitelj -- Prilike
+
+Prijavljeni -- Racuni
+Prijavljeni -- Opcionalno
+
+Umjetnik -- Racuni
+Umjetnik -- Prijave
+Umjetnik -- Prilike
+
+Organizator -- Racuni
+Organizator -- Prilike
+Organizator -- Prijave
+Organizator -- Izvjestaji
+
+Administrator -- Izvjestaji
+Administrator -- Opcionalno
+
+Opcionalno ..> Izvjestaji : <<extend>>
+
+Racuni -- GoogleOAuth
+Prijave -- GoogleCalendar
 @enduml

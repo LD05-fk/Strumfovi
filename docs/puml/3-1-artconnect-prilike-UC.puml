@@ -1,0 +1,31 @@
+@startuml
+' Obrasci uporabe: prilike (DOC-10, §3.1). UC-04 spaja stvaranje, uređivanje, brisanje i arhiviranje prilike.
+left to right direction
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+skinparam actor {
+    BackgroundColor #F8F9FA
+    BorderColor #212529
+}
+
+skinparam usecase {
+    BackgroundColor #E7F1FF
+    BorderColor #0D6EFD
+}
+
+actor "Posjetitelj" as Posjetitelj
+actor "Umjetnik" as Umjetnik
+actor "Organizator" as Organizator
+
+rectangle "ArtConnect" {
+  package "Prilike" {
+    usecase "UC-04\nUpravljati prilikama" as UC04
+    usecase "UC-05\nPregledati prilike" as UC05
+  }
+}
+
+Organizator -- UC04
+Posjetitelj -- UC05
+Umjetnik -- UC05
+@enduml
