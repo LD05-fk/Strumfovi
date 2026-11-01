@@ -154,7 +154,7 @@ Detalji su u [API dokumentaciji prilika](api/opportunities.md#put-opportunitieso
 ## Brisanje ili arhiviranje prilike
 
 - **Primarni sudionik:** organizator koji je vlasnik prilike.
-- **Zahtjevi:** FR-20 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
+- **Zahtjev:** FR-04 iz [analize zahtjeva](2-Analiza-zahtjeva.md).
 - **Preduvjet:** aktivni račun s ulogom `ORGANIZER`, prijavljena sesija i valjan CSRF token.
 - **Rezultat:** vlastita prilika bez prijava trajno je uklonjena, a prilika s prijavama arhivirana.
 
