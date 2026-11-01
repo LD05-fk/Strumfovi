@@ -1,5 +1,4 @@
 @startuml
-' Pokus v3: akteri gore, skupine obrazaca u sredini, vanjski sustavi dolje.
 title ArtConnect: obrasci uporabe
 top to bottom direction
 skinparam shadowing false
