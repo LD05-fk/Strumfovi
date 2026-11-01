@@ -1,10 +1,14 @@
+import base64
 import os
+from pathlib import Path
+import re
 import pytest
 import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
 BASE_URL = os.environ.get("BASE_URL", "http://localhost:5173")
+DRIVER_KEY = pytest.StashKey()
 
 
 @pytest.fixture(scope="session")
@@ -13,7 +17,7 @@ def base_url():
 
 
 @pytest.fixture
-def driver():
+def driver(request):
     options = Options()
     options.add_argument("--headless=new")
     options.add_argument("--window-size=1920,1080")
@@ -21,6 +25,8 @@ def driver():
     options.add_argument("--disable-dev-shm-usage")
     options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
     browser = webdriver.Chrome(options=options)
+    # Dostupno i ako drugi fixture padne prije ulaska u tijelo testa.
+    request.node.stash[DRIVER_KEY] = browser
     browser.implicitly_wait(0)
 
     yield browser
@@ -117,18 +123,29 @@ def pytest_runtest_makereport(item, call):
     if report.when not in ("setup", "call") or not report.failed:
         return
 
-    driver = item.funcargs.get("driver")
+    driver = item.stash.get(DRIVER_KEY, None)
     if driver is None:
         return
 
     try:
+        output_dir = Path(item.config.rootpath) / "test-results"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        name = re.sub(
+            r"[^A-Za-z0-9_.-]+", "_",
+            f"{item.path.stem}-{item.name}-{report.when}",
+        )
+        screenshot = driver.get_screenshot_as_base64()
+        source = driver.page_source
+        (output_dir / f"{name}.png").write_bytes(base64.b64decode(screenshot))
+        (output_dir / f"{name}.html").write_text(source, encoding="utf-8")
+
         from pytest_html import extras
 
         report.extras = getattr(report, "extras", [])
         report.extras.append(extras.url(driver.current_url, name="Stranica"))
         report.extras.append(
-            extras.png(driver.get_screenshot_as_base64(),
-                       name="Snimka zaslona")
+            extras.png(screenshot, name="Snimka zaslona")
         )
+        report.extras.append(extras.text(source, name="HTML stranice"))
     except Exception as error:
-        print(f"Snimka zaslona nije uspjela: {error}")
+        print(f"Spremanje dokaza pada testa nije uspjelo: {error}")

@@ -1,7 +1,9 @@
 # Testovi (E2E)
 
 E2E testovi koriste Selenium (Python, pytest).
-U CI-ju E2E pokreće posao e2e (ručno i noćno), HTML izvještaj je artefakt workflowa u kartici Actions.
+U CI-ju E2E pokreće posao e2e na PR-u koji mijenja backend, frontend, testove,
+`docker-compose.yml` ili E2E workflow, te ručno i noćno.
+Izvještaji su artefakti workflowa u kartici Actions.
 
 ## Preduvjeti
 
@@ -12,9 +14,18 @@ Sustav mora raditi prema `HOW_TO_RUN.md`
 
 ## Pokretanje
 
-pytest tests/selenium --html=report.html
+pytest tests/selenium --html=report.html --self-contained-html --junitxml=test-results/pytest.xml
 Iz korijena repozitorija.
 Izvještaj u report.html.
+
+Kod pada testa tijekom pripreme ili izvođenja, ako je preglednik dostupan,
+`test-results/` sadrži PNG snimku zaslona i HTML stranice. Naziv datoteke
+odgovara testu i fazi (`setup` ili `call`). Oba dokaza dostupna su i kroz
+HTML izvještaj. Čišćenje podataka i odjava izvode se nakon snimanja pada.
+
+CI i kod pada sprema `e2e-report` (`report.html`, `test-results/`, logovi
+backenda i frontenda). Backend posao zasebno sprema `backend-test-reports`
+sa Surefire i Failsafe izvještajima iz `backend/target/`.
 
 ## Struktura
 

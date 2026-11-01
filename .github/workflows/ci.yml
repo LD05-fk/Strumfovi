@@ -34,6 +34,15 @@ jobs:
       - name: Build i testovi
         run: ./mvnw -B verify
 
+      - name: Spremiti izvještaje backend testova
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            backend/target/surefire-reports/
+            backend/target/failsafe-reports/
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
