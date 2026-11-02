@@ -128,7 +128,7 @@ def pytest_runtest_makereport(item, call):
         return
 
     try:
-        output_dir = Path(item.config.rootpath) / "test-results"
+        output_dir = Path.cwd() / "test-results"
         output_dir.mkdir(parents=True, exist_ok=True)
         name = re.sub(
             r"[^A-Za-z0-9_.-]+", "_",
