@@ -99,6 +99,22 @@ public class ArtworkService {
         return new ArtworkImageDto(savedImage.getId(), StoredFileDto.from(storedFile), savedImage.getAltText());
     }
 
+    @Transactional
+    public void deleteImage(UUID artworkId, UUID imageId) {
+        User artist = currentUserProvider.getCurrentUser();
+        Artwork artwork = artworks.findByIdForUpdate(artworkId).orElseThrow(ArtworkService::notFound);
+        if (!artwork.getArtist().getId().equals(artist.getId())) {
+            throw notFound();
+        }
+
+        ArtworkImage image = artworkImages.findByIdAndArtwork_Id(imageId, artworkId)
+                .orElseThrow(ArtworkService::notFound);
+        artworkImages.delete(image);
+        artworkImages.flush();
+        fileStorage.delete(image.getFile());
+        artwork.markUpdated();
+    }
+
     @Transactional(readOnly = true)
     public PageResponse<ArtworkDto> listArtistArtworks(UUID artistId, PageRequestParams params) {
         User artist = users.findById(artistId).orElseThrow(ArtworkService::notFound);

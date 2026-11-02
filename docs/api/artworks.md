@@ -208,3 +208,27 @@ Odgovor `201 Created` sadrži `ArtworkImage`:
 | 409 | `IMAGE_LIMIT_REACHED` | djelo već ima `upload.artwork.maxImagesPerArtwork` slika |
 | 413 | `FILE_TOO_LARGE` | datoteka je veća od `upload.artwork.maxImageBytes` |
 | 415 | `UNSUPPORTED_FILE_TYPE` | sadržaj nije JPEG ili PNG, uključujući PDF |
+
+## DELETE /artworks/{artworkId}/images/{imageId}
+
+Briše sliku iz djela prijavljenog umjetnika. Potrebni su aktivna sesija s
+ulogom `ARTIST` i CSRF token u zaglavlju `X-XSRF-TOKEN` iz kolačića
+`XSRF-TOKEN`.
+
+Uspješan odgovor je `204 No Content` bez tijela.
+
+Slika mora pripadati navedenom djelu, a djelo prijavljenom umjetniku.
+Nepostojeće djelo, tuđe djelo ili slika koja ne pripada tom djelu vraćaju isti
+odgovor `404 NOT_FOUND`. Brisanje uklanja retke iz `artwork_images` i
+`stored_files`, a datoteku s volumena nakon commita transakcije. Ažurira se i
+`artworks.updated_at`. Pozicije preostalih slika ne mijenjaju se; razmaci u
+redoslijedu su dopušteni.
+
+### Greške
+
+| Status | Kod | Kada |
+| --- | --- | --- |
+| 401 | `UNAUTHENTICATED` | zahtjev bez valjane sesije |
+| 403 | `FORBIDDEN` | korisnik nema ulogu `ARTIST` ili nedostaje/nevaljan je CSRF token |
+| 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
+| 404 | `NOT_FOUND` | djelo ne postoji ili pripada drugom korisniku, ili slika ne pripada navedenom djelu |

@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -42,6 +43,14 @@ public class ArtworkController {
             @RequestPart("file") MultipartFile file,
             @RequestParam(required = false) String altText) {
         return ResponseEntity.status(201).body(artworks.uploadImage(artworkId, file, altText));
+    }
+
+    @DeleteMapping("/{artworkId}/images/{imageId}")
+    @PreAuthorize("hasRole('ARTIST')")
+    public ResponseEntity<Void> deleteArtworkImage(
+            @PathVariable UUID artworkId, @PathVariable UUID imageId) {
+        artworks.deleteImage(artworkId, imageId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{artworkId}")

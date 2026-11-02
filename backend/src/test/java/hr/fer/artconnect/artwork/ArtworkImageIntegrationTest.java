@@ -3,6 +3,7 @@ package hr.fer.artconnect.artwork;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -17,11 +18,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,6 +35,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.security.test.context.TestSecurityContextHolder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest(properties = "artconnect.storage.root=target/test-uploads")
 class ArtworkImageIntegrationTest extends IntegrationTestBase {
@@ -50,10 +55,23 @@ class ArtworkImageIntegrationTest extends IntegrationTestBase {
     @Autowired
     UserRepository users;
 
+    @Autowired
+    ObjectMapper objectMapper;
+
+    private final List<Path> createdFilePaths = new ArrayList<>();
+
     @BeforeEach
     void resetUploadSettings() {
         jdbc.update("UPDATE system_settings SET value = '5242880' WHERE key = 'upload.artwork.maxImageBytes'");
         jdbc.update("UPDATE system_settings SET value = '3' WHERE key = 'upload.artwork.maxImagesPerArtwork'");
+    }
+
+    @AfterEach
+    void cleanCreatedUploadFiles() throws IOException {
+        for (Path path : createdFilePaths) {
+            Files.deleteIfExists(path);
+        }
+        createdFilePaths.clear();
     }
 
     @Test
@@ -184,6 +202,109 @@ class ArtworkImageIntegrationTest extends IntegrationTestBase {
                 "SELECT count(*) FROM artwork_images WHERE artwork_id = ?", Long.class, artworkId)).isEqualTo(3);
     }
 
+    @Test
+    void briseSlikuMetapodatkeIDatotekuIAzuriraDjelo() throws Exception {
+        UUID artistId = loginAs("ARTIST");
+        UUID artworkId = createArtwork(artistId);
+        var uploaded = upload(artworkId, artistId, "small.jpg", read("small.jpg"), null)
+                .andExpect(status().isCreated());
+        UUID imageId = imageId(uploaded.andReturn().getResponse().getContentAsString());
+        UUID fileId = fileId(uploaded.andReturn().getResponse().getContentAsString());
+        String storageKey = jdbc.queryForObject(
+                "SELECT storage_key FROM stored_files WHERE id = ?", String.class, fileId);
+        Path storedPath = Path.of("target/test-uploads").toAbsolutePath().normalize().resolve(storageKey);
+        assertThat(storedPath).exists();
+
+        jdbc.update("UPDATE artworks SET updated_at = '2000-01-01T00:00:00Z' WHERE id = ?", artworkId);
+        var deleted = deleteAs(artworkId, imageId, artistId)
+                .andExpect(status().isNoContent())
+                .andReturn();
+
+        assertThat(deleted.getResponse().getContentAsString()).isEmpty();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM artwork_images WHERE id = ?", Long.class, imageId))
+                .isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM stored_files WHERE id = ?", Long.class, fileId)).isZero();
+        assertThat(storedPath).doesNotExist();
+        assertThat(jdbc.queryForObject("SELECT updated_at FROM artworks WHERE id = ?", OffsetDateTime.class, artworkId))
+                .isAfter(OffsetDateTime.parse("2000-01-01T00:00:00Z"));
+    }
+
+    @Test
+    void brisanjeOslobadaLimitINeMijenjaPozicijePreostalihSlika() throws Exception {
+        UUID artistId = loginAs("ARTIST");
+        UUID artworkId = createArtwork(artistId);
+        UUID firstImageId = imageId(upload(artworkId, artistId, "small.jpg", read("small.jpg"), null)
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+        UUID secondImageId = imageId(upload(artworkId, artistId, "small.jpg", read("small.jpg"), null)
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+        upload(artworkId, artistId, "small.jpg", read("small.jpg"), null).andExpect(status().isCreated());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM artwork_images WHERE artwork_id = ?",
+                Long.class, artworkId)).isEqualTo(3);
+
+        deleteAs(artworkId, secondImageId, artistId).andExpect(status().isNoContent());
+        assertThat(jdbc.queryForList(
+                "SELECT position FROM artwork_images WHERE artwork_id = ? ORDER BY position", Short.class, artworkId))
+                .containsExactly((short) 0, (short) 2);
+
+        var replacement = upload(artworkId, artistId, "small.png", read("small.png"), null)
+                .andExpect(status().isCreated()).andReturn();
+        assertThat(jdbc.queryForObject(
+                "SELECT position FROM artwork_images WHERE id = ?", Short.class, firstImageId)).isZero();
+        assertThat(jdbc.queryForObject("""
+                SELECT position FROM artwork_images
+                WHERE artwork_id = ? AND id <> ? AND id <> ?
+                ORDER BY position DESC LIMIT 1
+                """, Short.class, artworkId, firstImageId, secondImageId)).isEqualTo((short) 3);
+        assertThat(imageId(replacement.getResponse().getContentAsString())).isNotNull();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM artwork_images WHERE artwork_id = ?",
+                Long.class, artworkId)).isEqualTo(3);
+    }
+
+    @Test
+    void brisanjeProvjeravaAutentikacijuUloguVlasnistvoIPovezanostSlike() throws Exception {
+        UUID artistId = loginAs("ARTIST");
+        UUID artworkId = createArtwork(artistId);
+        UUID imageId = imageId(upload(artworkId, artistId, "small.jpg", read("small.jpg"), null)
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+
+        mockMvc.perform(delete(deletePath(artworkId, imageId)).with(anonymous()).with(withCsrf()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
+
+        mockMvc.perform(delete(deletePath(artworkId, imageId)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+
+        loginAs("ORGANIZER");
+        mockMvc.perform(delete(deletePath(artworkId, imageId)).with(withCsrf()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+
+        UUID foreignArtistId = loginAs("ARTIST");
+        UUID foreignArtworkId = createArtwork(foreignArtistId);
+        TestSecurityContextHolder.setAuthentication(TestPrincipals.authentication(users.findById(artistId).orElseThrow()));
+        deleteAs(foreignArtworkId, imageId, artistId)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+        deleteAs(artworkId, UUID.randomUUID(), artistId)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+
+        UUID otherArtworkId = createArtwork(artistId);
+        UUID otherImageId = imageId(upload(otherArtworkId, artistId, "small.png", read("small.png"), null)
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+        deleteAs(artworkId, otherImageId, artistId)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM artwork_images WHERE id = ?", Long.class, otherImageId)).isEqualTo(1);
+
+        jdbc.update("UPDATE users SET status = 'ONBOARDING', role = NULL WHERE id = ?", artistId);
+        deleteAs(artworkId, imageId, artistId)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("ONBOARDING_REQUIRED"));
+    }
+
     private int concurrentUpload(UUID artworkId, byte[] jpeg, RequestPostProcessor auth,
             CountDownLatch ready, CountDownLatch start) throws Exception {
         ready.countDown();
@@ -202,7 +323,27 @@ class ArtworkImageIntegrationTest extends IntegrationTestBase {
         if (altText != null) {
             request.param("altText", altText);
         }
-        return mockMvc.perform(request);
+        var result = mockMvc.perform(request);
+        if (result.andReturn().getResponse().getStatus() == 201) {
+            UUID fileId = fileId(result.andReturn().getResponse().getContentAsString());
+            String storageKey = jdbc.queryForObject(
+                    "SELECT storage_key FROM stored_files WHERE id = ?", String.class, fileId);
+            createdFilePaths.add(Path.of("target/test-uploads").toAbsolutePath().normalize().resolve(storageKey));
+        }
+        return result;
+    }
+
+    private ResultActions deleteAs(UUID artworkId, UUID imageId, UUID artistId) throws Exception {
+        TestSecurityContextHolder.setAuthentication(TestPrincipals.authentication(users.findById(artistId).orElseThrow()));
+        return mockMvc.perform(delete(deletePath(artworkId, imageId)).with(withCsrf()));
+    }
+
+    private UUID imageId(String response) throws Exception {
+        return UUID.fromString(objectMapper.readTree(response).get("id").asString());
+    }
+
+    private UUID fileId(String response) throws Exception {
+        return UUID.fromString(objectMapper.readTree(response).get("file").get("id").asString());
     }
 
     private UUID createArtwork(UUID artistId) {
@@ -218,6 +359,10 @@ class ArtworkImageIntegrationTest extends IntegrationTestBase {
 
     private static String imagePath(UUID artworkId) {
         return ARTWORKS_PATH + "/" + artworkId + "/images";
+    }
+
+    private static String deletePath(UUID artworkId, UUID imageId) {
+        return imagePath(artworkId) + "/" + imageId;
     }
 
     private static byte[] read(String name) throws IOException {
