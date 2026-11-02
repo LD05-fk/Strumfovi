@@ -166,6 +166,36 @@ export const hr = {
       'Naziv organizacije smije imati najviše 200 znakova.',
   },
 
+  opportunities: {
+    validation: {
+      dateFormat: 'Unesite valjan datum i vrijeme.',
+      titleMin: 'Naslov mora imati najmanje 3 znaka.',
+      titleMax: 'Naslov smije imati najviše 200 znakova.',
+      descriptionRequired: 'Opis je obavezan.',
+      descriptionMax: 'Opis smije imati najviše 10000 znakova.',
+      typeRequired: 'Odaberite vrstu prilike.',
+      artFieldsMin: 'Odaberite barem jedno područje umjetnosti.',
+      artFieldsMax: 'Možete odabrati najviše 10 područja umjetnosti.',
+      artFieldsUnique: 'Područja umjetnosti ne smiju se ponavljati.',
+      deadlineRequired: 'Rok prijave je obavezan.',
+      deadlineFuture: 'Rok prijave mora biti u budućnosti.',
+      criteriaMax: 'Kriteriji smiju imati najviše 5000 znakova.',
+      prizeMax: 'Nagrada smije imati najviše 2000 znakova.',
+      eventStartRequired: 'Unesite početak događanja prije njegova kraja.',
+      eventEndBeforeStart: 'Kraj događanja ne može biti prije njegova početka.',
+      addressRequired: 'Adresa je obavezna za fizičku lokaciju.',
+      addressMax: 'Adresa smije imati najviše 200 znakova.',
+      cityRequired: 'Grad je obavezan za fizičku lokaciju.',
+      cityMax: 'Grad smije imati najviše 100 znakova.',
+      postalCodeMax: 'Poštanski broj smije imati najviše 10 znakova.',
+      latitudeRange: 'Zemljopisna širina mora biti između -90 i 90.',
+      longitudeRange: 'Zemljopisna dužina mora biti između -180 i 180.',
+      onlineUrlMax: 'Poveznica smije imati najviše 1024 znaka.',
+      onlineUrlFormat:
+        'Unesite valjanu HTTP ili HTTPS poveznicu za online lokaciju.',
+    },
+  },
+
   map: {
     ariaLabel: 'Karta lokacije prilike',
     unavailable: 'Karta trenutno nije dostupna.',
