@@ -8,6 +8,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ArtworkImageRepository extends JpaRepository<ArtworkImage, UUID> {
+    long countByArtwork_Id(UUID artworkId);
+
+    @Query("SELECT MAX(image.position) FROM ArtworkImage image WHERE image.artwork.id = :artworkId")
+    Short findMaxPositionByArtworkId(@Param("artworkId") UUID artworkId);
+
     @Query("""
             SELECT image FROM ArtworkImage image
             JOIN FETCH image.file

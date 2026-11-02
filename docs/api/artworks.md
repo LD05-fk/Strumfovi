@@ -133,3 +133,78 @@ Slika djela u odgovoru (`ArtworkImage`) ima oblik:
 | 403 | `FORBIDDEN` | korisnik nema ulogu `ARTIST` ili nedostaje/nevaljan je CSRF token |
 | 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
 | 403 | `USER_BLOCKED` | prijavljeni korisnik je blokiran |
+
+## POST /artworks/{artworkId}/images
+
+Učitava jednu sliku u portfolio prijavljenog umjetnika. Potrebni su aktivna
+sesija s ulogom `ARTIST` i CSRF token u zaglavlju `X-XSRF-TOKEN` iz kolačića
+`XSRF-TOKEN`.
+
+Zahtjev je `multipart/form-data`:
+
+| Polje | Tip | Pravila |
+| --- | --- | --- |
+| `file` | binary | obavezno, neprazno; podržani su JPEG i PNG, prepoznati prema sadržaju |
+| `altText` | string | neobavezno, najviše 300 znakova; ako nedostaje ili je prazan, koristi se naslov djela |
+
+Primjer:
+
+```bash
+curl -X POST \
+  -H "X-XSRF-TOKEN: <token iz kolačića XSRF-TOKEN>" \
+  -b "SESSION=<sesija>; XSRF-TOKEN=<token>" \
+  -F "file=@morska.jpg;type=image/jpeg" \
+  -F "altText=Pogled na more" \
+  https://primjer.test/api/v1/artworks/{artworkId}/images
+```
+
+Odgovor `201 Created` sadrži `ArtworkImage`:
+
+```json
+{
+  "id": "a1f0c2d3-4b5e-4f60-8a71-9b2c3d4e5f01",
+  "file": {
+    "id": "b1f0c2d3-4b5e-4f60-8a71-9b2c3d4e5f02",
+    "originalName": "morska.jpg",
+    "contentType": "image/jpeg",
+    "sizeBytes": 1234,
+    "url": "/api/v1/files/b1f0c2d3-4b5e-4f60-8a71-9b2c3d4e5f02"
+  },
+  "altText": "Pogled na more"
+}
+```
+
+### Poslovna pravila
+
+- Djelo mora postojati i pripadati prijavljenom umjetniku; nepostojeće i tuđe
+  djelo jednako vraćaju `404 NOT_FOUND`.
+- Provjere se provode ovim redoslijedom: vlasništvo, dopušteni broj slika,
+  veličina datoteke pa vrsta sadržaja. Red djela zaključava se u transakciji
+  (`PESSIMISTIC_WRITE`) prije brojanja i spremanja, pa paralelni zahtjevi ne
+  mogu prijeći limit.
+- Granice se dohvaćaju iz `system_settings` preko servisa postavki:
+  `upload.artwork.maxImageBytes` (zadano `5242880` bajtova) i
+  `upload.artwork.maxImagesPerArtwork` (zadano `3`). Učitavanje iznad limita
+  veličine ili broja slika odbija se kodom navedenim u tablici grešaka.
+- Samo JPEG i PNG sadržaj se prihvaća; naziv datoteke i MIME tip zahtjeva ne
+  određuju vrstu. Prazna datoteka nije valjana.
+- Nova slika dobiva `position` jedan veći od najveće postojeće vrijednosti;
+  prva slika ima poziciju `0`. `stored_files.purpose` je `ARTWORK_IMAGE`, a
+  `owner_id` prijavljeni korisnik. Uspjeh sprema datoteku na volumen, retke u
+  `stored_files` i `artwork_images` te osvježava `artworks.updated_at`.
+  Pohrana datoteke usklađena je s transakcijom: neuspjela transakcija uklanja
+  već zapisanu datoteku.
+
+### Greške
+
+| Status | Kod | Kada |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | nedostaje dio `file`, datoteka je prazna ili `altText` ima više od 300 znakova |
+| 401 | `UNAUTHENTICATED` | zahtjev bez valjane sesije |
+| 403 | `FORBIDDEN` | korisnik nema ulogu `ARTIST` ili nedostaje/nevaljan je CSRF token |
+| 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
+| 403 | `USER_BLOCKED` | prijavljeni korisnik je blokiran |
+| 404 | `NOT_FOUND` | djelo ne postoji ili pripada drugom korisniku |
+| 409 | `IMAGE_LIMIT_REACHED` | djelo već ima `upload.artwork.maxImagesPerArtwork` slika |
+| 413 | `FILE_TOO_LARGE` | datoteka je veća od `upload.artwork.maxImageBytes` |
+| 415 | `UNSUPPORTED_FILE_TYPE` | sadržaj nije JPEG ili PNG, uključujući PDF |

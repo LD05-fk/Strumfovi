@@ -36,6 +36,15 @@ public class ArtworkImage {
 
     protected ArtworkImage() {}
 
+    public static ArtworkImage create(Artwork artwork, StoredFile file, String altText, short position) {
+        ArtworkImage image = new ArtworkImage();
+        image.artwork = artwork;
+        image.file = file;
+        image.altText = altText == null ? artwork.getTitle() : altText;
+        image.position = position;
+        return image;
+    }
+
     @PrePersist
     void onCreate() {
         if (altText == null && artwork != null) {
