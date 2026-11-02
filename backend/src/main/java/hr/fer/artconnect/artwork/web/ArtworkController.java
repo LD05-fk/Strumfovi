@@ -7,6 +7,7 @@ import java.net.URI;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,6 +38,13 @@ public class ArtworkController {
     @PreAuthorize("hasRole('ARTIST')")
     public ArtworkDto updateArtwork(@PathVariable UUID artworkId, @Valid @RequestBody ArtworkRequest request) {
         return artworks.update(artworkId, request);
+    }
+
+    @DeleteMapping("/{artworkId}")
+    @PreAuthorize("hasRole('ARTIST')")
+    public ResponseEntity<Void> deleteArtwork(@PathVariable UUID artworkId) {
+        artworks.delete(artworkId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{artworkId}")

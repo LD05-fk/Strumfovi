@@ -160,3 +160,25 @@ Uspješno ažuriranje postavlja `updated_at` na trenutno vrijeme.
 | 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
 | 403 | `USER_BLOCKED` | prijavljeni korisnik je blokiran |
 | 404 | `NOT_FOUND` | djelo ne postoji ili pripada drugom umjetniku |
+
+## DELETE /artworks/{artworkId}
+
+Briše vlastito djelo prijavljenog umjetnika i sve njegove slike. Potrebna je
+uloga `ARTIST`, valjana sesija i CSRF token u zaglavlju `X-XSRF-TOKEN` iz
+kolačića `XSRF-TOKEN`. Uspješan odgovor je `204 No Content` bez tijela.
+
+Redovi slika i pripadajući metapodaci pohranjenih datoteka brišu se u istoj
+transakciji kao i djelo. Datoteke s volumena uklanja `FileStorageService` nakon
+uspješnog commita. Buduća veza prijave na djelo (`application_items`) ovim se
+endpointom ne mijenja.
+
+Nepostojeće djelo i djelo drugog umjetnika vraćaju isti `404 NOT_FOUND`.
+
+| Status | Kod | Kada |
+| --- | --- | --- |
+| 204 | — | djelo i njegove slike su obrisani; odgovor nema tijelo |
+| 401 | `UNAUTHENTICATED` | zahtjev bez valjane sesije |
+| 403 | `FORBIDDEN` | korisnik nema ulogu `ARTIST` ili nedostaje/nevaljan je CSRF token |
+| 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
+| 403 | `USER_BLOCKED` | prijavljeni korisnik je blokiran |
+| 404 | `NOT_FOUND` | djelo ne postoji ili pripada drugom umjetniku |

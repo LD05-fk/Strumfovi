@@ -24,6 +24,8 @@ import hr.fer.artconnect.auth.domain.User;
 import hr.fer.artconnect.auth.domain.UserRepository;
 import hr.fer.artconnect.common.ApiException;
 import hr.fer.artconnect.common.ErrorCode;
+import hr.fer.artconnect.file.domain.StoredFile;
+import hr.fer.artconnect.file.service.FileStorageService;
 import hr.fer.artconnect.support.TestUsers;
 import java.util.List;
 import java.util.Optional;
@@ -56,6 +58,9 @@ class ArtworkServiceTest {
 
     @Mock
     ArtworkVisibilityPolicy visibilityPolicy;
+
+    @Mock
+    FileStorageService fileStorage;
 
     @Test
     void spremaDjeloNaPrijavljenogUmjetnikaBezSlika() {
@@ -151,13 +156,54 @@ class ArtworkServiceTest {
         verify(artworkMapper, never()).toDto(any(), any());
     }
 
+    @Test
+    void briseDjeloSlikeMetapodatkeDatoteka() {
+        User artist = artist();
+        Artwork artwork = Artwork.create(artist, "Naslov", (short) 2024, "Ulje",
+                null, null, ArtworkVisibility.PUBLIC);
+        ArtworkImage image = mock(ArtworkImage.class);
+        StoredFile storedFile = mock(StoredFile.class);
+        when(image.getFile()).thenReturn(storedFile);
+        when(currentUserProvider.getCurrentUser()).thenReturn(artist);
+        when(artworks.findById(ARTIST_ID)).thenReturn(Optional.of(artwork));
+        when(artworkImages.findAllWithFileByArtworkIds(List.of(ARTIST_ID))).thenReturn(List.of(image));
+
+        service().delete(ARTIST_ID);
+
+        verify(artworkImages).deleteAll(List.of(image));
+        verify(artworkImages).flush();
+        verify(fileStorage).delete(storedFile);
+        verify(artworks).delete(artwork);
+    }
+
+    @Test
+    void nebriseTudeDjelo() {
+        User artist = artist();
+        User other = TestUsers.user(UUID.randomUUID(), "other", "other@artconnect.test",
+                hr.fer.artconnect.auth.domain.UserRole.ARTIST,
+                hr.fer.artconnect.auth.domain.UserStatus.ACTIVE);
+        Artwork artwork = Artwork.create(other, "Tuđe djelo", (short) 2024, "Ulje",
+                null, null, ArtworkVisibility.PUBLIC);
+        when(currentUserProvider.getCurrentUser()).thenReturn(artist);
+        when(artworks.findById(ARTIST_ID)).thenReturn(Optional.of(artwork));
+
+        assertThatThrownBy(() -> service().delete(ARTIST_ID))
+                .isInstanceOf(ApiException.class)
+                .extracting(exception -> ((ApiException) exception).getCode())
+                .isEqualTo(ErrorCode.NOT_FOUND);
+
+        verify(artworkImages, never()).deleteAll(any());
+        verify(fileStorage, never()).delete(any());
+        verify(artworks, never()).delete(any());
+    }
+
     private static ArtworkRequest validRequest() {
         return new ArtworkRequest("Naslov", 2024, "Ulje", null, null, ArtworkVisibility.PUBLIC);
     }
 
     private ArtworkService service() {
         return new ArtworkService(artworks, artworkImages, users,
-                currentUserProvider, artworkMapper, visibilityPolicy);
+                currentUserProvider, artworkMapper, visibilityPolicy, fileStorage);
     }
 
     private static User artist() {
