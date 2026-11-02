@@ -14,7 +14,7 @@ import {
   useMediaQuery,
 } from '@mui/material'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm, type Path } from 'react-hook-form'
 import { ApiError } from '../../api/client'
 import { ErrorState } from '../../components/state/ErrorState'
@@ -67,6 +67,8 @@ export function PastExhibitionsSection({ userId }: { userId: string }) {
   const deleteExhibition = useDeletePastExhibition(userId)
   const [dialogMode, setDialogMode] = useState<DialogMode>(null)
   const [deleteTarget, setDeleteTarget] = useState<PastExhibition | null>(null)
+  const addButtonRef = useRef<HTMLButtonElement>(null)
+  const focusAddButtonAfterDelete = useRef(false)
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'))
   const currentYear = currentZagrebYear()
   const {
@@ -223,6 +225,7 @@ export function PastExhibitionsSection({ userId }: { userId: string }) {
           {hr.artistProfile.pastExhibitions.heading}
         </Typography>
         <Button
+          ref={addButtonRef}
           variant="contained"
           onClick={openCreateDialog}
           sx={{ ml: { sm: 'auto !important' } }}
@@ -367,7 +370,11 @@ export function PastExhibitionsSection({ userId }: { userId: string }) {
 
       <Dialog
         open={deleteTarget !== null}
-        disableRestoreFocus
+        onTransitionExited={() => {
+          if (!focusAddButtonAfterDelete.current) return
+          focusAddButtonAfterDelete.current = false
+          addButtonRef.current?.focus()
+        }}
         onClose={() => {
           if (!deleteExhibition.isPending) setDeleteTarget(null)
         }}
@@ -400,6 +407,7 @@ export function PastExhibitionsSection({ userId }: { userId: string }) {
               if (!deleteTarget) return
               deleteExhibition.mutate(deleteTarget.id, {
                 onSuccess: () => {
+                  focusAddButtonAfterDelete.current = true
                   setDeleteTarget(null)
                   notify(hr.artistProfile.pastExhibitions.deleted, 'success')
                 },
