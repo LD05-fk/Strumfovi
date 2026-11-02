@@ -114,6 +114,9 @@ Slika djela u odgovoru (`ArtworkImage`) ima oblik:
 }
 ```
 
+Sadržaj slike poslužuje se na adresi iz `file.url`; pravila pristupa opisana su
+u [datotekama](files.md).
+
 ### Poslovna pravila
 
 - `artistId` je ID prijavljenog korisnika; tijelo ne može zadati drugog vlasnika.
