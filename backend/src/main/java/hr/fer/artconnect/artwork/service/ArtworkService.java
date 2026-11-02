@@ -61,6 +61,28 @@ public class ArtworkService {
         return artworkMapper.toDto(saved, List.of());
     }
 
+    @Transactional
+    public ArtworkDto update(UUID artworkId, ArtworkRequest request) {
+        User artist = currentUserProvider.getCurrentUser();
+        if (artist.getStatus() == UserStatus.BLOCKED) {
+            throw new ApiException(ErrorCode.USER_BLOCKED, "Korisnički račun je blokiran.");
+        }
+        Artwork artwork = artworks.findById(artworkId).orElseThrow(ArtworkService::notFound);
+        if (!artwork.getArtist().getId().equals(artist.getId())) {
+            throw notFound();
+        }
+        artwork.updateDetails(
+                request.title(),
+                request.year().shortValue(),
+                request.technique(),
+                request.dimensions(),
+                request.description(),
+                request.visibility());
+        Artwork saved = artworks.save(artwork);
+        Map<UUID, List<ArtworkImage>> imagesByArtwork = loadImages(List.of(saved));
+        return artworkMapper.toDto(saved, imagesByArtwork.getOrDefault(artworkId, List.of()));
+    }
+
     @Transactional(readOnly = true)
     public PageResponse<ArtworkDto> listArtistArtworks(UUID artistId, PageRequestParams params) {
         User artist = users.findById(artistId).orElseThrow(ArtworkService::notFound);

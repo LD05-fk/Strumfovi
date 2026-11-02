@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,6 +31,12 @@ public class ArtworkController {
     public ResponseEntity<ArtworkDto> createArtwork(@Valid @RequestBody ArtworkRequest request) {
         ArtworkDto created = artworks.create(request);
         return ResponseEntity.created(URI.create(PATH + "/" + created.id())).body(created);
+    }
+
+    @PutMapping("/{artworkId}")
+    @PreAuthorize("hasRole('ARTIST')")
+    public ArtworkDto updateArtwork(@PathVariable UUID artworkId, @Valid @RequestBody ArtworkRequest request) {
+        return artworks.update(artworkId, request);
     }
 
     @GetMapping("/{artworkId}")
