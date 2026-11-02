@@ -230,6 +230,25 @@ class ArtworkImageIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void blokiraniUmjetnikNeMozeUcitatiNiObrisatiSliku() throws Exception {
+        UUID artistId = loginAs("ARTIST");
+        UUID artworkId = createArtwork(artistId);
+        UUID imageId = imageId(upload(artworkId, artistId, "small.jpg", read("small.jpg"), null)
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+        jdbc.update("UPDATE users SET status = 'BLOCKED' WHERE id = ?", artistId);
+
+        upload(artworkId, artistId, "small.png", read("small.png"), null)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("USER_BLOCKED"));
+        deleteAs(artworkId, imageId, artistId)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("USER_BLOCKED"));
+
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM artwork_images WHERE id = ?", Long.class, imageId)).isEqualTo(1);
+    }
+
+    @Test
     void brisanjeOslobadaLimitINeMijenjaPozicijePreostalihSlika() throws Exception {
         UUID artistId = loginAs("ARTIST");
         UUID artworkId = createArtwork(artistId);

@@ -75,6 +75,9 @@ public class ArtworkService {
     @Transactional
     public ArtworkImageDto uploadImage(UUID artworkId, MultipartFile file, String altText) {
         User artist = currentUserProvider.getCurrentUser();
+        if (artist.getStatus() == UserStatus.BLOCKED) {
+            throw new ApiException(ErrorCode.USER_BLOCKED, "Korisnički račun je blokiran.");
+        }
         Artwork artwork = artworks.findByIdForUpdate(artworkId).orElseThrow(ArtworkService::notFound);
         if (!artwork.getArtist().getId().equals(artist.getId())) {
             throw notFound();
@@ -102,6 +105,9 @@ public class ArtworkService {
     @Transactional
     public void deleteImage(UUID artworkId, UUID imageId) {
         User artist = currentUserProvider.getCurrentUser();
+        if (artist.getStatus() == UserStatus.BLOCKED) {
+            throw new ApiException(ErrorCode.USER_BLOCKED, "Korisnički račun je blokiran.");
+        }
         Artwork artwork = artworks.findByIdForUpdate(artworkId).orElseThrow(ArtworkService::notFound);
         if (!artwork.getArtist().getId().equals(artist.getId())) {
             throw notFound();
