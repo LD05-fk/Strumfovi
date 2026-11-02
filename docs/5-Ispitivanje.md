@@ -236,7 +236,8 @@ Integracijski izvor je [ArtistProfileFlowIT](../backend/src/test/java/hr/fer/art
 a E2E izvor [test_portfolio.py](../tests/selenium/test_portfolio.py), uz
 [ProfilePage](../tests/selenium/page_objects/profile_page.py).
 Zadano/Kada/Tada u tablici odgovara zapisu Given/When/Then.
-Ishodi se odnose na lokalno izvođenje 1. 11. 2026. opisano u §5.3.
+Ishodi lokalnog izvođenja i poveznice na uspješna CI izvođenja za PR #358
+navedeni su u §5.3.
 
 | ID | Zadano (Given) | Kada (When) | Tada (Then) | Ishod |
 | --- | --- | --- | --- | --- |
@@ -266,10 +267,11 @@ slučaj pada testa. Testovi istog dev umjetnika izvode se redom.
 
 **Cilj:** Navesti reviziju aplikacije, okruženje i dokaze potrebne za tumačenje stvarnih rezultata u tablici ispitnih slučajeva. Dodajte kratak zapis izvođenja kada te podatke nije moguće jasno prenijeti poveznicom na kod ispitivanja ili CI izvođenje.
 
-### PORT-01 — lokalno izvođenje 1. 11. 2026.
+### PORT-01 — izvođenja uz PR #358
 
-**Revizija testova:** `d268dc5` (`test: dodaj integracijske i E2E testove profila umjetnika`),
-nad aplikacijom iz `d27046f`. Testovi su pokrenuti na Windowsu 11, uz Javu
+**Promjena:** [PR #358 — Integracijski i E2E testovi profila umjetnika](https://github.com/LD05-fk/Strumfovi/pull/358).
+
+**Lokalno izvođenje — 1. 11. 2026.:** Windows 11, uz Javu
 25.0.4.1, Spring Boot 4.1.1, Python 3.12.6, pytest 9.2.0, Selenium 4.52.0
 i Chrome 156 headless. Integracija koristi PostgreSQL 16 u Testcontainersu;
 E2E koristi zaseban PostgreSQL 17 u Dockeru, backend s profilom `dev` na portu
@@ -299,6 +301,19 @@ izvještaju. Uspješan test nije stvarao dokaze pada. Privremeni test je
 uklonjen. To je provjera izvještavanja, a ne dodatni neuspjeh aplikacije.
 Oba izmijenjena workflowa prošla su statičku provjeru actionlintom 1.7.12.
 
+**GitHub Actions — 1. 11. 2026.:** oba workflowa pokrenuta su događajem
+`pull_request` za PR #358, a svi poslovi završili su uspješno na
+`ubuntu-latest`. Poveznice vode na konkretna izvođenja:
+
+| Posao | Provjera | Rezultat i dokaz |
+| --- | --- | --- |
+| Backend | `./mvnw -B verify`, uključujući integracijske testove i spremanje izvještaja. | Prošlo — [Backend izvođenje](https://github.com/LD05-fk/Strumfovi/actions/runs/41352021066/job/124984078389). |
+| Frontend | Lint, provjera tipova, testovi i build. | Prošlo — [Frontend izvođenje](https://github.com/LD05-fk/Strumfovi/actions/runs/41352021066/job/124984078517). |
+| e2e | Pokretanje aplikacije s dev prijavom, Selenium testovi i spremanje izvještaja. | Prošlo — [E2E izvođenje](https://github.com/LD05-fk/Strumfovi/actions/runs/41352021040/job/124984077881). |
+
+Artefakt `backend-test-reports` spremljen je u [CI izvođenju](https://github.com/LD05-fk/Strumfovi/actions/runs/41352021066),
+a `e2e-report` u [E2E izvođenju](https://github.com/LD05-fk/Strumfovi/actions/runs/41352021040).
+
 **Ponavljanje i izvještaji:** [upute za testove](../tests/Readme.md)
 navode preduvjete i ciljane naredbe. [Backend CI](../.github/workflows/ci.yml)
 izvodi `mvn verify`, uključujući `ArtistProfileFlowIT` preko Failsafea;
@@ -307,8 +322,7 @@ i kada test padne. [E2E workflow](../.github/workflows/e2e.yml) podiže bazu
 preko Docker Composea, backend i frontend te sprema `e2e-report`: čitljiv
 `report.html`, `test-results/pytest.xml`, logove i PNG/HTML dokaze pada.
 Dokazi se snimaju prije čišćenja, kod pada pripreme ili tijela testa ako je
-preglednik dostupan. Uspješno lokalno izvođenje nije potvrda izvršenog CI-ja;
-novi workflowi još nisu pokrenuti na GitHubu s ovim promjenama.
+preglednik dostupan.
 
 Stupci **Stvarni rezultat** i **Ishod** iznad mjerodavni su rezultati za pojedinačni slučaj. Nemojte kopirati sve rezultate u drugu obaveznu tablicu. Neuspješna i blokirana izvođenja zabilježite iskreno; pri ponovnom izvođenju zadržite relevantnu povijest umjesto prikazivanja starog uspješnog rezultata kao trenutačnog.
 
