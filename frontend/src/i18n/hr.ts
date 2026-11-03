@@ -167,6 +167,33 @@ export const hr = {
   },
 
   opportunities: {
+    form: {
+      title: 'Naslov',
+      description: 'Opis',
+      opportunityType: 'Vrsta prilike',
+      artFields: 'Područja umjetnosti',
+      typesEmpty: 'Nema dostupnih vrsta prilike.',
+      inactive: 'neaktivno',
+      deadline: 'Rok prijave',
+      eventStart: 'Početak događanja',
+      eventEnd: 'Kraj događanja',
+      criteria: 'Kriteriji',
+      prize: 'Nagrada',
+      saved: 'Prilika je spremljena',
+      createTitle: 'Objavi priliku',
+      editTitle: 'Uredi priliku',
+      accessDenied: 'Nemate pristup ovoj prilici.',
+      notFound: 'Prilika nije pronađena.',
+      location: 'Lokacija',
+      locationPlaceholder: 'Odjeljak lokacije bit će dodan u OPP-01-FE3.',
+      applicationRequirements: 'Zahtjevi prijave',
+      applicationRequirementsPlaceholder:
+        'Ovdje će se uređivati zahtjevi prijave (APP-01).',
+      leaveTitle: 'Napuštate obrazac?',
+      leaveMessage: 'Imate nespremljene promjene koje će biti izgubljene.',
+      continueEditing: 'Nastavi uređivati',
+      discardChanges: 'Odbaci promjene',
+    },
     validation: {
       dateFormat: 'Unesite valjan datum i vrijeme.',
       titleMin: 'Naslov mora imati najmanje 3 znaka.',

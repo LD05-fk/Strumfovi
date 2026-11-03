@@ -1,9 +1,55 @@
 import { z } from 'zod'
 import { hr } from '../../../i18n/hr'
 
-const hasOffsetDateTime = (value: string) =>
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/.test(value) &&
-  Number.isFinite(Date.parse(value))
+const hasOffsetDateTime = (value: string) => {
+  const match = value.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})([+-])(\d{2}):(\d{2})$/,
+  )
+
+  if (!match) return false
+
+  const [, year, month, day, hour, minute, second, , offsetHour, offsetMinute] =
+    match
+  const yearNumber = Number(year)
+  const monthNumber = Number(month)
+  const dayNumber = Number(day)
+  const hourNumber = Number(hour)
+  const minuteNumber = Number(minute)
+  const secondNumber = Number(second)
+  const offsetHourNumber = Number(offsetHour)
+  const offsetMinuteNumber = Number(offsetMinute)
+
+  if (monthNumber < 1 || monthNumber > 12) return false
+
+  const isLeapYear =
+    yearNumber % 4 === 0 && (yearNumber % 100 !== 0 || yearNumber % 400 === 0)
+  const daysInMonth = [
+    31,
+    isLeapYear ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ][monthNumber - 1]
+
+  return (
+    dayNumber >= 1 &&
+    dayNumber <= daysInMonth &&
+    hourNumber <= 23 &&
+    minuteNumber <= 59 &&
+    secondNumber <= 59 &&
+    offsetHourNumber <= 14 &&
+    offsetMinuteNumber <= 59 &&
+    (offsetHourNumber !== 14 || offsetMinuteNumber === 0) &&
+    Number.isFinite(Date.parse(value))
+  )
+}
 
 const isHttpUrl = (value: string) => {
   try {

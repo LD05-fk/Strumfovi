@@ -20,6 +20,7 @@ import { ArtistProfilePage } from './features/artist-profile/ArtistProfilePage'
 import { HomePage } from './features/auth/pages/HomePage'
 import { hr } from './i18n/hr'
 import { OrganizerProfilePage } from './features/organizer-profile/OrganizerProfilePage'
+import { OpportunityEditorPage } from './features/opportunities/OpportunityEditorPage'
 
 type PageProps = {
     title: string
@@ -144,6 +145,22 @@ const router = createBrowserRouter(
                 element={
                     <RequireRole roles={['ORGANIZER']}>
                         <Page title="Organizatorski portal" />
+                    </RequireRole>
+                }
+            />
+            <Route
+                path="organizer/opportunities/new"
+                element={
+                    <RequireRole roles={['ORGANIZER']}>
+                        <OpportunityEditorPage mode="create" />
+                    </RequireRole>
+                }
+            />
+            <Route
+                path="organizer/opportunities/:opportunityId/edit"
+                element={
+                    <RequireRole roles={['ORGANIZER']}>
+                        <OpportunityEditorPage mode="edit" />
                     </RequireRole>
                 }
             />

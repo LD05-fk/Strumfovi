@@ -1,5 +1,12 @@
 export type OpportunityLocationType = 'PHYSICAL' | 'ONLINE'
 
+export type OpportunityStatus =
+  | 'PREPARATION'
+  | 'OPEN'
+  | 'CLOSED'
+  | 'SELECTION'
+  | 'FINISHED'
+
 export type CatalogReference = {
   id: string
   code: string
@@ -88,5 +95,95 @@ export function toOpportunityInput(
     location,
     eventStart: values.eventStart || null,
     eventEnd: values.eventEnd || null,
+  }
+}
+
+export type OpportunityDetail = {
+  id: string
+  title: string
+  description: string
+  type: CatalogReference
+  artFields: CatalogReference[]
+  deadline: string
+  criteria: string | null
+  prize: string | null
+  location: {
+    type: OpportunityLocationType
+    streetAddress: string | null
+    city: string | null
+    postalCode: string | null
+    latitude: number | null
+    longitude: number | null
+    onlineUrl: string | null
+  }
+  eventStart: string | null
+  eventEnd: string | null
+  status: OpportunityStatus
+  archived: boolean
+  hiddenByAdmin: boolean
+  organizer: {
+    id: string
+    displayName: string
+    organizationName: string | null
+  }
+  publishedAt: string | null
+  createdAt: string
+  updatedAt: string
+  hasResults: boolean
+  myApplicationId: string | null
+}
+
+
+export function toOpportunityFormValues(
+  opportunity: OpportunityDetail,
+): OpportunityFormValues {
+  return {
+    title: opportunity.title,
+    description: opportunity.description,
+    typeId: opportunity.type.id,
+    artFieldIds: opportunity.artFields.map((field) => field.id),
+    deadline: opportunity.deadline,
+    criteria: opportunity.criteria ?? '',
+    prize: opportunity.prize ?? '',
+    eventStart: opportunity.eventStart ?? '',
+    eventEnd: opportunity.eventEnd ?? '',
+    location: {
+      type: opportunity.location.type,
+      streetAddress: opportunity.location.streetAddress ?? '',
+      city: opportunity.location.city ?? '',
+      postalCode: opportunity.location.postalCode ?? '',
+      latitude:
+        opportunity.location.latitude === null
+          ? ''
+          : String(opportunity.location.latitude),
+      longitude:
+        opportunity.location.longitude === null
+          ? ''
+          : String(opportunity.location.longitude),
+      onlineUrl: opportunity.location.onlineUrl ?? '',
+    },
+  }
+}
+
+export function emptyOpportunityFormValues(): OpportunityFormValues {
+  return {
+    title: '',
+    description: '',
+    typeId: '',
+    artFieldIds: [],
+    deadline: '',
+    criteria: '',
+    prize: '',
+    eventStart: '',
+    eventEnd: '',
+    location: {
+      type: 'PHYSICAL',
+      streetAddress: '',
+      city: '',
+      postalCode: '',
+      latitude: '',
+      longitude: '',
+      onlineUrl: '',
+    },
   }
 }
