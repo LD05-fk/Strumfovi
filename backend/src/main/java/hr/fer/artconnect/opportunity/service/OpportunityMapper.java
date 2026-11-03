@@ -1,6 +1,7 @@
 package hr.fer.artconnect.opportunity.service;
 
 import hr.fer.artconnect.auth.domain.OrganizerProfile;
+import hr.fer.artconnect.auth.domain.UserStatus;
 import hr.fer.artconnect.catalog.domain.CatalogEntry;
 import hr.fer.artconnect.opportunity.domain.Location;
 import hr.fer.artconnect.opportunity.domain.Opportunity;
@@ -61,7 +62,9 @@ public class OpportunityMapper {
 
     private OrganizerSummary organizer(Opportunity opportunity, OrganizerProfile profile) {
         var user = opportunity.getOrganizer();
-        return new OrganizerSummary(user.getId(), user.getDisplayName(),
+        String displayName = user.getStatus() == UserStatus.DELETED
+                ? "Obrisani korisnik" : user.getDisplayName();
+        return new OrganizerSummary(user.getId(), displayName,
                 profile == null ? null : profile.getOrganizationName());
     }
 
