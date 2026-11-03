@@ -73,6 +73,17 @@ public class Artwork {
         return artwork;
     }
 
+    public void updateDetails(String title, short year, String technique, String dimensions,
+            String description, ArtworkVisibility visibility) {
+        this.title = title;
+        this.year = year;
+        this.technique = technique;
+        this.dimensions = dimensions;
+        this.description = description;
+        this.visibility = visibility;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
     @PrePersist
     void onCreate() {
         OffsetDateTime now = OffsetDateTime.now();
@@ -131,5 +142,9 @@ public class Artwork {
 
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public void markUpdated() {
+        this.updatedAt = OffsetDateTime.now();
     }
 }

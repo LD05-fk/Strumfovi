@@ -251,6 +251,16 @@ Nakon uspješne obrade stvara se poslužiteljska sesija putem Spring Session JDB
 
 Dijagram prikazuje odabir fizičke ili online lokacije. Za fizičku lokaciju organizator može odabrati jedan od geokodiranih kandidata ili ručno postaviti odnosno ispraviti oznaku; prazan rezultat, ograničenje učestalosti i nedostupnost Nominatima vode u ručni odabir. Neuspjeh kartografskih pločica prikazuje upozorenje, bez ukidanja kontrola za odabir lokacije. Nakon provjere unosa API sprema priliku i područja umjetnosti u jednoj transakciji, u statusu `PREPARATION`; objava nije dio ovog scenarija.
 
+**Scenarij:** UC-02 — umjetnik uređuje profil i portfolio učitavanjem slike djela (PORT-04-BE2).
+
+![Sekvencijski dijagram UC-02: učitavanje slike djela](assets/diagrams/4-6-artconnect-artwork-image-upload-SD.svg)
+
+**Slika 4.6. Sekvencijski dijagram UC-02 — uređivanje profila i portfolija: učitavanje slike djela**
+
+**Izvor dijagrama:** [`docs/puml/4-6-artconnect-artwork-image-upload-SD.puml`](puml/4-6-artconnect-artwork-image-upload-SD.puml)
+
+Zahtjev s jednom slikom i neobaveznim alternativnim tekstom prolazi autentikaciju, provjeru uloge umjetnika i CSRF zaštitu. `ArtworkService` u jednoj transakciji zaključava djelo, zatim provjerava vlasništvo, limit slika iz `system_settings`, veličinu i vrstu sadržaja tim redoslijedom. `FileStorageService` prepoznaje JPEG/PNG prema bajtovima, pohranjuje datoteku na volumenu i metapodatke; servis zatim dodaje sliku na sljedeću poziciju, zadani `altText` uzima iz naslova djela i ažurira `artworks.updated_at`. Zaključavanje reda sprječava da konkurentni zahtjevi prijeđu limit, a rollback transakcije uklanja već zapisanu datoteku. Ugovor i odgovori rute opisani su u [API dokumentaciji djela](api/artworks.md#post-artworksartworkidimages).
+
 <details>
 <summary><strong>Odabir lokacije, provjera valjanosti i podnošenje prijave</strong></summary>
 
