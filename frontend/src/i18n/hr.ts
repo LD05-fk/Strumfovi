@@ -132,12 +132,36 @@ export const hr = {
     leaveMessage: 'Imate nespremljene promjene koje će biti izgubljene.',
     continueEditing: 'Nastavi uređivati',
     discardChanges: 'Odbaci promjene',
+    pastExhibitions: {
+      heading: 'Prethodne izložbe i projekti',
+      add: '+ Dodaj',
+      empty: 'Još niste dodali prethodne izložbe',
+      addDialogTitle: 'Dodaj izložbu ili projekt',
+      editDialogTitle: 'Uredi izložbu ili projekt',
+      title: 'Naslov',
+      titlePlaceholder: 'Npr. Skupna izložba „Svjetlo”',
+      year: 'Godina',
+      place: 'Mjesto',
+      deleteTitle: 'Obrisati izložbu?',
+      deleteDescription: (title: string) =>
+        `Izložba „${title}” bit će trajno uklonjena s vašeg profila.`,
+      saved: 'Izložba spremljena',
+      deleted: 'Izložba obrisana',
+      notFound: 'Izložba više ne postoji',
+      loadError: 'Prethodne izložbe nije moguće učitati.',
+      validation: {
+        required: 'Ovo polje je obavezno.',
+        maxLength: 'Polje smije imati najviše 200 znakova.',
+        yearInteger: 'Godina mora biti cijeli broj.',
+        yearMin: 'Godina mora biti 1900. ili kasnija.',
+        yearFuture: 'Godina ne smije biti u budućnosti.',
+      },
+    },
     validation: {
       linkLabelMaxLength: 'Naziv poveznice smije imati najviše 60 znakova.',
       linkUrlRequired: 'URL poveznice je obavezan.',
       linkUrlMaxLength: 'URL poveznice smije imati najviše 1024 znakova.',
-      linkUrlFormat:
-        'Unesite valjan URL koji počinje s http:// ili https://.',
+      linkUrlFormat: 'Unesite valjan URL koji počinje s http:// ili https://.',
       biographyMaxLength: 'Biografija smije imati najviše 5000 znakova.',
       artistStatementMaxLength:
         'Opis umjetničkog rada smije imati najviše 5000 znakova.',
