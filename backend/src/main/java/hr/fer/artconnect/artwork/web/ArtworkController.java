@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -34,6 +35,19 @@ public class ArtworkController {
     public ResponseEntity<ArtworkDto> createArtwork(@Valid @RequestBody ArtworkRequest request) {
         ArtworkDto created = artworks.create(request);
         return ResponseEntity.created(URI.create(PATH + "/" + created.id())).body(created);
+    }
+
+    @PutMapping("/{artworkId}")
+    @PreAuthorize("hasRole('ARTIST')")
+    public ArtworkDto updateArtwork(@PathVariable UUID artworkId, @Valid @RequestBody ArtworkRequest request) {
+        return artworks.update(artworkId, request);
+    }
+
+    @DeleteMapping("/{artworkId}")
+    @PreAuthorize("hasRole('ARTIST')")
+    public ResponseEntity<Void> deleteArtwork(@PathVariable UUID artworkId) {
+        artworks.delete(artworkId);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping(path = "/{artworkId}/images", consumes = "multipart/form-data")

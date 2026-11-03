@@ -134,6 +134,55 @@ Slika djela u odgovoru (`ArtworkImage`) ima oblik:
 | 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
 | 403 | `USER_BLOCKED` | prijavljeni korisnik je blokiran |
 
+## PUT /artworks/{artworkId}
+
+Ažurira podatke i vidljivost vlastitog djela prijavljenog umjetnika. Potrebna je
+uloga `ARTIST`, valjana sesija i CSRF token u zaglavlju `X-XSRF-TOKEN` iz
+kolačića `XSRF-TOKEN`. Zahtjev prima isti `ArtworkInput` i primjenjuje ista
+pravila validacije kao `POST /artworks`; sva polja iz zahtjeva zamjenjuju
+postojeće vrijednosti.
+
+Slike se ovim pozivom ne mijenjaju. U odgovoru `200 OK` vraća se ažurirani
+`Artwork` s postojećim slikama. Ako je administrator prethodno sakrio djelo,
+uređivanje ne mijenja `hiddenByAdmin`; djelo ostaje skriveno dok ga administrator
+ponovno ne učini vidljivim.
+
+Nepostojeće djelo i djelo drugog umjetnika vraćaju isti `404 NOT_FOUND`.
+Promjena `visibility` u `PRIVATE` odmah uklanja djelo iz javnog popisa.
+Uspješno ažuriranje postavlja `updated_at` na trenutno vrijeme.
+
+| Status | Kod | Kada |
+| --- | --- | --- |
+| 200 | — | djelo je ažurirano |
+| 400 | `VALIDATION_ERROR` | nedostajuće/neispravno polje, predug tekst, godina izvan dopuštenog raspona ili nepoznata vidljivost |
+| 401 | `UNAUTHENTICATED` | zahtjev bez valjane sesije |
+| 403 | `FORBIDDEN` | korisnik nema ulogu `ARTIST` ili nedostaje/nevaljan je CSRF token |
+| 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
+| 403 | `USER_BLOCKED` | prijavljeni korisnik je blokiran |
+| 404 | `NOT_FOUND` | djelo ne postoji ili pripada drugom umjetniku |
+
+## DELETE /artworks/{artworkId}
+
+Briše vlastito djelo prijavljenog umjetnika i sve njegove slike. Potrebna je
+uloga `ARTIST`, valjana sesija i CSRF token u zaglavlju `X-XSRF-TOKEN` iz
+kolačića `XSRF-TOKEN`. Uspješan odgovor je `204 No Content` bez tijela.
+
+Redovi slika i pripadajući metapodaci pohranjenih datoteka brišu se u istoj
+transakciji kao i djelo. Datoteke s volumena uklanja `FileStorageService` nakon
+uspješnog commita. Buduća veza prijave na djelo (`application_items`) ovim se
+endpointom ne mijenja.
+
+Nepostojeće djelo i djelo drugog umjetnika vraćaju isti `404 NOT_FOUND`.
+
+| Status | Kod | Kada |
+| --- | --- | --- |
+| 204 | — | djelo i njegove slike su obrisani; odgovor nema tijelo |
+| 401 | `UNAUTHENTICATED` | zahtjev bez valjane sesije |
+| 403 | `FORBIDDEN` | korisnik nema ulogu `ARTIST` ili nedostaje/nevaljan je CSRF token |
+| 403 | `ONBOARDING_REQUIRED` | korisnik još nije odabrao ulogu |
+| 403 | `USER_BLOCKED` | prijavljeni korisnik je blokiran |
+| 404 | `NOT_FOUND` | djelo ne postoji ili pripada drugom umjetniku |
+
 ## POST /artworks/{artworkId}/images
 
 Učitava jednu sliku u portfolio prijavljenog umjetnika. Potrebni su aktivna
