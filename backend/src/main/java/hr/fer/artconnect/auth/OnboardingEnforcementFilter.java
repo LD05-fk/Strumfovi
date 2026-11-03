@@ -25,7 +25,8 @@ public class OnboardingEnforcementFilter extends OncePerRequestFilter {
             PATHS.matcher(HttpMethod.DELETE, "/api/v1/me"),
             PATHS.matcher(HttpMethod.POST, "/api/v1/me/role"),
             PATHS.matcher(HttpMethod.POST, "/api/v1/auth/logout"),
-            PATHS.matcher(HttpMethod.GET, "/api/v1/auth/csrf"));
+            PATHS.matcher(HttpMethod.GET, "/api/v1/auth/csrf"),
+            PATHS.matcher(HttpMethod.GET, "/api/v1/opportunities/{opportunityId}"));
 
     private final UserRepository users;
     private final SecurityErrorHandler errors;

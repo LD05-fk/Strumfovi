@@ -104,14 +104,16 @@ Dopuštene su samo ove kombinacije metode i putanje:
 - `POST /api/v1/me/role`
 - `POST /api/v1/auth/logout`
 - `GET /api/v1/auth/csrf`
+- `GET /api/v1/opportunities/{opportunityId}` (uz uobičajena pravila javne vidljivosti prilike)
 
 Izuzeće od filtra ne implementira samu rutu; brisanje računa pripada zasebnom
 zadatku. CSRF zaštita i dalje vrijedi za zahtjeve koji mijenjaju stanje i može
 vratiti `403 FORBIDDEN` prije provjere onboardinga.
 
 Anonimni posjetitelji i dalje mogu pregledavati javne rute. Prijavljeni korisnik
-u onboardingu prvo mora odabrati ulogu i za pristup tim API rutama. Putanje izvan
-API-ja nisu obuhvaćene ovim filtrom. Provjera blokiranih računa pripada EPIC-08.
+u onboardingu prvo mora odabrati ulogu za pristup ostalim API rutama. Iznimka za
+javni detalj prilike ne zaobilazi pravila vidljivosti prilike. Putanje izvan API-ja
+nisu obuhvaćene ovim filtrom. Provjera blokiranih računa pripada EPIC-08.
 
 ## POST /dev/login-as
 

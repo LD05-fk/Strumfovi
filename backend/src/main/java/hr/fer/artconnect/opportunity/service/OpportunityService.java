@@ -47,19 +47,23 @@ public class OpportunityService {
     private final OrganizerProfileRepository profiles;
     private final CurrentUserProvider currentUser;
     private final OpportunityMapper mapper;
+    private final OpportunityVisibilityPolicy visibilityPolicy;
     private final OpportunityDeletionGuard deletionGuard;
     private final ApplicationCountsProvider applicationCounts;
     private final Clock clock;
 
     public OpportunityService(OpportunityRepository opportunities, OpportunityTypeRepository types,
             ArtFieldRepository artFields, OrganizerProfileRepository profiles, CurrentUserProvider currentUser,
-            OpportunityMapper mapper, OpportunityDeletionGuard deletionGuard, ApplicationCountsProvider applicationCounts, @Qualifier("geocodingClock") Clock clock) {
+            OpportunityMapper mapper, OpportunityVisibilityPolicy visibilityPolicy,
+            OpportunityDeletionGuard deletionGuard, ApplicationCountsProvider applicationCounts,
+            @Qualifier("geocodingClock") Clock clock) {
         this.opportunities = opportunities;
         this.types = types;
         this.artFields = artFields;
         this.profiles = profiles;
         this.currentUser = currentUser;
         this.mapper = mapper;
+        this.visibilityPolicy = visibilityPolicy;
         this.deletionGuard = deletionGuard;
         this.applicationCounts = applicationCounts;
         // Postojeći UTC Clock dijelimo s geokodiranjem umjesto dodavanja drugog UTC beana.
@@ -75,6 +79,18 @@ public class OpportunityService {
         var profile = profiles.findById(organizer.getId()).orElse(null);
         return PageResponse.from(page.map(opportunity -> mapper.toOrganizerOpportunity(opportunity, profile,
                 applicationCounts.getCounts(opportunity.getId()))));
+    }
+
+    @Transactional(readOnly = true)
+    public OpportunityDto get(UUID opportunityId) {
+        Opportunity opportunity = opportunities.findById(opportunityId)
+                .orElseThrow(OpportunityService::notFound);
+        User viewer = currentUser.getOptionalCurrentUser().orElse(null);
+        if (!visibilityPolicy.canView(opportunity, viewer)) {
+            throw notFound();
+        }
+        var profile = profiles.findById(opportunity.getOrganizer().getId()).orElse(null);
+        return mapper.toDto(opportunity, profile);
     }
 
     @Transactional
@@ -230,5 +246,9 @@ public class OpportunityService {
             throw new ApiException(ErrorCode.FORBIDDEN, forbiddenMessage);
         }
         return opportunity;
+    }
+
+    private static ApiException notFound() {
+        return new ApiException(ErrorCode.NOT_FOUND, "Prilika nije pronađena.");
     }
 }
