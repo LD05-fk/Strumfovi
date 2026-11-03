@@ -25,6 +25,7 @@ class LayoutPage(BasePage):
     LOGO = (By.XPATH, f"//header//a[normalize-space()='{APP_NAME}']")
     MAIN_NAV_ITEM = (
         By.XPATH, "//nav[@aria-label='Glavna navigacija']" f"//a[normalize-space()='{NAV_ITEM_TEXT}']",)
+    HEADER_NAV_LINKS = (By.CSS_SELECTOR, "nav[aria-label='Glavna navigacija'] a")
     LOGIN_BUTTON = (By.XPATH, f"//header//a[@aria-label='{LOGIN_LABEL}']")
     FOOTER = (By.TAG_NAME, "footer")
     MENU_BUTTON = (By.CSS_SELECTOR, "button[aria-label='Otvori izbornik']")
@@ -32,10 +33,6 @@ class LayoutPage(BasePage):
     NOT_FOUND_TITLE = (
         By.XPATH, f"//h1[normalize-space()='{NOT_FOUND_HEADING}']")
     HOME_LINK = (By.XPATH, f"//a[normalize-space()='{HOME_LINK_TEXT}']")
-
-    def open_path(self, path):
-        self.driver.get(self.base_url + path)
-        return self
 
     def use_mobile_viewport(self):
         self.driver.execute_cdp_cmd(
@@ -75,3 +72,34 @@ class LayoutPage(BasePage):
     def focused_text(self):
         active = self.driver.switch_to.active_element
         return (active.get_attribute("textContent") or "").strip()
+
+    def wait_for_header_nav_labels(self, labels, timeout=DEFAULT_TIMEOUT):
+        def matching_links(driver):
+            links = driver.find_elements(*self.HEADER_NAV_LINKS)
+            visible_links = [
+                link for link in links if link.is_displayed()
+            ]
+            actual_labels = [
+                link.get_attribute("textContent").strip()
+                for link in visible_links
+            ]
+            return visible_links if actual_labels == labels else False
+
+        return WebDriverWait(self.driver, timeout).until(matching_links)
+
+    def tab_to(self, element, max_tabs=20):
+        self.driver.execute_script(
+            "document.body.setAttribute('tabindex', '-1'); document.body.focus();"
+        )
+        for _ in range(max_tabs):
+            self.press_tab()
+            if self.driver.execute_script(
+                "return document.activeElement === arguments[0];", element
+            ):
+                return
+        raise AssertionError("Stavka zaglavlja nije dosegnuta tipkom Tab.")
+
+    def focused_element_is_focus_visible(self):
+        return self.driver.execute_script(
+            "return document.activeElement.matches(':focus-visible');"
+        )
