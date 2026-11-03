@@ -23,4 +23,12 @@ public interface ArtworkImageRepository extends JpaRepository<ArtworkImage, UUID
             ORDER BY image.artwork.id, image.position
             """)
     List<ArtworkImage> findAllWithFileByArtworkIds(@Param("artworkIds") Collection<UUID> artworkIds);
+
+    @Query("""
+            SELECT image FROM ArtworkImage image
+            JOIN FETCH image.artwork artwork
+            JOIN FETCH artwork.artist
+            WHERE image.file.id = :fileId
+            """)
+    Optional<ArtworkImage> findWithArtworkByFileId(@Param("fileId") UUID fileId);
 }
