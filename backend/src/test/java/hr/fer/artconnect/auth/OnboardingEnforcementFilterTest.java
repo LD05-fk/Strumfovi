@@ -34,11 +34,12 @@ class OnboardingEnforcementFilterTest {
     void dopusteneMetodeIPutanjeProlazeBezProvjereStatusa() throws Exception {
         login(UserStatus.ONBOARDING);
         for (String route : new String[] {"GET /api/v1/me", "DELETE /api/v1/me", "POST /api/v1/me/role",
-                "POST /api/v1/auth/logout", "GET /api/v1/auth/csrf", "GET /onboarding"}) {
+                "POST /api/v1/auth/logout", "GET /api/v1/auth/csrf",
+                "GET /api/v1/opportunities/00000000-0000-4000-8000-000000000001", "GET /onboarding"}) {
             String[] parts = route.split(" ");
             filter.doFilter(new MockHttpServletRequest(parts[0], parts[1]), new MockHttpServletResponse(), chain);
         }
-        verify(chain, times(6)).doFilter(any(), any());
+        verify(chain, times(7)).doFilter(any(), any());
         verifyNoInteractions(users, errors);
     }
 
@@ -80,11 +81,13 @@ class OnboardingEnforcementFilterTest {
         var onboarding = TestUsers.user(user.getId(), "google", "test@example.com", null, UserStatus.ONBOARDING);
         when(users.findById(user.getId())).thenReturn(Optional.of(onboarding));
         for (String route : new String[] {"GET /api/v1/me/organizer-profile", "GET /api/v1/artists",
-                "POST /api/v1/me", "GET /api/v1/me/role", "GET /api/v1/auth/logout", "POST /api/v1/auth/csrf"}) {
+                "POST /api/v1/me", "GET /api/v1/me/role", "GET /api/v1/auth/logout", "POST /api/v1/auth/csrf",
+                "POST /api/v1/opportunities/00000000-0000-4000-8000-000000000001",
+                "GET /api/v1/opportunities/00000000-0000-4000-8000-000000000001/archive"}) {
             String[] parts = route.split(" ");
             filter.doFilter(new MockHttpServletRequest(parts[0], parts[1]), new MockHttpServletResponse(), chain);
         }
-        verify(errors, times(6)).write(any(), eq(ErrorCode.ONBOARDING_REQUIRED));
+        verify(errors, times(8)).write(any(), eq(ErrorCode.ONBOARDING_REQUIRED));
         verifyNoInteractions(chain);
     }
 
