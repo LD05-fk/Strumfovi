@@ -6,6 +6,7 @@ import hr.fer.artconnect.artwork.domain.ArtworkImageRepository;
 import hr.fer.artconnect.artwork.domain.ArtworkRepository;
 import hr.fer.artconnect.artwork.domain.ArtworkVisibility;
 import hr.fer.artconnect.artwork.web.ArtworkDto;
+import hr.fer.artconnect.artwork.web.ArtworkImageDto;
 import hr.fer.artconnect.artwork.web.ArtworkRequest;
 import hr.fer.artconnect.auth.CurrentUserProvider;
 import hr.fer.artconnect.auth.domain.User;
@@ -15,7 +16,12 @@ import hr.fer.artconnect.common.ApiException;
 import hr.fer.artconnect.common.ErrorCode;
 import hr.fer.artconnect.common.PageRequestParams;
 import hr.fer.artconnect.common.PageResponse;
+import hr.fer.artconnect.catalog.service.SettingsService;
+import hr.fer.artconnect.file.domain.FilePurpose;
 import hr.fer.artconnect.file.service.FileStorageService;
+import hr.fer.artconnect.file.service.StoredFileDto;
+import java.util.Set;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -33,17 +39,19 @@ public class ArtworkService {
     private final CurrentUserProvider currentUserProvider;
     private final ArtworkMapper artworkMapper;
     private final ArtworkVisibilityPolicy visibilityPolicy;
+    private final SettingsService settings;
     private final FileStorageService fileStorage;
 
     public ArtworkService(ArtworkRepository artworks, ArtworkImageRepository artworkImages, UserRepository users,
             CurrentUserProvider currentUserProvider, ArtworkMapper artworkMapper,
-            ArtworkVisibilityPolicy visibilityPolicy, FileStorageService fileStorage) {
+            ArtworkVisibilityPolicy visibilityPolicy, SettingsService settings, FileStorageService fileStorage) {
         this.artworks = artworks;
         this.artworkImages = artworkImages;
         this.users = users;
         this.currentUserProvider = currentUserProvider;
         this.artworkMapper = artworkMapper;
         this.visibilityPolicy = visibilityPolicy;
+        this.settings = settings;
         this.fileStorage = fileStorage;
     }
 
@@ -62,6 +70,55 @@ public class ArtworkService {
                 request.description(),
                 request.visibility()));
         return artworkMapper.toDto(saved, List.of());
+    }
+
+    @Transactional
+    public ArtworkImageDto uploadImage(UUID artworkId, MultipartFile file, String altText) {
+        User artist = currentUserProvider.getCurrentUser();
+        if (artist.getStatus() == UserStatus.BLOCKED) {
+            throw new ApiException(ErrorCode.USER_BLOCKED, "Korisnički račun je blokiran.");
+        }
+        Artwork artwork = artworks.findByIdForUpdate(artworkId).orElseThrow(ArtworkService::notFound);
+        if (!artwork.getArtist().getId().equals(artist.getId())) {
+            throw notFound();
+        }
+
+        var limits = settings.getUploadLimits();
+        if (artworkImages.countByArtwork_Id(artworkId) >= limits.artworkMaxImages()) {
+            throw new ApiException(ErrorCode.IMAGE_LIMIT_REACHED, "Djelo je doseglo dopušteni broj slika.");
+        }
+        if (altText != null && altText.length() > 300) {
+            throw new ApiException(ErrorCode.VALIDATION_ERROR, "Alternativni tekst smije imati najviše 300 znakova.");
+        }
+
+        var storedFile = fileStorage.store(artist.getId(), FilePurpose.ARTWORK_IMAGE, file,
+                Set.of("image/jpeg", "image/png"), limits.artworkMaxImageBytes());
+        Short maxPosition = artworkImages.findMaxPositionByArtworkId(artworkId);
+        short position = (short) (maxPosition == null ? 0 : maxPosition + 1);
+        String normalizedAltText = altText == null || altText.isBlank() ? artwork.getTitle() : altText.strip();
+        ArtworkImage savedImage = artworkImages.save(
+                ArtworkImage.create(artwork, storedFile, normalizedAltText, position));
+        artwork.markUpdated();
+        return new ArtworkImageDto(savedImage.getId(), StoredFileDto.from(storedFile), savedImage.getAltText());
+    }
+
+    @Transactional
+    public void deleteImage(UUID artworkId, UUID imageId) {
+        User artist = currentUserProvider.getCurrentUser();
+        if (artist.getStatus() == UserStatus.BLOCKED) {
+            throw new ApiException(ErrorCode.USER_BLOCKED, "Korisnički račun je blokiran.");
+        }
+        Artwork artwork = artworks.findByIdForUpdate(artworkId).orElseThrow(ArtworkService::notFound);
+        if (!artwork.getArtist().getId().equals(artist.getId())) {
+            throw notFound();
+        }
+
+        ArtworkImage image = artworkImages.findByIdAndArtwork_Id(imageId, artworkId)
+                .orElseThrow(ArtworkService::notFound);
+        artworkImages.delete(image);
+        artworkImages.flush();
+        fileStorage.delete(image.getFile());
+        artwork.markUpdated();
     }
 
     @Transactional

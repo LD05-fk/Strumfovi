@@ -143,4 +143,8 @@ public class Artwork {
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    public void markUpdated() {
+        this.updatedAt = OffsetDateTime.now();
+    }
 }
