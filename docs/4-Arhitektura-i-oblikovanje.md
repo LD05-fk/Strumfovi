@@ -413,6 +413,16 @@ ADR pišite samo za odluku čije će obrazloženje ostati važno i nakon promjen
 
 Paket `hr.fer.artconnect.common` sadrži zajedničke klase za greške, provjeru podataka i straničenje (#8).
 
+### Vidljivost prilika
+
+`OpportunityVisibilityPolicy` središnje određuje može li pozivatelj vidjeti
+priliku. Vlasnik i administrator vide priliku neovisno o statusu, arhiviranosti
+i skrivenosti. Ostali pozivatelji, uključujući anonimne, vide samo nearhivirane
+i neskrivene prilike u statusima `OPEN`, `CLOSED`, `SELECTION` ili `FINISHED`
+čiji organizator nije blokiran. Odbijeni dohvat detalja vraća `404 NOT_FOUND`
+kao i nepostojeća prilika; pravilo je izdvojeno kako bi ga mogli koristiti i
+drugi dijelovi sustava.
+
 ### Sesija i sigurnost
 
 `SecurityConfig` dopušta anonimne GET zahtjeve na prilike, umjetnike, djela, datoteke, šifrarnike, javne postavke, `/api/v1/auth/csrf` i `/actuator/health`. Ostali zahtjevi traže prijavu. `@EnableMethodSecurity` uključuje provjere `@PreAuthorize`; privatnost pojedinog djela ili datoteke mora dodatno provjeriti odgovarajuća metoda.

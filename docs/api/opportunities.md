@@ -185,6 +185,33 @@ uz ažurirane vrijednosti i očuvane podatke o statusu i vlasniku.
 
 Greške koriste istu zajedničku omotnicu kao kod stvaranja.
 
+## GET /opportunities/{opportunityId}
+
+`GET /api/v1/opportunities/{opportunityId}` vraća puni detalj prilike. Ruta je
+javna; valjana sesija nije obavezna, ali određuje vidi li pozivatelj i nejavnu
+priliku. Korisnik u statusu `ONBOARDING` može dohvatiti javno vidljiv detalj;
+vrijede ista pravila vidljivosti kao i za druge pozivatelje. Uspjeh vraća objekt
+`Opportunity` u istom obliku kao kod stvaranja, uključujući sva polja lokacije.
+`artFields` su poredani po `position` šifrarnika,
+`hasResults` je `false`, a `myApplicationId` je `null` dok se ne uvede podrška
+za prijave. Obrisani organizator ostaje prikazan kao `"Obrisani korisnik"`.
+
+| Pozivatelj | Vidljivost |
+| --- | --- |
+| Anonimni ili drugi prijavljeni korisnik | Samo prilike statusa `OPEN`, `CLOSED`, `SELECTION` ili `FINISHED`, koje nisu arhivirane ni skrivene od administratora i čiji organizator nije blokiran |
+| Vlasnik prilike | Vlastita prilika u svakom statusu, uključujući arhiviranu ili skrivenu |
+| Administrator | Svaka prilika |
+
+Prilika koja ne postoji ili nije vidljiva pozivatelju vraća `404 NOT_FOUND`;
+odgovor ne otkriva postojanje nejavne prilike. Neispravan UUID također vraća
+`404 NOT_FOUND`. Prilike organizatora čiji je račun obrisan ostaju javno
+vidljive ako zadovoljavaju ostala javna pravila.
+
+| HTTP | Kod | Razlog |
+| --- | --- | --- |
+| 200 | — | Puni detalj vidljive prilike |
+| 404 | `NOT_FOUND` | Prilika ne postoji, nije vidljiva pozivatelju ili je UUID neispravan |
+
 ## GET /api/v1/me/opportunities
 
 Vraća prilike prijavljenog organizatora, uključujući sve statuse i prilike
