@@ -281,7 +281,6 @@ nakon svakog testa briše svoje korisnike, profile, poveznice, područja i sesij
 E2E koristi dev seed: prije testa sprema izvorni sadržaj profila i priprema
 prazan obrazac, a nakon testa vraća sadržaj i odjavljuje sesiju, uključujući
 slučaj pada testa. Testovi istog dev umjetnika izvode se redom.
-master
 
 ## 5.3 Provedena ispitivanja i rezultati
 
