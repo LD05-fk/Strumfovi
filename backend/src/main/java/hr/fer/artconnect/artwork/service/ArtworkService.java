@@ -15,6 +15,7 @@ import hr.fer.artconnect.common.ApiException;
 import hr.fer.artconnect.common.ErrorCode;
 import hr.fer.artconnect.common.PageRequestParams;
 import hr.fer.artconnect.common.PageResponse;
+import hr.fer.artconnect.file.service.FileStorageService;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -32,16 +33,18 @@ public class ArtworkService {
     private final CurrentUserProvider currentUserProvider;
     private final ArtworkMapper artworkMapper;
     private final ArtworkVisibilityPolicy visibilityPolicy;
+    private final FileStorageService fileStorage;
 
     public ArtworkService(ArtworkRepository artworks, ArtworkImageRepository artworkImages, UserRepository users,
             CurrentUserProvider currentUserProvider, ArtworkMapper artworkMapper,
-            ArtworkVisibilityPolicy visibilityPolicy) {
+            ArtworkVisibilityPolicy visibilityPolicy, FileStorageService fileStorage) {
         this.artworks = artworks;
         this.artworkImages = artworkImages;
         this.users = users;
         this.currentUserProvider = currentUserProvider;
         this.artworkMapper = artworkMapper;
         this.visibilityPolicy = visibilityPolicy;
+        this.fileStorage = fileStorage;
     }
 
     @Transactional
@@ -59,6 +62,46 @@ public class ArtworkService {
                 request.description(),
                 request.visibility()));
         return artworkMapper.toDto(saved, List.of());
+    }
+
+    @Transactional
+    public ArtworkDto update(UUID artworkId, ArtworkRequest request) {
+        User artist = currentUserProvider.getCurrentUser();
+        if (artist.getStatus() == UserStatus.BLOCKED) {
+            throw new ApiException(ErrorCode.USER_BLOCKED, "Korisnički račun je blokiran.");
+        }
+        Artwork artwork = artworks.findById(artworkId).orElseThrow(ArtworkService::notFound);
+        if (!artwork.getArtist().getId().equals(artist.getId())) {
+            throw notFound();
+        }
+        artwork.updateDetails(
+                request.title(),
+                request.year().shortValue(),
+                request.technique(),
+                request.dimensions(),
+                request.description(),
+                request.visibility());
+        Artwork saved = artworks.save(artwork);
+        Map<UUID, List<ArtworkImage>> imagesByArtwork = loadImages(List.of(saved));
+        return artworkMapper.toDto(saved, imagesByArtwork.getOrDefault(artworkId, List.of()));
+    }
+
+    @Transactional
+    public void delete(UUID artworkId) {
+        User artist = currentUserProvider.getCurrentUser();
+        if (artist.getStatus() == UserStatus.BLOCKED) {
+            throw new ApiException(ErrorCode.USER_BLOCKED, "Korisnički račun je blokiran.");
+        }
+        Artwork artwork = artworks.findById(artworkId).orElseThrow(ArtworkService::notFound);
+        if (!artwork.getArtist().getId().equals(artist.getId())) {
+            throw notFound();
+        }
+
+        List<ArtworkImage> images = artworkImages.findAllWithFileByArtworkIds(List.of(artworkId));
+        artworkImages.deleteAll(images);
+        artworkImages.flush();
+        images.forEach(image -> fileStorage.delete(image.getFile()));
+        artworks.delete(artwork);
     }
 
     @Transactional(readOnly = true)
