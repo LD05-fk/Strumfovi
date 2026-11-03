@@ -124,6 +124,14 @@ class FileStorageServiceTest {
     }
 
     @Test
+    void provjeravaVelicinuPrijeVrsteSadrzaja() {
+        assertThatThrownBy(() -> store("tekst.jpg", "nije slika".getBytes(), Set.of("image/jpeg"), 1))
+                .isInstanceOf(FileTooLargeException.class)
+                .extracting(error -> ((ApiException) error).getCode())
+                .isEqualTo(ErrorCode.FILE_TOO_LARGE);
+    }
+
+    @Test
     void putanjaKojaIzlaziIzKorijenaSeOdbija() {
         StoredFile malicious = new StoredFile(mock(User.class), FilePurpose.ARTWORK_IMAGE,
                 "x.jpg", "image/jpeg", 1, "../outside.jpg");
