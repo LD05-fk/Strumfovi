@@ -17,7 +17,7 @@ Proširivi primjeri CrisisMapa prikazuju oblikovanje ispitivanja i izvještavanj
 | Jedinična (backend)     | JUnit 5 + Mockito                                         | Poslovna pravila u servisima                                                                           | `backend/src/test`             | autor zadatka         | CI, svaki PR i push na `master`                                                                        |
 | Integracijska (backend) | Spring Boot Test + Testcontainers (prava PostgreSQL baza) | Ključne stvari: glavni tok endpointa, autorizacija i vlasništvo (401/403), podizanje cijelog konteksta | `backend/src/test`             | autor Backend zadatka | CI, svaki PR i push na `master`                                                                        |
 | Jedinična (frontend)    | Vitest + React Testing Library                            | Komponente i logika (npr. API klijent: CSRF zaglavlje, obrada grešaka)                                 | `frontend/src/**/*.test.ts(x)` | autor zadatka         | CI, svaki PR i push na `master`                                                                        |
-| Sustavska (E2E)         | Selenium WebDriver (Python, pytest)                       | Glavni scenarij svake funkcionalnosti i najvažnija greška ili zabrana                                  | `tests/selenium`               | Testing               | lokalno, uz pokrenut sustav (`BASE_URL`, zadano `http://localhost:5173`); CI posao e2e (ručno i noćno) |
+| Sustavska (E2E)         | Selenium WebDriver (Python, pytest)                       | Glavni scenarij svake funkcionalnosti i najvažnija greška ili zabrana                                  | `tests/selenium`               | Testing               | lokalno, uz pokrenut sustav (`BASE_URL`, zadano `http://localhost:5173`); CI posao e2e (relevantni PR-ovi, ručno i noćno) |
 | Ručna                   | preglednik                                                | Prijava Googleom (ne automatizira se), izgled na mobitelu i računalu                                   | —                              | Testing i autor       | prije predaje faze                                                                                     |
 
 **Kontinuirana integracija:** GitHub Actions (`.github/workflows/ci.yml`) na svakom pull requestu i pushu na `master` izvodi posao `Backend` (`./mvnw -B verify`, svi backend testovi uključujući Testcontainers) i posao `Frontend` (lint, provjera tipova, Vitest, build). Pull request se spaja samo uz zelen CI i jedno odobrenje. Rezultati izvođenja su u kartici **Actions** repozitorija.
@@ -92,8 +92,9 @@ Endpoint prihvaća e-mail testnog korisnika u JSON tijelu, postavlja sesiju i do
 samo kada je aktivan profil `dev` bez `prod`. Testni računi koje Liquibase stvara za lokalni
 razvoj su `umjetnik@artconnect.test`, `umjetnik2@artconnect.test`,
 `organizator@artconnect.test`, `admin@artconnect.test` i `novi@artconnect.test`.
-E2E se u CI-ju pokreće s `e2e` (ručno i noću);
-HTML izvještaj je artefakt workflowa.
+E2E se u CI-ju pokreće s `e2e` na PR-ovima koji mijenjaju backend, frontend,
+testove, `docker-compose.yml` ili E2E workflow te ručno i noću.
+Artefakt `e2e-report` sadrži HTML izvještaj, pytest XML, logove i dokaze pada.
 
 <details>
 <summary><strong>Odabir provjera za podnošenje prijave</strong></summary>
@@ -229,11 +230,99 @@ FND-06 - 23.10.2026.
 | **FND-06-T3**       | Sustav: zatvaranje mobilnog izbornika tipkom `Escape` | Širina prozora 375 px, visina 812 px; početna stranica `/`; `Escape`. | Na širini 375 px izbornik se otvara, a `Escape` ga zatvara.                                             | Izbornik se otvara pomoću gumba; nakon `Escape` navigacija se zatvara.                  | Prošlo | Postaviti širinu preglednika na 375 px; otvoriti `/`; otvoriti izbornik; provjeriti vidljivost izbornika; `Escape`; pričekati nestanak izbornika. |
 | **FND-06-T4**       | Sustav: fokusiranje tipkom `Tab`                      | Početna stranica `/`; `Tab`.                                          | Na početnoj stranici fokusiranje poveznice „Preskoči na sadržaj" tipkom `Tab`.                          | Fokus postavljen na poveznicu „Preskoči na sadržaj”.                                    | Prošlo | Otvoriti `/`; pričekati prisutnost poveznice „Preskoči na sadržaj” u DOM-u; `Tab`; dohvatiti aktivni element i provjeriti tekst.                  |
 
+### PORT-01 — Profil umjetnika
+
+Integracijski izvor je [ArtistProfileFlowIT](../backend/src/test/java/hr/fer/artconnect/portfolio/it/ArtistProfileFlowIT.java),
+a E2E izvor [test_portfolio.py](../tests/selenium/test_portfolio.py), uz
+[ProfilePage](../tests/selenium/page_objects/profile_page.py).
+Zadano/Kada/Tada u tablici odgovara zapisu Given/When/Then.
+Ishodi lokalnog izvođenja i poveznice na uspješna CI izvođenja za PR #358
+navedeni su u §5.3.
+
+| ID | Zadano (Given) | Kada (When) | Tada (Then) | Ishod |
+| --- | --- | --- | --- | --- |
+| PORT-01-IT-01 | Prijavljeni umjetnik bez spremljenog profila; dva aktivna područja. | Dohvati profil, spremi biografiju, opis rada, dva područja i Instagram poveznicu pa ponovno dohvati profil. | Početni GET daje 200 i prazne nizove; PUT daje 200; novi GET vraća spremljene vrijednosti. | Prošlo |
+| PORT-01-IT-02 | Prijavljeni umjetnik. | Pokušaj spremiti `ftp://x`, zatim `javascript:alert(1)`. | Oba zahtjeva daju 400 `VALIDATION_ERROR` i `details[0].field = links[0].url`; profil nema spremljenih poveznica. | Prošlo (2 ulaza) |
+| PORT-01-IT-03 | Umjetnik je spremio aktivno područje koje je zatim deaktivirano izravno u bazi. | Isti umjetnik ponovno spremi područje, a drugi ga pokuša dodati. | Postojeći odabir ostaje uz 200; novi odabir odbijen je s 400 i greškom za `artFieldIds`. | Prošlo |
+| PORT-01-IT-04 | Stvarna sesija organizatora, administratora, korisnika `ONBOARDING` ili blokiranog umjetnika. | Pošalji PUT umjetničkog profila uz ispravan CSRF token. | Svi dobivaju 403: `FORBIDDEN` za organizatora i administratora, `ONBOARDING_REQUIRED` za onboarding, `USER_BLOCKED` za blokiranog umjetnika. | Prošlo (4 korisnika) |
+| PORT-01-E2E-01 | Dev umjetnik na `/profile`, s praznim obrascem. | Upiši biografiju, odaberi dva područja, dodaj `https://instagram.com/test`, spremi i osvježi stranicu. | Prikazuje se „Profil spremljen”; biografija, oba područja i poveznica ostaju nakon osvježavanja. | Prošlo |
+| PORT-01-E2E-02 | Dev umjetnik na `/profile`. | Dodaj `instagram.com/test` i pokušaj spremiti. | Greška je uz URL polje; Chromeov mrežni zapis ne sadrži PUT na `/api/v1/me/artist-profile`. | Prošlo |
+| PORT-01-E2E-03 | Prijavljeni dev organizator. | Otvori `/profile` i korisnički izbornik. | Vidi polje „Naziv organizacije” i stavku „Profil”; nema umjetničke biografije, područja ni stavki „Moj profil” i „Moj portfolio”. | Prošlo |
+
+**Usklađenje s implementacijom:** izvorni [issue #88](https://github.com/LD05-fk/Strumfovi/issues/88)
+za organizatora na `/profile` navodi 403. Aktualna [ruta](../frontend/src/App.tsx)
+na toj adresi prikazuje profil prema ulozi. PORT-01-E2E-03 zato provjerava
+organizatorski obrazac i odsutnost umjetničkih opcija. Umjetnički API ostaje
+zabranjen organizatoru, što zasebno provjerava PORT-01-IT-04.
+
+Integracijski testovi prijavljuju korisnika preko `dev/login-as`, koriste
+stvarni `SESSION` i CSRF token iz `/auth/csrf`, uz PostgreSQL iz Testcontainersa.
+[PortfolioFixtures](../backend/src/test/java/hr/fer/artconnect/portfolio/it/PortfolioFixtures.java)
+nakon svakog testa briše svoje korisnike, profile, poveznice, područja i sesije.
+E2E koristi dev seed: prije testa sprema izvorni sadržaj profila i priprema
+prazan obrazac, a nakon testa vraća sadržaj i odjavljuje sesiju, uključujući
+slučaj pada testa. Testovi istog dev umjetnika izvode se redom.
+
 ## 5.3 Provedena ispitivanja i rezultati
 
 **Cilj:** Navesti reviziju aplikacije, okruženje i dokaze potrebne za tumačenje stvarnih rezultata u tablici ispitnih slučajeva. Dodajte kratak zapis izvođenja kada te podatke nije moguće jasno prenijeti poveznicom na kod ispitivanja ili CI izvođenje.
 
-**Najnovije izvođenje ili dokaz:** [Poveznica na CI izvođenje, bilješku ručnog ispitivanja ili kratak sažetak izvođenja s datumom, revizijom i okruženjem.]
+### PORT-01 — izvođenja uz PR #358
+
+**Promjena:** [PR #358 — Integracijski i E2E testovi profila umjetnika](https://github.com/LD05-fk/Strumfovi/pull/358).
+
+**Lokalno izvođenje — 1. 11. 2026.:** Windows 11, uz Javu
+25.0.4.1, Spring Boot 4.1.1, Python 3.12.6, pytest 9.2.0, Selenium 4.52.0
+i Chrome 156 headless. Integracija koristi PostgreSQL 16 u Testcontainersu;
+E2E koristi zaseban PostgreSQL 17 u Dockeru, backend s profilom `dev` na portu
+18080 i Vite na portu 15173 (`BASE_URL=http://127.0.0.1:15173`).
+
+- `ArtistProfileFlowIT`: svih **8 provjera prošlo**, bez grešaka i preskakanja.
+  Ciljano izvođenje `./mvnw '-Dtest=ArtistProfileFlowIT' test` završilo je s
+  `BUILD SUCCESS`. Dodatno su prošla 6 testa iz `ArtistProfileIntegrationTest`
+  i 4 iz `ArtistProfileUpdateIntegrationTest`.
+- Selenium: **8 testova prošlo**, od čega 3 nova iz `test_portfolio.py` i
+  5 postojećih testova početne stranice i rasporeda. Novi scenariji prošli su
+  i u obrnutom redoslijedu. Završno izvođenje trajalo je 64,79 sekundi.
+- Završni upit u E2E bazu potvrdio je vraćenu izvornu biografiju, nula
+  testnih Instagram poveznica i nula prijavljenih sesija. Privremena baza,
+  backend i frontend zatim su ugašeni.
+
+Tijekom prvih izvođenja ispravljeni su testni podaci (ograničenje duljine
+i jedinstvenost šifre/naziva područja) te lokator potvrde spremanja
+(`role="status"`). Gore su navedeni rezultati završnih uspješnih izvođenja.
+
+**Provjera izvještavanja — 1. 11. 2026.:** nakon dodavanja dokaza pada,
+privremenim testovima na jednostavnoj HTML stranici namjerno su izazvani
+jedan pad pripreme (`setup`) i jedan pad tijela testa (`call`), uz jedan
+uspješan test. Potvrđeno je stvaranje oba para PNG/HTML datoteka, očekivani
+rezultati u pytest XML-u i dostupnost snimke i izvora stranice u HTML
+izvještaju. Uspješan test nije stvarao dokaze pada. Privremeni test je
+uklonjen. To je provjera izvještavanja, a ne dodatni neuspjeh aplikacije.
+Oba izmijenjena workflowa prošla su statičku provjeru actionlintom 1.7.12.
+
+**GitHub Actions — 1. 11. 2026.:** oba workflowa pokrenuta su događajem
+`pull_request` za PR #358, a svi poslovi završili su uspješno na
+`ubuntu-latest`. Poveznice vode na konkretna izvođenja:
+
+| Posao | Provjera | Rezultat i dokaz |
+| --- | --- | --- |
+| Backend | `./mvnw -B verify`, uključujući integracijske testove i spremanje izvještaja. | Prošlo — [Backend izvođenje](https://github.com/LD05-fk/Strumfovi/actions/runs/41352021066/job/124984078389). |
+| Frontend | Lint, provjera tipova, testovi i build. | Prošlo — [Frontend izvođenje](https://github.com/LD05-fk/Strumfovi/actions/runs/41352021066/job/124984078517). |
+| e2e | Pokretanje aplikacije s dev prijavom, Selenium testovi i spremanje izvještaja. | Prošlo — [E2E izvođenje](https://github.com/LD05-fk/Strumfovi/actions/runs/41352021040/job/124984077881). |
+
+Artefakt `backend-test-reports` spremljen je u [CI izvođenju](https://github.com/LD05-fk/Strumfovi/actions/runs/41352021066),
+a `e2e-report` u [E2E izvođenju](https://github.com/LD05-fk/Strumfovi/actions/runs/41352021040).
+
+**Ponavljanje i izvještaji:** [upute za testove](../tests/Readme.md)
+navode preduvjete i ciljane naredbe. [Backend CI](../.github/workflows/ci.yml)
+izvodi `mvn verify`, uključujući `ArtistProfileFlowIT` preko Failsafea;
+artefakt `backend-test-reports` sprema dostupne Surefire i Failsafe XML/TXT izvještaje
+i kada test padne. [E2E workflow](../.github/workflows/e2e.yml) podiže bazu
+preko Docker Composea, backend i frontend te sprema `e2e-report`: čitljiv
+`report.html`, `test-results/pytest.xml`, logove i PNG/HTML dokaze pada.
+Dokazi se snimaju prije čišćenja, kod pada pripreme ili tijela testa ako je
+preglednik dostupan.
 
 Stupci **Stvarni rezultat** i **Ishod** iznad mjerodavni su rezultati za pojedinačni slučaj. Nemojte kopirati sve rezultate u drugu obaveznu tablicu. Neuspješna i blokirana izvođenja zabilježite iskreno; pri ponovnom izvođenju zadržite relevantnu povijest umjesto prikazivanja starog uspješnog rezultata kao trenutačnog.
 
