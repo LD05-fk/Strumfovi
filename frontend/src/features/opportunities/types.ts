@@ -1,3 +1,5 @@
+import { dayjs, OPPORTUNITY_TIME_ZONE } from '../../app/dayjs'
+
 export type OpportunityLocationType = 'PHYSICAL' | 'ONLINE'
 
 export type OpportunityStatus =
@@ -133,6 +135,18 @@ export type OpportunityDetail = {
   myApplicationId: string | null
 }
 
+function toZagrebDateTime(value: string | null): string {
+  if (value === null) return ''
+
+  const date = dayjs(value)
+  if (!date.isValid()) {
+    throw new Error(`Invalid opportunity date received from API: ${value}`)
+  }
+
+  return date
+    .tz(OPPORTUNITY_TIME_ZONE)
+    .format('YYYY-MM-DDTHH:mm:ssZ')
+}
 
 export function toOpportunityFormValues(
   opportunity: OpportunityDetail,
@@ -142,11 +156,11 @@ export function toOpportunityFormValues(
     description: opportunity.description,
     typeId: opportunity.type.id,
     artFieldIds: opportunity.artFields.map((field) => field.id),
-    deadline: opportunity.deadline,
+    deadline: toZagrebDateTime(opportunity.deadline),
     criteria: opportunity.criteria ?? '',
     prize: opportunity.prize ?? '',
-    eventStart: opportunity.eventStart ?? '',
-    eventEnd: opportunity.eventEnd ?? '',
+    eventStart: toZagrebDateTime(opportunity.eventStart),
+    eventEnd: toZagrebDateTime(opportunity.eventEnd),
     location: {
       type: opportunity.location.type,
       streetAddress: opportunity.location.streetAddress ?? '',

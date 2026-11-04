@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../../api/client'
 import { OpportunityForm } from './OpportunityForm'
 import type { Dayjs } from 'dayjs'
+import { toOpportunityFormValues, type OpportunityDetail } from '../types'
+import { createOpportunitySchema } from './opportunitySchema'
 
 const { mutateAsync, notify } = vi.hoisted(() => ({
   mutateAsync: vi.fn(),
@@ -194,5 +196,58 @@ describe('OpportunityForm', () => {
         }),
       )
     })
+  })
+  it('normalizira API datume u zagrebačko vrijeme pri uređivanju', () => {
+    const opportunity: OpportunityDetail = {
+      id: '00000000-0000-4000-8000-000000000003',
+      title: 'Prilika za umjetnike',
+      description: 'Opis prilike.',
+      type: {
+        id: typeId,
+        code: 'natjecaj',
+        name: 'Natječaj',
+      },
+      artFields: [
+        {
+          id: artFieldId,
+          code: 'slikarstvo',
+          name: 'Slikarstvo',
+        },
+      ],
+      deadline: '2099-01-10T22:00:00.123Z',
+      criteria: null,
+      prize: null,
+      location: {
+        type: 'PHYSICAL',
+        streetAddress: 'Ilica 1',
+        city: 'Zagreb',
+        postalCode: '10000',
+        latitude: 45.813,
+        longitude: 15.977,
+        onlineUrl: null,
+      },
+      eventStart: '2099-07-10T21:00:00.123Z',
+      eventEnd: '2099-07-10T22:00:00.456Z',
+      status: 'PREPARATION',
+      archived: false,
+      hiddenByAdmin: false,
+      organizer: {
+        id: '00000000-0000-4000-8000-000000000004',
+        displayName: 'Organizator',
+        organizationName: null,
+      },
+      publishedAt: null,
+      createdAt: '2098-01-01T12:00:00+01:00',
+      updatedAt: '2098-01-01T12:00:00+01:00',
+      hasResults: false,
+      myApplicationId: null,
+    }
+
+    const values = toOpportunityFormValues(opportunity)
+
+    expect(values.deadline).toBe('2099-01-10T23:00:00+01:00')
+    expect(values.eventStart).toBe('2099-07-10T23:00:00+02:00')
+    expect(values.eventEnd).toBe('2099-07-11T00:00:00+02:00')
+    expect(createOpportunitySchema(false).safeParse(values).success).toBe(true)
   })
 })
