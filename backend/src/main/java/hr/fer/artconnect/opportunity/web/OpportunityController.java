@@ -3,6 +3,7 @@ package hr.fer.artconnect.opportunity.web;
 import hr.fer.artconnect.common.ApiPaths;
 import hr.fer.artconnect.common.ApiException;
 import hr.fer.artconnect.common.ErrorCode;
+import hr.fer.artconnect.common.PageResponse;
 import hr.fer.artconnect.opportunity.service.OpportunityService;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -24,6 +25,11 @@ public class OpportunityController {
     @GetMapping("/{opportunityId}")
     public OpportunityDto get(@PathVariable String opportunityId) {
         return opportunities.get(parseOpportunityId(opportunityId));
+    }
+
+    @GetMapping
+    public PageResponse<OpportunitySummary> search(@Valid @ModelAttribute OpportunitySearchParams params) {
+        return opportunities.search(params);
     }
 
     @PostMapping
