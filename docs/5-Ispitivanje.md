@@ -221,7 +221,7 @@ const assert = require("assert");
 
 </details>
 
-FND-06 - 23.10.2026.
+### FND-06 - 23.10.2026.
 
 | ID ispitnog slučaja | Scenarij ispitivanja                                  | Ulazni podaci                                                         | Očekivani rezultat                                                                                      | Stvarni rezultat                                                                        | Ishod  | Koraci ispitivanja                                                                                                                                |
 | :------------------ | :---------------------------------------------------- | :-------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------ | :-------------------------------------------------------------------------------------- | :----- | :------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -229,6 +229,25 @@ FND-06 - 23.10.2026.
 | **FND-06-T2**       | Sustav: nepostojeća ruta (404)                        | Nepostojeća ruta `/does-not-exist`.                                   | Prikazuje se stranica 404 s poveznicom na početnu, document.title odgovara ruti.                        | Prikazan naslov 404, poveznica vodi na `/`, a document.title odgovara ruti.             | Prošlo | Otvoriti `/does-not-exist`; provjeriti 404, poveznicu za početnu stranicu; provjeriti `document.title`.                                           |
 | **FND-06-T3**       | Sustav: zatvaranje mobilnog izbornika tipkom `Escape` | Širina prozora 375 px, visina 812 px; početna stranica `/`; `Escape`. | Na širini 375 px izbornik se otvara, a `Escape` ga zatvara.                                             | Izbornik se otvara pomoću gumba; nakon `Escape` navigacija se zatvara.                  | Prošlo | Postaviti širinu preglednika na 375 px; otvoriti `/`; otvoriti izbornik; provjeriti vidljivost izbornika; `Escape`; pričekati nestanak izbornika. |
 | **FND-06-T4**       | Sustav: fokusiranje tipkom `Tab`                      | Početna stranica `/`; `Tab`.                                          | Na početnoj stranici fokusiranje poveznice „Preskoči na sadržaj" tipkom `Tab`.                          | Fokus postavljen na poveznicu „Preskoči na sadržaj”.                                    | Prošlo | Otvoriti `/`; pričekati prisutnost poveznice „Preskoči na sadržaj” u DOM-u; `Tab`; dohvatiti aktivni element i provjeriti tekst.                  |
+
+
+### AUTH-01-TEST - 3.11.2026.
+
+testovi: tests/selenium/test_auth.py, page objekti: tests/selenium/page_objects/
+
+| ID ispitnog slučaja | Scenarij ispitivanja                         | Ulazni podaci                                                                                                                                                                                                                                                                                                      | Očekivani rezultat                                                                                                              | Stvarni rezultat                                                                                                        | Ishod  | Koraci ispitivanja                                                                                                                                                                                                             |
+| ------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| AUTH-01-T1          | Sustav: gumb za prijavu na početnoj stranici | Početna stranica `/`; neprijavljeni posjetitelj.                                                                                                                                                                                                                                                                   | Vidljiv je gumb „Prijava s Googleom” čiji `href` je `/oauth2/authorization/google`.                                             | Gumb „Prijava s Googleom” je vidljiv, a `href` je `/oauth2/authorization/google`.                                       | Prošlo | Otvoriti `/`; pronaći gumb „Prijava s Googleom”; provjeriti vidljivost i vrijednost atributa `href`.                                                                                                                           |
+| AUTH-01-T2          | Sustav: poruka o neuspjeloj prijavi          | Neprijavljeni posjetitelj; ruta `/?login=error`.                                                                                                                                                                                                                                                                   | Vidljiva je poruka o neuspjeloj prijavi.                                                                                        | Prikazano je upozorenje s porukom o neuspjeloj prijavi.                                                                 | Prošlo | Otvoriti `/?login=error`; pričekati prikaz upozorenja; provjeriti tekst poruke.                                                                                                                                                |
+| AUTH-01-T3          | Sustav: umjetnik na ruti organizatora        | Prijavljen `umjetnik@artconnect.test`; ruta `/my-opportunities`.                                                                                                                                                                                                                                                   | Prikazuje se stranica 403.                                                                                                      | Prikazana je stranica 403.                                                                                              | Prošlo | Prijaviti se kao umjetnik; otvoriti `/my-opportunities`; provjeriti prikaz stranice 403.                                                                                                                                       |
+| AUTH-01-T4          | Sustav: organizator na ruti umjetnika        | Prijavljen `organizator@artconnect.test`; ruta `/portfolio`.                                                                                                                                                                                                                                                       | Prikazuje se stranica 403.                                                                                                      | Prikazana je stranica 403.                                                                                              | Prošlo | Prijaviti se kao organizator; otvoriti `/portfolio`; provjeriti prikaz stranice 403.                                                                                                                                           |
+| AUTH-01-T5          | Sustav: zaštićena ruta bez prijave           | Neprijavljeni posjetitelj; ruta `/portfolio`.                                                                                                                                                                                                                                                                      | Vidljiv je panel „Prijava potrebna” s gumbom za prijavu.                                                                        | Prikazan je panel „Prijava potrebna” s gumbom za prijavu.                                                               | Prošlo | Otvoriti `/portfolio`; provjeriti panel „Prijava potrebna”; provjeriti vidljivost gumba za prijavu.                                                                                                                            |
+| AUTH-01-T6          | Sustav: odjava                               | Prijavljen `umjetnik@artconnect.test`; ruta `/opportunities`;                                                                                                                                                                                                                                                      | Korisnik dolazi na `/`, vidi gumb za prijavu, a `GET /api/v1/me` vraća 401.                                                     | Nakon odjave preglednik je na `/`, gumb za prijavu je vidljiv, a `GET /api/v1/me` vratio je status 401.                 | Prošlo | Prijaviti se kao umjetnik; otvoriti `/opportunities`; otvoriti korisnički izbornik; kliknuti „Odjava”; pričekati da URL bude `/`; provjeriti gumb za prijavu; iz preglednika pozvati `GET /api/v1/me` i provjeriti status 401. |
+| AUTH-01-T7          | Sustav: korisnički izbornik administratora   | Prijavljen `admin@artconnect.test`; Početna stranica `/`.                                                                                                                                                                                                                                                          | Vidljiva je oznaka „Administrator”, a stavke „Profil” nema.                                                                     | Oznaka „Administrator” je vidljiva, a stavke „Profil” nema.                                                             | Prošlo | Prijaviti se kao administrator; otvoriti `/`; otvoriti korisnički izbornik; provjeriti oznaku „Administrator”; provjeriti da stavke „Profil” nema.                                                                             |
+| AUTH-01-T8          | Sustav: navigacija po zaglavlju              | Neprijavljeni posjetitelj, `umjetnik@`, `organizator@` i `admin@artconnect.test`; ruta `/`; tipka Tab. Očekivane stavke: posjetitelj „Prilike”; umjetnik „Prilike”, „Moj profil”, „Moj portfolio”, „Moje prijave”; organizator „Prilike”, „Moje prilike”, „Statistika”; administrator „Prilike”, „Administracija”. | Za svaku od četiri uloge tipkom Tab prolazi se po svim stavkama navigacije, svaka stavka ima fokus i odgovara `:focus-visible`. | Za sve četiri uloge tipka Tab prolazila je po svim stavkama, svaka stavka je imala fokus i odgovarala `:focus-visible`. | Prošlo | Za svaku ulogu: prijaviti se (osim posjetitelja); otvoriti `/`; pričekati da zaglavlje prikaže očekivane stavke; za svaku stavku pritiskati Tab dok ne dobije fokus; provjeriti `:focus-visible`.                              |
+| AUTH-01-T9          | Sustav: jezik dokumenta                      | Početna stranica `/`; neprijavljeni posjetitelj.                                                                                                                                                                                                                                                                   | Element `<html>` ima atribut `lang="hr"`.                                                                                       | Element `<html>` ima atribut `lang="hr"`.                                                                               | Prošlo | Otvoriti `/`; pročitati atribut `lang` elementa `html` i provjeriti da je `hr`.                                                                                                                                                |
+
+
 
 ### PORT-01 — Profil umjetnika
 
@@ -291,10 +310,63 @@ indeks *upotrebljiv* za dani oblik upita — što je i svrha, jer bi promjena
 izraza (druga konfiguracija punotekstne pretrage ili uvjet vidljivosti predan
 kao parametar) indeks učinila neupotrebljivim. Ne dokazuje da ga planer odabire
 na produkcijskoj količini podataka; mjerenje odziva pod opterećenjem je DOC-41.
+### PORT-02 — Prethodne izložbe
+
+Zahtjevi su u [issueu #94](https://github.com/LD05-fk/Strumfovi/issues/94).
+Scenariji proširuju [ArtistProfileFlowIT](../backend/src/test/java/hr/fer/artconnect/portfolio/it/ArtistProfileFlowIT.java)
+i [test_portfolio.py](../tests/selenium/test_portfolio.py), uz
+[ProfilePage](../tests/selenium/page_objects/profile_page.py).
+
+| ID | Zadano (Given) | Kada (When) | Tada (Then) | Ishod |
+| --- | --- | --- | --- | --- |
+| PORT-02-IT-01 | Umjetnik sa stvarnom sesijom i CSRF tokenom. | Doda izložbu, promijeni mjesto i obriše je; nakon svake radnje dohvati `GET /api/v1/artists/{id}`. | POST daje 201, PUT 200, DELETE 204; `pastExhibitions` sadrži dodanu izložbu, zatim novo mjesto, a nakon brisanja je prazan. | Prošlo |
+| PORT-02-IT-02 | Prijavljeni umjetnik bez izložbi. | Pokuša dodati izložbu s godinom sljedeće godine prema vremenskoj zoni aplikacije. | 400 `VALIDATION_ERROR` uz polje `year`; javni profil i dalje nema izložbi. | Prošlo |
+| PORT-02-IT-03 | Izložba jednog umjetnika i sesija drugog umjetnika. | Drugi umjetnik pokuša promijeniti mjesto izložbe. | 404 `NOT_FOUND`; mjesto na vlasnikovu javnom profilu ostaje nepromijenjeno. | Prošlo |
+| PORT-02-IT-04 | Stvarna sesija organizatora ili korisnika `ONBOARDING`; postojeća izložba umjetnika. | Pošalje POST, PUT i DELETE uz ispravan CSRF token. | Svaka radnja daje 403: organizatoru `FORBIDDEN`, korisniku `ONBOARDING` `ONBOARDING_REQUIRED`. | Prošlo (2 korisnika, po 3 radnje) |
+| PORT-02-E2E-01 | Dev umjetnik na `/profile`; jedinstven naslov testne izložbe. | Doda naslov, godinu i mjesto, promijeni mjesto te obriše izložbu uz potvrdu. | Popis nakon dodavanja prikazuje izložbu, nakon uređivanja novo mjesto, a nakon brisanja više nema tog naslova. | Prošlo |
+
+Integracija koristi PostgreSQL iz Testcontainersa i `PortfolioFixtures`, koji
+nakon testa briše korisnike i pripadajuće izložbe, profile i sesije. E2E fixture
+`past_exhibition_artist` čisti vlastitu testnu izložbu i kod pada, bez brisanja
+postojećih izložbi. Testovi ne ovise o redoslijedu; zbog zajedničkog dev korisnika
+E2E se izvodi redom. [Upute za pokretanje](../tests/Readme.md) navode ciljane naredbe.
 
 ## 5.3 Provedena ispitivanja i rezultati
 
+AUTH-01-TEST - 3.11.2026. - revizija `7125d91` (grana `feature/AUTH-01-TEST`), lokalno docker-compose okruženje s profilom dev, Selenium (headless Chrome); svih 9 ispitnih slučajeva prošlo.
+
 **Cilj:** Navesti reviziju aplikacije, okruženje i dokaze potrebne za tumačenje stvarnih rezultata u tablici ispitnih slučajeva. Dodajte kratak zapis izvođenja kada te podatke nije moguće jasno prenijeti poveznicom na kod ispitivanja ili CI izvođenje.
+
+### PORT-02 — lokalno izvođenje 4. 11. 2026.
+
+Ispitana je radna promjena za [issue #94](https://github.com/LD05-fk/Strumfovi/issues/94)
+na grani `test/PORT-02-TEST`, temeljena na reviziji `3290486`.
+Okruženje: Windows 11, Java 25.0.4.1 i Maven u Dockeru, Spring Boot 4.1.1,
+Python 3.12.6, pytest 9.2.0, Selenium 4.52.0 i Chrome 156.0.8078.79 headless.
+Integracija koristi PostgreSQL 16 iz Testcontainersa. E2E koristi zaseban
+privremeni PostgreSQL 17, backend s profilom `dev` na portu 18080 i Vite na
+portu 15173 (`BASE_URL=http://127.0.0.1:15173`).
+
+- Ciljani `mvn -B '-Dtest=ArtistProfileFlowIT' test`: **13 provjera prošlo**,
+  uključujući 5 novih za izložbe, bez grešaka i preskakanja; `BUILD SUCCESS`.
+  Surefire XML/TXT izvještaji nastali su u `backend/target/surefire-reports/`.
+- `pytest tests/selenium/test_portfolio.py`: **4 testa prošla** za 50,16 sekundi,
+  uključujući novi tok izložbe i tri postojeća testa profila. Nema grešaka ni
+  preskakanja; generirani su samostalni HTML i JUnit XML izvještaj.
+- Zaseban privremeni test namjerno je pao nakon dodavanja izložbe. Provjereno je
+  da nakon čišćenja nema testnih izložbi ni prijavljenih sesija, da su nastali
+  PNG/HTML dokazi te da su oba uključena u HTML izvještaj. XML bilježi jedan
+  očekivani pad i nula grešaka pripreme/čišćenja. To je provjera testne
+  infrastrukture, a ne pad funkcionalnosti; privremeni test je uklonjen.
+- Završni SQL upiti nakon četiri E2E testa potvrdili su nula testnih izložbi,
+  nula testnih Instagram poveznica i nula prijavljenih sesija; izvorna biografija
+  i opis rada dev umjetnika ostali su sačuvani.
+
+CI konfiguracija već obuhvaća izmijenjene testove: [backend workflow](../.github/workflows/ci.yml)
+izvodi `ArtistProfileFlowIT` preko Failsafea i sprema `backend-test-reports`,
+a [E2E workflow](../.github/workflows/e2e.yml) izvodi cijelu Selenium mapu i
+sprema `e2e-report`, uključujući dokaze pada. Za ovu radnu promjenu još nema
+novog GitHub Actions rezultata; navedeni prolazi odnose se na lokalno izvođenje.
 
 ### PORT-01 — izvođenja uz PR #358
 

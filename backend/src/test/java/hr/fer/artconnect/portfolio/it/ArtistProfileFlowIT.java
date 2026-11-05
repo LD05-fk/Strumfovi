@@ -1,12 +1,16 @@
 package hr.fer.artconnect.portfolio.it;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import hr.fer.artconnect.portfolio.it.PortfolioFixtures.UserSession;
+import hr.fer.artconnect.common.TimeConfiguration;
 import hr.fer.artconnect.support.IntegrationTestBase;
+import java.time.Year;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,17 +23,25 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.ResultActions;
+import tools.jackson.databind.ObjectMapper;
 
 /** Provjerava cijeli tok kroz sigurnosne filtre, kontroler, servis i PostgreSQL. */
 @ActiveProfiles("dev")
 class ArtistProfileFlowIT extends IntegrationTestBase {
     private static final String PATH = "/api/v1/me/artist-profile";
+    private static final String EXHIBITIONS = "/api/v1/past-exhibitions";
+    private static final String EXHIBITION_BODY = """
+            {"title":"Gradski motivi","year":2024,"place":"Zagreb"}
+            """;
     private static final String EMPTY_PROFILE = """
             {"biography":null,"artistStatement":null,"artFieldIds":[],"links":[]}
             """;
 
     @Autowired
     JdbcTemplate jdbc;
+
+    @Autowired
+    ObjectMapper objectMapper;
 
     private PortfolioFixtures fixtures;
 
@@ -127,6 +139,111 @@ class ArtistProfileFlowIT extends IntegrationTestBase {
         save(user, EMPTY_PROFILE)
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code").value(errorCode));
+    }
+
+    @Test
+    void umjetnikDodajeUredujeIBriseIzlozbuPromjeneSuVidljiveNaJavnomProfilu() throws Exception {
+        UUID artistId = fixtures.user("ARTIST", "ACTIVE");
+        var user = fixtures.login(artistId);
+
+        String response = mockMvc.perform(post(EXHIBITIONS)
+                        .cookie(user.session(), user.csrf())
+                        .header("X-XSRF-TOKEN", user.csrf().getValue())
+                        .contentType(MediaType.APPLICATION_JSON).content(EXHIBITION_BODY))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String id = objectMapper.readTree(response).get("id").asText();
+
+        // Čitamo javni profil novim zahtjevom: izložba mora biti stvarno spremljena.
+        mockMvc.perform(get("/api/v1/artists/{id}", artistId).cookie(user.session()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pastExhibitions.length()").value(1))
+                .andExpect(jsonPath("$.pastExhibitions[0].id").value(id))
+                .andExpect(jsonPath("$.pastExhibitions[0].title").value("Gradski motivi"))
+                .andExpect(jsonPath("$.pastExhibitions[0].year").value(2024))
+                .andExpect(jsonPath("$.pastExhibitions[0].place").value("Zagreb"));
+
+        mockMvc.perform(put(EXHIBITIONS + "/{id}", id)
+                        .cookie(user.session(), user.csrf())
+                        .header("X-XSRF-TOKEN", user.csrf().getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(EXHIBITION_BODY.replace("Zagreb", "Split")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/artists/{id}", artistId).cookie(user.session()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pastExhibitions.length()").value(1))
+                .andExpect(jsonPath("$.pastExhibitions[0].id").value(id))
+                .andExpect(jsonPath("$.pastExhibitions[0].place").value("Split"));
+
+        mockMvc.perform(delete(EXHIBITIONS + "/{id}", id)
+                        .cookie(user.session(), user.csrf())
+                        .header("X-XSRF-TOKEN", user.csrf().getValue()))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/v1/artists/{id}", artistId).cookie(user.session()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pastExhibitions").isEmpty());
+    }
+
+    @Test
+    void odbijaIzlozbuSljedeceGodineBezSpremanja() throws Exception {
+        UUID artistId = fixtures.user("ARTIST", "ACTIVE");
+        var user = fixtures.login(artistId);
+        // Granica se računa prema satu aplikacije, pa test vrijedi i iduće godine.
+        int nextYear = Year.now(TimeConfiguration.APP_ZONE).getValue() + 1;
+
+        mockMvc.perform(post(EXHIBITIONS)
+                        .cookie(user.session(), user.csrf())
+                        .header("X-XSRF-TOKEN", user.csrf().getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(EXHIBITION_BODY.replace("2024", String.valueOf(nextYear))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.error.details[0].field").value("year"));
+        mockMvc.perform(get("/api/v1/artists/{id}", artistId).cookie(user.session()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pastExhibitions").isEmpty());
+    }
+
+    @Test
+    void drugiUmjetnikNeMozeUreditiTuduIzlozbu() throws Exception {
+        UUID ownerId = fixtures.user("ARTIST", "ACTIVE");
+        UUID exhibitionId = fixtures.pastExhibition(ownerId);
+        var other = fixtures.login(fixtures.user("ARTIST", "ACTIVE"));
+
+        mockMvc.perform(put(EXHIBITIONS + "/{id}", exhibitionId)
+                        .cookie(other.session(), other.csrf())
+                        .header("X-XSRF-TOKEN", other.csrf().getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(EXHIBITION_BODY.replace("Zagreb", "Split")))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+
+        // Odbijeni zahtjev ne smije promijeniti vlasnikove podatke.
+        mockMvc.perform(get("/api/v1/artists/{id}", ownerId).cookie(other.session()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pastExhibitions[0].place").value("Zagreb"));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"ORGANIZER, ACTIVE, FORBIDDEN", ", ONBOARDING, ONBOARDING_REQUIRED"})
+    void odbijaSvePromjeneIzlozbiBezPrava(String role, String userStatus, String errorCode) throws Exception {
+        UUID ownerId = fixtures.user("ARTIST", "ACTIVE");
+        UUID exhibitionId = fixtures.pastExhibition(ownerId);
+        var user = fixtures.login(fixtures.user(role, userStatus));
+
+        // Isti korisnik mora biti odbijen za sve tri radnje, uz valjanu sesiju i CSRF.
+        var requests = java.util.List.of(
+                post(EXHIBITIONS),
+                put(EXHIBITIONS + "/{id}", exhibitionId),
+                delete(EXHIBITIONS + "/{id}", exhibitionId));
+        for (var request : requests) {
+            mockMvc.perform(request
+                            .cookie(user.session(), user.csrf())
+                            .header("X-XSRF-TOKEN", user.csrf().getValue())
+                            .contentType(MediaType.APPLICATION_JSON).content(EXHIBITION_BODY))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.error.code").value(errorCode));
+        }
     }
 
     private ResultActions save(UserSession user, String body) throws Exception {

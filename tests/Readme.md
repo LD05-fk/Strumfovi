@@ -42,10 +42,10 @@ Korisnici: organizator@artconnect.test, umjetnik@artconnect.test, admin@artconne
 
 ## Profil umjetnika (PORT-01-TEST)
 
-Samo tri E2E scenarija profila:
+Tri E2E scenarija profila (bez testa izložbi):
 
 ```bash
-pytest tests/selenium/test_portfolio.py --html=report.html --self-contained-html
+pytest tests/selenium/test_portfolio.py -k 'not past_exhibition' --html=report.html --self-contained-html
 ```
 
 `ProfilePage` sadrži unos biografije, odabir područja i dodavanje poveznice.
@@ -70,3 +70,26 @@ nakon svakog testa. Ciljano pokretanje iz `backend/`:
 ```
 
 Klasa završava s `IT`, pa je redoviti `mvn verify` pokreće preko Failsafea.
+
+## Prethodne izložbe (PORT-02-TEST)
+
+`ArtistProfileFlowIT` dodatno provjerava dodavanje, uređivanje i brisanje izložbe
+uz ponovni dohvat javnog profila nakon svake promjene. Pokriva i buduću godinu
+(400), uređivanje tuđe izložbe (404) te sve tri radnje za organizatora i
+korisnika `ONBOARDING` (403 s odgovarajućim kodom). Koristi iste stvarne sesije,
+CSRF tokene i automatsko čišćenje kroz `PortfolioFixtures`.
+
+Jedan E2E test prolazi dodavanje, promjenu mjesta i brisanje uz potvrdu:
+
+```bash
+pytest tests/selenium/test_portfolio.py -k past_exhibition --html=report.html --self-contained-html --junitxml=test-results/pytest.xml
+```
+
+`ProfilePage` upravlja dijalozima i čeka promjene u popisu. Fixture
+`past_exhibition_artist` prijavljuje dev umjetnika i priprema jedinstven naslov.
+Ako test padne prije brisanja, preko API-ja briše samo tu testnu izložbu.
+Postojeće izložbe ostaju netaknute. Prijava i odjava koriste postojeći `login_as`.
+Za sva četiri E2E testa portfolija pokrenite gornju naredbu bez `-k` filtra.
+
+Postojeći backend i E2E workflowi automatski uključuju ove scenarije i spremaju
+izvještaje te PNG/HTML dokaze pada opisane iznad.

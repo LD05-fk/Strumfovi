@@ -6,6 +6,23 @@ from selenium.webdriver.common.by import By
 from page_objects.profile_page import ProfilePage
 
 
+def test_artist_adds_edits_and_deletes_past_exhibition(driver, base_url, past_exhibition_artist):
+    """Cijeli tok izložbe kroz sučelje; nakon svake radnje provjerava se popis."""
+    title = past_exhibition_artist
+    page = ProfilePage(driver, base_url).open()
+
+    page.add_exhibition(title, 2024, "Galerija Zagreb")
+    assert title in page.wait_for_exhibition(title, 2024, "Galerija Zagreb")
+
+    page.edit_exhibition_place(title, "Galerija Split")
+    assert title in page.wait_for_exhibition(title, 2024, "Galerija Split")
+
+    # Brisanje prolazi kroz dijalog potvrde, kao kod stvarnog korisnika.
+    page.delete_exhibition(title)
+    page.wait_for_exhibition_removed(title)
+    assert title not in page.wait_visible(page.EXHIBITIONS).text
+
+
 def test_artist_saves_profile_and_keeps_it_after_refresh(driver, base_url, portfolio_artist):
     """Umjetnik sprema biografiju, dva područja i poveznicu; osvježavanje ih zadržava."""
     assert len(portfolio_artist) >= 2, "Za test su potrebna dva aktivna područja."
