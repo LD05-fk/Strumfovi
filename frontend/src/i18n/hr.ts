@@ -171,6 +171,30 @@ export const hr = {
     },
   },
 
+  publicPortfolio: {
+    pageTitleFallback: 'Javni portfolio',
+    ownerNotice: 'Ovo je vaš javni profil',
+    editProfile: 'Uredi profil',
+    artworks: 'Djela',
+    noPublicArtworks: 'Umjetnik još nema javnih djela',
+    noArtworksOnPage: 'Nema djela na ovoj stranici.',
+    firstPage: 'Prva stranica',
+    lastAvailablePage: (page: number) => `Posljednja dostupna stranica (${page})`,
+    notFound: 'Umjetnik nije pronađen',
+    profileUnavailable: 'Profil ne postoji ili više nije dostupan.',
+    browseOpportunities: 'Pregledaj prilike',
+    pastExhibitions: 'Prethodne izložbe i projekti',
+    participations: 'Sudjelovanja preko ArtConnecta',
+    participationBadge: 'Ostvareno preko ArtConnecta',
+    aboutWork: 'O mom radu',
+    artworkImage: (title: string, index: number, total: number) =>
+      `${title}, slika ${index} od ${total}`,
+    closeLightbox: 'Zatvori prikaz djela',
+    previousImage: 'Prethodna slika',
+    nextImage: 'Sljedeća slika',
+    noArtworkImage: 'Djelo nema sliku.',
+  },
+
   organizerProfile: {
     pageTitle: 'Moj profil',
     displayName: 'Ime i prezime (s Google računa)',
