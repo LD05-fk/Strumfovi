@@ -9,6 +9,7 @@
 | 22. 10. 2026.; LD, LDi, LS, BTŠ, VN, NM, BK | Prioriteti i organizacija rada za prvi ciklus | Tim se usredotočuje na zadatke Milestonea 1, prvo na autentifikaciju, zatim portfolio i prilike. Svi usput bilježe uporabu AI-ja; dokumentacija i testovi izrađuju se tijekom rada. | [Detaljne bilješke sastanka](./meeting-notes/Meeting1-sazetak-2026-10-22.md) |
 | 29. 10. 2026.; LD, NM, LS, LDi | Dokumentacija i testiranje Google prijave | Dokumentacija se dovršava do 31. 10. kako bi se provjerila prije predaje. Članovi šalju voditelju tima Google adrese za testiranje; nakon spajanja promjena tim provjerava aplikaciju i u produkciji. | [Detaljne bilješke sastanka](./meeting-notes/Meeting2-sazetak-2026-10-29.md) |
 | 26. 10. 2026.; LD, LDi, LS, BTŠ, VN, NM, BK i asistentica | Dorada funkcijskih i nefunkcijskih zahtjeva | Dogovoreno je sažeti funkcijske zahtjeve u manji broj kratkih, jasnih korisničkih ciljeva te pojednostaviti nefunkcijske zahtjeve. Zahtjevi trebaju biti razumljivi i provjerljivi; kao sigurnosno ograničenje navedeno je da aplikacija ne traži ni pohranjuje lozinke, nego koristi Google prijavu. Tim će doraditi analizu zahtjeva. | [Analiza zahtjeva](2-Analiza-zahtjeva.md) |
+| 5. 11. 2026.; LD, LS, VN | Kratki sync o tijeku rada | Svatko je ukratko rekao na čemu radi; nema novih odluka. | [Detaljne bilješke sastanka](./meeting-notes/Meeting3-sazetak-2026-11-05.md) |
 
 ## A.2 Plan rada
 
