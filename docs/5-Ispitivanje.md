@@ -282,11 +282,63 @@ E2E koristi dev seed: prije testa sprema izvorni sadržaj profila i priprema
 prazan obrazac, a nakon testa vraća sadržaj i odjavljuje sesiju, uključujući
 slučaj pada testa. Testovi istog dev umjetnika izvode se redom.
 
+### PORT-02 — Prethodne izložbe
+
+Zahtjevi su u [issueu #94](https://github.com/LD05-fk/Strumfovi/issues/94).
+Scenariji proširuju [ArtistProfileFlowIT](../backend/src/test/java/hr/fer/artconnect/portfolio/it/ArtistProfileFlowIT.java)
+i [test_portfolio.py](../tests/selenium/test_portfolio.py), uz
+[ProfilePage](../tests/selenium/page_objects/profile_page.py).
+
+| ID | Zadano (Given) | Kada (When) | Tada (Then) | Ishod |
+| --- | --- | --- | --- | --- |
+| PORT-02-IT-01 | Umjetnik sa stvarnom sesijom i CSRF tokenom. | Doda izložbu, promijeni mjesto i obriše je; nakon svake radnje dohvati `GET /api/v1/artists/{id}`. | POST daje 201, PUT 200, DELETE 204; `pastExhibitions` sadrži dodanu izložbu, zatim novo mjesto, a nakon brisanja je prazan. | Prošlo |
+| PORT-02-IT-02 | Prijavljeni umjetnik bez izložbi. | Pokuša dodati izložbu s godinom sljedeće godine prema vremenskoj zoni aplikacije. | 400 `VALIDATION_ERROR` uz polje `year`; javni profil i dalje nema izložbi. | Prošlo |
+| PORT-02-IT-03 | Izložba jednog umjetnika i sesija drugog umjetnika. | Drugi umjetnik pokuša promijeniti mjesto izložbe. | 404 `NOT_FOUND`; mjesto na vlasnikovu javnom profilu ostaje nepromijenjeno. | Prošlo |
+| PORT-02-IT-04 | Stvarna sesija organizatora ili korisnika `ONBOARDING`; postojeća izložba umjetnika. | Pošalje POST, PUT i DELETE uz ispravan CSRF token. | Svaka radnja daje 403: organizatoru `FORBIDDEN`, korisniku `ONBOARDING` `ONBOARDING_REQUIRED`. | Prošlo (2 korisnika, po 3 radnje) |
+| PORT-02-E2E-01 | Dev umjetnik na `/profile`; jedinstven naslov testne izložbe. | Doda naslov, godinu i mjesto, promijeni mjesto te obriše izložbu uz potvrdu. | Popis nakon dodavanja prikazuje izložbu, nakon uređivanja novo mjesto, a nakon brisanja više nema tog naslova. | Prošlo |
+
+Integracija koristi PostgreSQL iz Testcontainersa i `PortfolioFixtures`, koji
+nakon testa briše korisnike i pripadajuće izložbe, profile i sesije. E2E fixture
+`past_exhibition_artist` čisti vlastitu testnu izložbu i kod pada, bez brisanja
+postojećih izložbi. Testovi ne ovise o redoslijedu; zbog zajedničkog dev korisnika
+E2E se izvodi redom. [Upute za pokretanje](../tests/Readme.md) navode ciljane naredbe.
+
 ## 5.3 Provedena ispitivanja i rezultati
 
 AUTH-01-TEST - 3.11.2026. - revizija `7125d91` (grana `feature/AUTH-01-TEST`), lokalno docker-compose okruženje s profilom dev, Selenium (headless Chrome); svih 9 ispitnih slučajeva prošlo.
 
 **Cilj:** Navesti reviziju aplikacije, okruženje i dokaze potrebne za tumačenje stvarnih rezultata u tablici ispitnih slučajeva. Dodajte kratak zapis izvođenja kada te podatke nije moguće jasno prenijeti poveznicom na kod ispitivanja ili CI izvođenje.
+
+### PORT-02 — lokalno izvođenje 4. 11. 2026.
+
+Ispitana je radna promjena za [issue #94](https://github.com/LD05-fk/Strumfovi/issues/94)
+na grani `test/PORT-02-TEST`, temeljena na reviziji `3290486`.
+Okruženje: Windows 11, Java 25.0.4.1 i Maven u Dockeru, Spring Boot 4.1.1,
+Python 3.12.6, pytest 9.2.0, Selenium 4.52.0 i Chrome 156.0.8078.79 headless.
+Integracija koristi PostgreSQL 16 iz Testcontainersa. E2E koristi zaseban
+privremeni PostgreSQL 17, backend s profilom `dev` na portu 18080 i Vite na
+portu 15173 (`BASE_URL=http://127.0.0.1:15173`).
+
+- Ciljani `mvn -B '-Dtest=ArtistProfileFlowIT' test`: **13 provjera prošlo**,
+  uključujući 5 novih za izložbe, bez grešaka i preskakanja; `BUILD SUCCESS`.
+  Surefire XML/TXT izvještaji nastali su u `backend/target/surefire-reports/`.
+- `pytest tests/selenium/test_portfolio.py`: **4 testa prošla** za 50,16 sekundi,
+  uključujući novi tok izložbe i tri postojeća testa profila. Nema grešaka ni
+  preskakanja; generirani su samostalni HTML i JUnit XML izvještaj.
+- Zaseban privremeni test namjerno je pao nakon dodavanja izložbe. Provjereno je
+  da nakon čišćenja nema testnih izložbi ni prijavljenih sesija, da su nastali
+  PNG/HTML dokazi te da su oba uključena u HTML izvještaj. XML bilježi jedan
+  očekivani pad i nula grešaka pripreme/čišćenja. To je provjera testne
+  infrastrukture, a ne pad funkcionalnosti; privremeni test je uklonjen.
+- Završni SQL upiti nakon četiri E2E testa potvrdili su nula testnih izložbi,
+  nula testnih Instagram poveznica i nula prijavljenih sesija; izvorna biografija
+  i opis rada dev umjetnika ostali su sačuvani.
+
+CI konfiguracija već obuhvaća izmijenjene testove: [backend workflow](../.github/workflows/ci.yml)
+izvodi `ArtistProfileFlowIT` preko Failsafea i sprema `backend-test-reports`,
+a [E2E workflow](../.github/workflows/e2e.yml) izvodi cijelu Selenium mapu i
+sprema `e2e-report`, uključujući dokaze pada. Za ovu radnu promjenu još nema
+novog GitHub Actions rezultata; navedeni prolazi odnose se na lokalno izvođenje.
 
 ### PORT-01 — izvođenja uz PR #358
 

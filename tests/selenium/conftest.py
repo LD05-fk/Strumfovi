@@ -2,6 +2,7 @@ import base64
 import os
 from pathlib import Path
 import re
+from uuid import uuid4
 import pytest
 import requests
 from selenium import webdriver
@@ -102,6 +103,28 @@ def portfolio_artist(login_as, base_url):
         # I kod pada testa uklanjamo njegove unose i vraćamo spremljeni sadržaj.
         restored = session.put(path, json=original_update, timeout=10)
         restored.raise_for_status()
+
+
+@pytest.fixture
+def past_exhibition_artist(login_as, base_url):
+    """Prijava umjetnika i jedinstven naslov za izložbu koju ovaj test smije obrisati."""
+    session = login_as("umjetnik@artconnect.test")
+    response = session.get(f"{base_url}/api/v1/me/artist-profile", timeout=10)
+    response.raise_for_status()
+    artist_id = response.json()["userId"]
+    title = f"E2E izložba {uuid4()}"
+    try:
+        yield title
+    finally:
+        # Ako test padne prije brisanja, uklanjamo samo njegov unos; postojeće izložbe ostaju.
+        response = session.get(f"{base_url}/api/v1/artists/{artist_id}", timeout=10)
+        response.raise_for_status()
+        for exhibition in response.json()["pastExhibitions"]:
+            if exhibition["title"] == title:
+                deleted = session.delete(
+                    f"{base_url}/api/v1/past-exhibitions/{exhibition['id']}", timeout=10
+                )
+                deleted.raise_for_status()
 
 
 @pytest.fixture
