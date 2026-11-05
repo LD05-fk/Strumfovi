@@ -73,3 +73,34 @@ export function useOpportunityTypes() {
     queryFn: () => apiFetch<CatalogPage>('/opportunity-types?pageSize=100'),
   })
 }
+
+export type GeocodingCandidate = {
+  displayName: string
+  latitude: number
+  longitude: number
+  city?: string | null
+  postalCode?: string | null
+}
+
+type GeocodingResponse = {
+  data: GeocodingCandidate[]
+}
+
+type GeocodingSearchInput = {
+  street: string
+  city: string
+  postalCode: string
+}
+
+export function useSearchGeocoding() {
+  return useMutation({
+    mutationFn: ({ street, city, postalCode }: GeocodingSearchInput) => {
+      const params = new URLSearchParams({ street, city })
+      if (postalCode.trim()) params.set('postalCode', postalCode)
+
+      return apiFetch<GeocodingResponse>(
+        `/geocoding/search?${params.toString()}`,
+      )
+    },
+  })
+}

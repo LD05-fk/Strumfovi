@@ -221,6 +221,24 @@ export const hr = {
       onlineUrlFormat:
         'Unesite valjanu HTTP ili HTTPS poveznicu za online lokaciju.',
     },
+    locationPicker: {
+      type: 'Vrsta lokacije',
+      physical: 'Fizička',
+      online: 'Online',
+      street: 'Ulica i kućni broj',
+      postalCode: 'Poštanski broj',
+      city: 'Grad',
+      findOnMap: 'Pronađi na karti',
+      searching: 'Traženje…',
+      candidates: 'Pronađene adrese',
+      addressChanged: 'Adresa je promijenjena - ponovno pronađite na karti.',
+      noResults:
+        'Adresa nije pronađena - postavite oznaku ručno klikom na kartu.',
+      rateLimited: 'Previše upita - pokušajte za trenutak.',
+      unavailable:
+        'Usluga karte trenutno nije dostupna - postavite oznaku ručno.',
+      onlineUrl: 'Poveznica na online lokaciju',
+    },
   },
 
   map: {
