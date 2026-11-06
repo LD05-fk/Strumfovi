@@ -76,7 +76,7 @@ export function PublicPortfolioPage() {
     document.title = `${profile.data?.displayName ?? hr.publicPortfolio.pageTitleFallback} – ${hr.appName}`
   }, [profile.data?.displayName])
 
-  if (profile.isPending || artworks.isPending) {
+  if (profile.isPending || (artworks.isPending && !artworks.data)) {
     return (
       <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto' }}>
         <LoadingState lines={7} />
@@ -152,6 +152,7 @@ export function PublicPortfolioPage() {
       <ArtworkGallery
         artworks={artworks.data.data}
         page={page}
+        dataPage={artworks.data.meta.page}
         total={artworks.data.meta.total}
         pageSize={artworks.data.meta.pageSize}
         onPageChange={changePage}

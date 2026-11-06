@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import {
   Box,
@@ -18,6 +18,7 @@ import { hr } from '../../i18n/hr'
 type ArtworkGalleryProps = {
   artworks: Artwork[]
   page: number
+  dataPage: number
   total: number
   pageSize: number
   onPageChange: (page: number) => void
@@ -26,13 +27,23 @@ type ArtworkGalleryProps = {
 export function ArtworkGallery({
   artworks,
   page,
+  dataPage,
   total,
   pageSize,
   onPageChange,
 }: ArtworkGalleryProps) {
   const [selectedArtwork, setSelectedArtwork] = useState<Artwork | null>(null)
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const lastFocusedPage = useRef(page)
   const totalPages = Math.ceil(total / pageSize)
   const outOfRange = page > Math.max(totalPages, 1)
+
+  useEffect(() => {
+    if (dataPage !== page || lastFocusedPage.current === page) return
+
+    headingRef.current?.focus()
+    lastFocusedPage.current = page
+  }, [dataPage, page])
 
   const handlePageChange = (_event: ChangeEvent<unknown>, value: number) =>
     onPageChange(value)
@@ -43,6 +54,8 @@ export function ArtworkGallery({
         id="artworks-heading"
         component="h2"
         variant="h3"
+        tabIndex={-1}
+        ref={headingRef}
         sx={{ mb: 2 }}
       >
         {hr.publicPortfolio.artworks}

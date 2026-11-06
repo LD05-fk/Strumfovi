@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { apiFetch } from '../../api/client'
 import type { ArtworkPage, PublicArtistProfile } from './types'
 
@@ -25,5 +25,6 @@ export function usePublicArtworks(artistId: string, page: number) {
         { credentials: 'omit' },
       ),
     enabled: Boolean(artistId),
+    placeholderData: keepPreviousData,
   })
 }

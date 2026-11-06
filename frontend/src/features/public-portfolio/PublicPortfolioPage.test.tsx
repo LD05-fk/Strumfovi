@@ -258,6 +258,67 @@ describe('PublicPortfolioPage', () => {
     expect(router.state.location.search).toBe('?page=not-a-number')
   })
 
+  it('keeps the portfolio mounted while the next artwork page loads', async () => {
+    let resolveSecondPage!: (page: ArtworkPage) => void
+    const secondPage = new Promise<ArtworkPage>((resolve) => {
+      resolveSecondPage = resolve
+    })
+    const firstPage: ArtworkPage = {
+      data: Array.from({ length: 24 }, (_, index) =>
+        artwork(`page-1-${index + 1}`),
+      ),
+      meta: { page: 1, pageSize: 24, total: 25 },
+    }
+
+    vi.mocked(apiFetch).mockImplementation((path) => {
+      if (path === `/artists/${artistId}`) {
+        return Promise.resolve(baseProfile)
+      }
+      if (path === `/artists/${artistId}/artworks?page=1&pageSize=24`) {
+        return Promise.resolve(firstPage)
+      }
+      if (path === `/artists/${artistId}/artworks?page=2&pageSize=24`) {
+        return secondPage
+      }
+      if (path === '/me') {
+        return Promise.reject(
+          new ApiError(401, {
+            code: 'UNAUTHENTICATED',
+            message: 'Not signed in',
+          }),
+        )
+      }
+      return Promise.reject(new Error(`Unexpected API request: ${path}`))
+    })
+
+    const user = userEvent.setup()
+    renderPage()
+
+    expect(await screen.findByText('Djelo page-1-1')).toBeInTheDocument()
+    const secondPageButton = screen.getByRole('button', {
+      name: 'Idi na stranicu 2',
+    })
+    await user.click(secondPageButton)
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Učitavanje')
+    expect(screen.getByRole('heading', { name: 'Ana Umjetnica' }))
+      .toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Djela' })).toBeInTheDocument()
+    expect(screen.getByText('Djelo page-1-1')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'stranicu 2' }),
+    ).toHaveFocus()
+
+    resolveSecondPage({
+      data: [artwork('page-2-1')],
+      meta: { page: 2, pageSize: 24, total: 25 },
+    })
+    expect(await screen.findByText('Djelo page-2-1')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Djela' })).toHaveFocus()
+    })
+  })
+
   it('opens artworks in a keyboard-accessible lightbox', async () => {
     const first = artwork('public-1')
     const secondImage = {
