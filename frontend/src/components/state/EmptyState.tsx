@@ -2,7 +2,7 @@ import { Box, Stack, Typography } from '@mui/material'
 import type { ReactNode } from 'react'
 
 type EmptyStateProps = {
-  title: string
+  title: ReactNode
   description?: string
   action?: ReactNode
 }
