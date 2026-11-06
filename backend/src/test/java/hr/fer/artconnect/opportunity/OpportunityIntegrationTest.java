@@ -358,6 +358,107 @@ class OpportunityIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void anonimniDohvacaJavnoVidljivuOtvorenuPriliku() throws Exception {
+        UUID organizer = loginAs("ORGANIZER");
+        UUID id = createOpportunity(validRequest());
+        jdbc.update("UPDATE opportunities SET status = 'OPEN' WHERE id = ?", id);
+
+        mockMvc.perform(get(PATH + "/" + id).with(anonymous()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.status").value("OPEN"))
+                .andExpect(jsonPath("$.title").value("Izložba"))
+                .andExpect(jsonPath("$.type.id").value(typeId.toString()))
+                .andExpect(jsonPath("$.artFields[0].id").value(fieldId.toString()))
+                .andExpect(jsonPath("$.location.type").value("PHYSICAL"))
+                .andExpect(jsonPath("$.location.city").value("Zagreb"))
+                .andExpect(jsonPath("$.organizer.id").value(organizer.toString()))
+                .andExpect(jsonPath("$.hasResults").value(false))
+                .andExpect(jsonPath("$.myApplicationId").value(nullValue()));
+    }
+
+    @Test
+    void korisnikUOnboardinguDohvacaJavnoVidljivuPriliku() throws Exception {
+        loginAs("ORGANIZER");
+        UUID id = createOpportunity(validRequest());
+        jdbc.update("UPDATE opportunities SET status = 'OPEN' WHERE id = ?", id);
+        UUID viewer = loginAs("ARTIST");
+        jdbc.update("UPDATE users SET status = 'ONBOARDING', role = NULL, organizer_approval = NULL WHERE id = ?",
+                viewer);
+
+        mockMvc.perform(get(PATH + "/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.status").value("OPEN"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"PREPARATION", "ARCHIVED", "HIDDEN", "BLOCKED_ORGANIZER"})
+    void anonimniDobiva404ZaNevidljivuPriliku(String condition) throws Exception {
+        UUID organizer = loginAs("ORGANIZER");
+        UUID id = createOpportunity(validRequest());
+        switch (condition) {
+            case "PREPARATION" -> { }
+            case "ARCHIVED" -> jdbc.update("UPDATE opportunities SET status = 'OPEN', archived = true WHERE id = ?", id);
+            case "HIDDEN" -> jdbc.update(
+                    "UPDATE opportunities SET status = 'OPEN', hidden_by_admin = true WHERE id = ?", id);
+            case "BLOCKED_ORGANIZER" -> {
+                jdbc.update("UPDATE opportunities SET status = 'OPEN' WHERE id = ?", id);
+                jdbc.update("UPDATE users SET status = 'BLOCKED' WHERE id = ?", organizer);
+            }
+            default -> throw new IllegalArgumentException(condition);
+        }
+
+        mockMvc.perform(get(PATH + "/" + id).with(anonymous()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void vlasnikVidiVlastituPripremu() throws Exception {
+        loginAs("ORGANIZER");
+        UUID id = createOpportunity(validRequest());
+
+        mockMvc.perform(get(PATH + "/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PREPARATION"));
+    }
+
+    @Test
+    void administratorVidiSkrivenuPriliku() throws Exception {
+        loginAs("ORGANIZER");
+        UUID id = createOpportunity(validRequest());
+        jdbc.update("UPDATE opportunities SET hidden_by_admin = true WHERE id = ?", id);
+        loginAs("ADMIN");
+
+        mockMvc.perform(get(PATH + "/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hiddenByAdmin").value(true));
+    }
+
+    @Test
+    void obrisaniOrganizatorOstajeJavnoVidljivUzAnonimiziranoIme() throws Exception {
+        UUID organizer = loginAs("ORGANIZER");
+        UUID id = createOpportunity(validRequest());
+        jdbc.update("UPDATE opportunities SET status = 'OPEN' WHERE id = ?", id);
+        jdbc.update("UPDATE users SET status = 'DELETED', display_name = 'Staro ime' WHERE id = ?", organizer);
+
+        mockMvc.perform(get(PATH + "/" + id).with(anonymous()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.organizer.displayName").value("Obrisani korisnik"));
+    }
+
+    @Test
+    void nepostojecaINeispravnaUUIDPrilikaVracajuIsti404() throws Exception {
+        mockMvc.perform(get(PATH + "/" + UUID.randomUUID()).with(anonymous()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+        mockMvc.perform(get(PATH + "/nije-uuid").with(anonymous()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+
+    @Test
     void artistNeMozeDohvatitiOrganizatorovePrilike() throws Exception {
         loginAs("ARTIST");
 

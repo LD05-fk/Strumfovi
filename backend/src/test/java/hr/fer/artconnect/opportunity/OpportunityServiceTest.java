@@ -29,6 +29,7 @@ import hr.fer.artconnect.opportunity.domain.OpportunityStatus;
 import hr.fer.artconnect.opportunity.service.OpportunityDeletionGuard;
 import hr.fer.artconnect.opportunity.service.OpportunityMapper;
 import hr.fer.artconnect.opportunity.service.OpportunityService;
+import hr.fer.artconnect.opportunity.service.OpportunityVisibilityPolicy;
 import hr.fer.artconnect.opportunity.service.ZeroApplicationCountsProvider;
 import hr.fer.artconnect.opportunity.web.LocationInput;
 import hr.fer.artconnect.opportunity.web.OpportunityInput;
@@ -63,7 +64,8 @@ class OpportunityServiceTest {
     private final OpportunityDeletionGuard deletionGuard = mock(OpportunityDeletionGuard.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-10-26T10:00:00Z"), ZoneOffset.UTC);
     private final OpportunityService service = new OpportunityService(
-            opportunities, types, fields, profiles, currentUser, new OpportunityMapper(), deletionGuard, new ZeroApplicationCountsProvider(), clock);
+            opportunities, types, fields, profiles, currentUser, new OpportunityMapper(),
+            new OpportunityVisibilityPolicy(), deletionGuard, new ZeroApplicationCountsProvider(), clock);
 
     @BeforeEach
     void organizer() {

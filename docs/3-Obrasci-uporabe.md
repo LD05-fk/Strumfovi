@@ -86,6 +86,30 @@ Detalji su u [API dokumentaciji umjetnika](api/artists.md) i [djela](api/artwork
 
 Detalji su u [API dokumentaciji prilika](api/opportunities.md), za [pregled](api/opportunities.md#get-apiv1meopportunities) i [promjenu statusa](api/opportunities.md#post-opportunitiesopportunityidstatus).
 
+#### Objava prilike
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Organizator |
+| **Povezani zahtjevi** | FR-03; OPP-01-FE2 |
+| **Preduvjeti** | Korisnik je prijavljen s ulogom `ORGANIZER`. Ruta `/organizer/opportunities/new` zaštićena je provjerom uloge. |
+| **Glavni uspješni tok** | 1. Organizator otvara obrazac za novu priliku.<br>2. Sustav dohvaća aktivne vrste prilika i područja umjetnosti (`GET /api/v1/opportunity-types`, `GET /api/v1/art-fields`).<br>3. Organizator unosi naslov, opis, vrstu, jedno do deset područja, rok prijave te po želji kriterije, nagradu i datume događanja.<br>4. Sustav provjerava unos prema pravilima `OpportunityInput`. Rok mora biti u budućnosti; kraj događanja može se unijeti samo uz početak i ne može mu prethoditi.<br>5. Datumi i vremena prikazuju se u vremenskoj zoni `Europe/Zagreb` i šalju kao ISO-8601 vrijednosti s pomakom.<br>6. Organizator sprema obrazac (`POST /api/v1/opportunities`). Sustav stvara priliku u statusu `PREPARATION`, osvježava relevantne podatke, prikazuje poruku „Prilika je spremljena” i vodi na `/opportunities/{id}`. |
+| **Alternativni tokovi** | **2a — Dohvat nije uspio:** sustav prikazuje stanje pogreške i omogućuje ponovni pokušaj.<br>**4a — Nevaljan unos:** poruke validacije prikazuju se uz pripadajuća polja, a zahtjev se ne šalje.<br>**6a — API vraća `400 VALIDATION_ERROR`:** detalji pogreške mapiraju se na polja obrasca.<br>**6b — API vraća `403`:** sustav obavještava organizatora da nema pristup.<br>**6c — Druga pogreška poslužitelja:** prikazuje se obavijest o pogrešci; unesene vrijednosti ostaju u obrascu.<br>**7a — Pokušaj napuštanja s nespremljenim promjenama:** sustav traži potvrdu prije odbacivanja unosa. |
+| **Rezultat** | Nova prilika spremljena je kao nacrt. |
+
+#### Uređivanje prilike
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Organizator (vlasnik prilike) |
+| **Povezani zahtjevi** | FR-03; OPP-01-FE2 |
+| **Preduvjeti** | Organizator je prijavljen s ulogom `ORGANIZER`, a prilika postoji i pripada mu. |
+| **Glavni uspješni tok** | 1. Organizator otvara `/organizer/opportunities/{id}/edit`.<br>2. Sustav dohvaća priliku (`GET /api/v1/opportunities/{id}`) i aktivne šifrarnike te popunjava obrazac postojećim podacima.<br>3. Ako trenutačna vrsta ili područje umjetnosti nije među aktivnim opcijama, i dalje se prikazuje kao odabrano s oznakom „(neaktivno)” i ostaje u obrascu.<br>4. Organizator uređuje osnovna polja i datume. Pri uređivanju rok može biti u prošlosti; ostala pravila polja i datuma događanja vrijede kao pri stvaranju.<br>5. Organizator sprema promjene (`PUT /api/v1/opportunities/{id}`). Sustav osvježava relevantne podatke, prikazuje poruku „Prilika je spremljena” i vodi na `/opportunities/{id}`. |
+| **Alternativni tokovi** | **2a — Dohvat je u tijeku:** sustav prikazuje stanje učitavanja.<br>**2b — API vraća `403` ili `404`:** sustav prikazuje odgovarajuću poruku i poveznicu na „Moje prilike”.<br>**2c — Druga pogreška poslužitelja:** prikazuje se stanje pogreške s mogućnošću ponovnog pokušaja.<br>**4a — Nevaljan unos ili API `400 VALIDATION_ERROR`:** pogreške se prikazuju uz pripadajuća polja, uključujući polja lokacije kada ih dostavi lokacijska komponenta.<br>**5a — Pokušaj napuštanja s nespremljenim promjenama:** sustav traži potvrdu prije odbacivanja unosa. |
+| **Rezultat** | Postojeća prilika ažurirana je; njezin status i vlasnik ostaju nepromijenjeni. |
+
+**Opseg OPP-01-FE2:** obrazac obuhvaća osnovna polja, datume, validaciju i spremanje. Odjeljak „Lokacija” zasad je mjesto za uključivanje zasebne komponente iz OPP-01-FE3, a „Zahtjevi prijave” mjesto za APP-01-FE1. Ti se odjeljci dovršavaju u pripadajućim podzadacima.
+
 ### UC-05 Pregledati prilike
 
 | Element specifikacije | Opis |
