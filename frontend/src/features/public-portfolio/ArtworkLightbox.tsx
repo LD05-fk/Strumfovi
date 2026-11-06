@@ -81,7 +81,12 @@ export function ArtworkLightbox({
             <Stack
               direction="row"
               spacing={1}
-              sx={{ alignItems: 'center', justifyContent: 'center' }}
+              sx={{
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                minWidth: 0,
+              }}
             >
               {artwork.images.length > 1 && (
                 <IconButton
@@ -91,41 +96,54 @@ export function ArtworkLightbox({
                       index === 0 ? artwork.images.length - 1 : index - 1,
                     )
                   }
+                  sx={{ flexShrink: 0 }}
                 >
                   <ChevronLeftIcon />
                 </IconButton>
               )}
-              {image ? (
-                <Box
-                  component="img"
-                  src={image.file.url}
-                  alt={
-                    image.altText ||
-                    hr.publicPortfolio.artworkImage(
-                      artwork.title,
-                      imageIndex + 1,
-                      artwork.images.length,
-                    )
-                  }
-                  sx={{
-                    display: 'block',
-                    maxWidth: '100%',
-                    maxHeight: { xs: '55vh', sm: '65vh' },
-                    objectFit: 'contain',
-                    borderRadius: 1,
-                  }}
-                />
-              ) : (
-                <Typography color="text.secondary" sx={{ py: 8 }}>
-                  {hr.publicPortfolio.noArtworkImage}
-                </Typography>
-              )}
+              <Box
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                {image ? (
+                  <Box
+                    component="img"
+                    src={image.file.url}
+                    alt={
+                      image.altText ||
+                      hr.publicPortfolio.artworkImage(
+                        artwork.title,
+                        imageIndex + 1,
+                        artwork.images.length,
+                      )
+                    }
+                    sx={{
+                      display: 'block',
+                      width: '100%',
+                      maxWidth: '100%',
+                      maxHeight: { xs: '55vh', sm: '65vh' },
+                      objectFit: 'contain',
+                      borderRadius: 1,
+                    }}
+                  />
+                ) : (
+                  <Typography color="text.secondary" sx={{ py: 8 }}>
+                    {hr.publicPortfolio.noArtworkImage}
+                  </Typography>
+                )}
+              </Box>
               {artwork.images.length > 1 && (
                 <IconButton
                   aria-label={hr.publicPortfolio.nextImage}
                   onClick={() =>
                     setImageIndex((index) => (index + 1) % artwork.images.length)
                   }
+                  sx={{ flexShrink: 0 }}
                 >
                   <ChevronRightIcon />
                 </IconButton>
