@@ -136,6 +136,35 @@ describe('MyPortfolioPage', () => {
     ).toHaveAttribute('href', '/portfolio/artworks/new')
   })
 
+  it('replaces an out-of-range URL page with the last page when artworks exist', async () => {
+    let expectedLastPage = 0
+    vi.mocked(apiFetch).mockImplementation(
+      async <T,>(path: string): Promise<T> => {
+        if (path === '/me') return currentUser as T
+        const pageRequest = path.match(/\/artworks\?page=(\d+)&pageSize=(\d+)/)
+        if (!pageRequest) throw new Error(`Unexpected API request: ${path}`)
+
+        const requestedPage = Number(pageRequest[1])
+        const pageSize = Number(pageRequest[2])
+        expectedLastPage = Math.ceil(20 / pageSize)
+        return {
+          data: requestedPage === 99 ? [] : [publicArtwork],
+          meta: {
+            page: requestedPage,
+            pageSize,
+            total: 20,
+          },
+        } as T
+      },
+    )
+    const { router } = renderPage('/portfolio?page=99')
+
+    expect(await screen.findByText('Plavi horizont')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(router.state.location.search).toBe(`?page=${expectedLastPage}`)
+    })
+  })
+
   it('limits each page to two artwork rows and shows pagination beneath them', async () => {
     const artworks = Array.from({ length: 4 }, (_, index) => ({
       ...publicArtwork,

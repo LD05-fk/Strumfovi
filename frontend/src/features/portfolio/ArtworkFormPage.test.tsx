@@ -230,4 +230,30 @@ describe('ArtworkFormPage', () => {
       )
     },
   )
+
+  it('shows not found when the artwork belongs to another artist', async () => {
+    vi.mocked(apiFetch).mockImplementation(
+      async <T,>(path: string): Promise<T> => {
+        if (path === '/me') return currentUser as T
+        if (path === `/artworks/${artworkId}`) {
+          return {
+            ...savedArtwork,
+            artistId: '00000000-0000-4000-8000-000000000002',
+          } as T
+        }
+        throw new Error(`Unexpected API request: ${path}`)
+      },
+    )
+    renderPage(`/portfolio/artworks/${artworkId}`)
+
+    expect(
+      await screen.findByRole('heading', { name: 'Djelo nije pronađeno' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Natrag na portfolio' }),
+    ).toHaveAttribute('href', '/portfolio')
+    expect(
+      screen.queryByRole('textbox', { name: 'Naslov' }),
+    ).not.toBeInTheDocument()
+  })
 })

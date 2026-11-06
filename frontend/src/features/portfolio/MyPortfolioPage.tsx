@@ -9,7 +9,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link as RouterLink, useSearchParams } from 'react-router'
 import { ApiError } from '../../api/client'
 import { usePageTitle } from '../../components/layout/usePageTitle'
@@ -77,6 +77,25 @@ export function MyPortfolioPage() {
   const columns = isDesktop ? 4 : isTablet ? 3 : 2
   const pageSize = columns * 2
   const artworks = useArtistArtworks(user?.id ?? '', page, pageSize)
+  const pageCount = artworks.data
+    ? Math.ceil(artworks.data.meta.total / pageSize)
+    : 0
+
+  useEffect(() => {
+    if (!artworks.data || artworks.data.meta.total === 0 || page <= pageCount) {
+      return
+    }
+
+    setSearchParams(
+      (currentParams) => {
+        const nextParams = new URLSearchParams(currentParams)
+        nextParams.set('page', String(pageCount))
+        return nextParams
+      },
+      { replace: true },
+    )
+  }, [artworks.data, page, pageCount, setSearchParams])
+
   const deleteArtwork = useDeleteArtwork(
     user?.id ?? '',
     () => {
@@ -128,7 +147,9 @@ export function MyPortfolioPage() {
     )
   }
 
-  const pageCount = Math.ceil(artworks.data.meta.total / pageSize)
+  if (artworks.data.meta.total > 0 && page > pageCount) {
+    return <ArtworkGridSkeleton count={pageSize} />
+  }
 
   return (
     <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto' }}>
@@ -168,7 +189,7 @@ export function MyPortfolioPage() {
         </Stack>
       </Stack>
 
-      {artworks.data.data.length === 0 ? (
+      {artworks.data.meta.total === 0 ? (
         <EmptyState
           title={
             <>

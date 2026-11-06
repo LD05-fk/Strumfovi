@@ -527,6 +527,14 @@ export function ArtworkFormPage() {
     )
   }
 
+  if (!isNew && artworkQuery.data.artistId !== currentUser.data.id) {
+    return (
+      <Box sx={{ maxWidth: 720, mx: 'auto' }}>
+        <ArtworkNotFound />
+      </Box>
+    )
+  }
+
   return (
     <ArtworkForm artwork={artworkQuery.data} artistId={currentUser.data.id} />
   )
