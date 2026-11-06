@@ -5,6 +5,7 @@ import hr.fer.artconnect.auth.domain.UserStatus;
 import hr.fer.artconnect.catalog.domain.CatalogEntry;
 import hr.fer.artconnect.opportunity.domain.Location;
 import hr.fer.artconnect.opportunity.domain.Opportunity;
+import hr.fer.artconnect.opportunity.domain.OpportunitySearchRepository.*;
 import hr.fer.artconnect.opportunity.web.ApplicationCounts;
 import hr.fer.artconnect.opportunity.web.CatalogRef;
 import hr.fer.artconnect.opportunity.web.LocationDto;
@@ -39,6 +40,14 @@ public class OpportunityMapper {
                 opportunity.getEventStart(), organizer(opportunity, profile));
     }
 
+    public OpportunitySummary toSummary(OpportunityRow row) {
+        return new OpportunitySummary(
+                row.id(), row.title(), catalogRef(row.type()),
+                row.artFields().stream().map(this::catalogRef).toList(),
+                row.deadline(), row.status(), row.locationType(), row.city(),
+                row.latitude(), row.longitude(), row.eventStart(), organizer(row.organizer()));
+    }
+
     public OrganizerOpportunity toOrganizerOpportunity(Opportunity opportunity, OrganizerProfile profile,
             ApplicationCounts applicationCounts) {
         OpportunitySummary summary = toSummary(opportunity, profile);
@@ -51,6 +60,10 @@ public class OpportunityMapper {
 
     private CatalogRef catalogRef(CatalogEntry entry) {
         return new CatalogRef(entry.getId(), entry.getCode(), entry.getName());
+    }
+
+    private CatalogRef catalogRef(CatalogRow row) {
+        return new CatalogRef(row.id(), row.code(), row.name());
     }
 
     private List<CatalogRef> artFields(Opportunity opportunity) {
@@ -66,6 +79,11 @@ public class OpportunityMapper {
                 ? "Obrisani korisnik" : user.getDisplayName();
         return new OrganizerSummary(user.getId(), displayName,
                 profile == null ? null : profile.getOrganizationName());
+    }
+
+    private OrganizerSummary organizer(OrganizerRow row) {
+        String displayName = row.status() == UserStatus.DELETED ? "Obrisani korisnik" : row.displayName();
+        return new OrganizerSummary(row.id(), displayName, row.organizationName());
     }
 
     private LocationDto locationDto(Location location) {
