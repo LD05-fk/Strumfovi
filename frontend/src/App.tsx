@@ -20,6 +20,7 @@ import { ArtistProfilePage } from './features/artist-profile/ArtistProfilePage'
 import { HomePage } from './features/auth/pages/HomePage'
 import { hr } from './i18n/hr'
 import { OrganizerProfilePage } from './features/organizer-profile/OrganizerProfilePage'
+import { PublicPortfolioPage } from './features/public-portfolio/PublicPortfolioPage'
 import { OpportunityEditorPage } from './features/opportunities/OpportunityEditorPage'
 
 type PageProps = {
@@ -104,7 +105,10 @@ const router = createBrowserRouter(
                     </RequireRole>
                 }
             />
-            <Route path="artists/:artistId" element={<Page title="Umjetnik" />} />
+            <Route
+                path="artists/:artistId"
+                element={<PublicPortfolioPage />}
+            />
             <Route
                 path="onboarding"
                 element={

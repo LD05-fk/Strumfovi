@@ -68,9 +68,9 @@ Detalji su u [API dokumentaciji umjetnika](api/artists.md) i [djela](api/artwork
 | **Primarni akter** | Posjetitelj |
 | **Povezani zahtjevi** | FR-02, FR-07 |
 | **Preduvjeti** | Nema; pregled ne traži prijavu. |
-| **Glavni uspješni tok** | 1. Posjetitelj otvara poveznicu `/artists/{userId}`.<br>2. Sustav prikazuje profil, javna djela i objavljena sudjelovanja. |
-| **Alternativni tokovi** | **2a — Djelo nije javno:** ne prikazuje se.<br>**2b — Nepostojeći profil:** ponašanje je opisano u API dokumentaciji. |
-| **Rezultat** | Posjetitelj vidi javni portfolio umjetnika. |
+| **Glavni uspješni tok** | 1. Posjetitelj otvara javnu poveznicu `/artists/{userId}`; prijava nije potrebna.<br>2. Sustav prikazuje profil umjetnika, javna djela i prethodne izložbe, uz paginaciju galerije.<br>3. Posjetitelj otvara djelo u dijalogu i pregledava njegove slike. |
+| **Alternativni tokovi** | **2a — Djelo nije javno ili ga je administrator sakrio:** djelo se ne prikazuje; vlasniku se u javnom prikazu također prikazuju samo javna i neskrivena djela.<br>**2b — Profil nema javnih djela:** prikazuje se poruka da umjetnik još nema javnih djela.<br>**2c — Zatražena stranica galerije izvan je raspona:** URL se ne preusmjerava; prikazuje se prazno stanje s mogućnošću povratka na dostupnu stranicu.<br>**2d — Profil ne postoji ili više nije dostupan:** sustav prikazuje „Umjetnik nije pronađen”.<br>**2e — Greška poslužitelja:** sustav prikazuje grešku s mogućnošću ponovnog pokušaja.<br>**3a — Dijalog djela:** zatvara se tipkom Escape, a slike se mijenjaju strelicama; zatvaranjem se vraća fokus na otvoreno djelo. |
+| **Rezultat** | Posjetitelj vidi javni portfolio umjetnika, a vlasnik može otvoriti uređivanje profila ili kopirati javnu poveznicu. |
 
 ### UC-04 Upravljati prilikama
 

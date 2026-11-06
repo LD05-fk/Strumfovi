@@ -44,6 +44,14 @@ describe('apiFetch', () => {
     expect(sentHeaders().has('X-XSRF-TOKEN')).toBe(false)
   })
 
+  it('poštuje zahtjev za anoniman dohvat', async () => {
+    fetchMock.mockResolvedValue(Response.json({ ok: true }))
+
+    await apiFetch('/artists/artist-id/artworks', { credentials: 'omit' })
+
+    expect(sentInit().credentials).toBe('omit')
+  })
+
   it('opcija json šalje tijelo kao JSON', async () => {
     fetchMock.mockResolvedValue(Response.json({ id: 1 }, { status: 201 }))
 
