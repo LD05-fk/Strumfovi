@@ -1,0 +1,75 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { apiFetch } from '../../api/client'
+
+import type {
+  CatalogOption,
+  OpportunityDetail,
+  OpportunityInput,
+} from './types'
+
+type CatalogPage = {
+  data: CatalogOption[]
+  meta: {
+    page: number
+    pageSize: number
+    total: number
+  }
+}
+
+type SaveOpportunityVariables =
+  | { kind: 'create'; input: OpportunityInput }
+  | {
+      kind: 'update'
+      opportunityId: string
+      input: OpportunityInput
+    }
+
+export function useSaveOpportunity() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (variables: SaveOpportunityVariables) => {
+      if (variables.kind === 'create') {
+        return apiFetch<OpportunityDetail>('/opportunities', {
+          method: 'POST',
+          json: variables.input,
+        })
+      }
+
+      return apiFetch<OpportunityDetail>(
+        `/opportunities/${variables.opportunityId}`,
+        {
+          method: 'PUT',
+          json: variables.input,
+        },
+      )
+    },
+    onSuccess: async (opportunity) => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: opportunityQueryKey(opportunity.id),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['my-opportunities'],
+        }),
+      ])
+    },
+  })
+}
+
+export const opportunityQueryKey = (id: string) => ['opportunity', id] as const
+
+export function useOpportunity(id: string) {
+  return useQuery({
+    queryKey: opportunityQueryKey(id),
+    queryFn: () => apiFetch<OpportunityDetail>(`/opportunities/${id}`),
+    enabled: id.length > 0,
+  })
+}
+
+export function useOpportunityTypes() {
+  return useQuery({
+    queryKey: ['opportunity-types', { pageSize: 100 }],
+    queryFn: () => apiFetch<CatalogPage>('/opportunity-types?pageSize=100'),
+  })
+}

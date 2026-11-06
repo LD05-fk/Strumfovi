@@ -15,6 +15,10 @@ class BasePage:
         self.driver.get(self.base_url + self.path)
         return self
 
+    def open_path(self, path):
+        self.driver.get(self.base_url + path)
+        return self
+
     def wait_visible(self, locator, timeout=DEFAULT_TIMEOUT):
         return WebDriverWait(self.driver, timeout).until(
             EC.visibility_of_element_located(locator)

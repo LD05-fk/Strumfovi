@@ -6,6 +6,11 @@ import { theme } from './app/theme'
 import { apiFetch } from './api/client.ts'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './app/queryClient.ts'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import './app/dayjs'
+import 'dayjs/locale/hr'
+import { hrHR } from '@mui/x-date-pickers/locales'
 
 async function bootstrap() {
   // Osiguraj CSRF kolačić prije pokretanja aplikacije.
@@ -21,7 +26,15 @@ async function bootstrap() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <App />
+          <LocalizationProvider
+            dateAdapter={AdapterDayjs}
+            adapterLocale="hr"
+            localeText={
+              hrHR.components.MuiLocalizationProvider.defaultProps.localeText
+            }
+          >
+            <App />
+          </LocalizationProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </StrictMode>,

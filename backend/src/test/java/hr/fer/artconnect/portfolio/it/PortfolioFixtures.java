@@ -12,7 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
-/** Testni korisnici, područja i stvarne sesije za testove portfolija. */
+/** Testni korisnici, područja, izložbe i stvarne sesije za testove portfolija. */
 public class PortfolioFixtures {
     private final JdbcTemplate jdbc;
     private final MockMvc mockMvc;
@@ -57,8 +57,19 @@ public class PortfolioFixtures {
         return new UserSession(session, csrf);
     }
 
+    public UUID pastExhibition(UUID artistId) {
+        // Izložba pripada profilu, pa za test prava pristupa pripremamo oba zapisa.
+        jdbc.update("INSERT INTO artist_profiles (user_id) VALUES (?)", artistId);
+        UUID id = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO past_exhibitions (id, artist_id, title, year, place)
+                VALUES (?, ?, 'Gradski motivi', 2024, 'Zagreb')
+                """, id, artistId);
+        return id;
+    }
+
     public void cleanup() {
-        // Brisanje korisnika kaskadno briše njegov profil, područja i poveznice.
+        // Brisanje korisnika kaskadno briše profil, izložbe, odabire područja i poveznice.
         for (UUID id : users) {
             jdbc.update("DELETE FROM spring_session WHERE principal_name = ?", id.toString());
             jdbc.update("DELETE FROM users WHERE id = ?", id);
