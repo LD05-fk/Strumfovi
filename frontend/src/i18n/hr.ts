@@ -185,7 +185,6 @@ export const hr = {
       accessDenied: 'Nemate pristup ovoj prilici.',
       notFound: 'Prilika nije pronađena.',
       location: 'Lokacija',
-      locationPlaceholder: 'Odjeljak lokacije bit će dodan u OPP-01-FE3.',
       applicationRequirements: 'Zahtjevi prijave',
       applicationRequirementsPlaceholder:
         'Ovdje će se uređivati zahtjevi prijave (APP-01).',
@@ -215,8 +214,7 @@ export const hr = {
       cityRequired: 'Grad je obavezan za fizičku lokaciju.',
       cityMax: 'Grad smije imati najviše 100 znakova.',
       postalCodeMax: 'Poštanski broj smije imati najviše 10 znakova.',
-      latitudeRange: 'Zemljopisna širina mora biti između -90 i 90.',
-      longitudeRange: 'Zemljopisna dužina mora biti između -180 i 180.',
+      locationMarkerRequired: 'Postavite oznaku na karti.',
       onlineUrlMax: 'Poveznica smije imati najviše 1024 znaka.',
       onlineUrlFormat:
         'Unesite valjanu HTTP ili HTTPS poveznicu za online lokaciju.',

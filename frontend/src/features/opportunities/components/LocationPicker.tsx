@@ -76,6 +76,7 @@ export function LocationPicker({
     longitude <= 180
 
   const marker = hasMarker ? { latitude, longitude } : null
+  const [mapCenter, setMapCenter] = useState(() => marker ?? DEFAULT_CENTER)
   const addressChanged =
     marker !== null &&
     searchedAddress !== null &&
@@ -96,11 +97,13 @@ export function LocationPicker({
   }
 
   const selectCandidate = (candidate: GeocodingCandidate, index: number) => {
-    setSelectedCandidate(String(index))
-    setCoordinates({
+    const coordinates = {
       latitude: candidate.latitude,
       longitude: candidate.longitude,
-    })
+    }
+    setSelectedCandidate(String(index))
+    setCoordinates(coordinates)
+    setMapCenter(coordinates)
 
     if (!location.city.trim() && candidate.city) {
       setValue('location.city', candidate.city, {
@@ -324,7 +327,7 @@ export function LocationPicker({
 
                     <DraggableMarkerMap
                       value={marker}
-                      center={marker ?? DEFAULT_CENTER}
+                      center={mapCenter}
                       onChange={setCoordinates}
                     />
                   </>

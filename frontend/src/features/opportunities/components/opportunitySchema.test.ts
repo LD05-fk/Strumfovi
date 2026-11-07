@@ -151,4 +151,56 @@ describe('createOpportunitySchema', () => {
       }).success,
     ).toBe(false)
   })
+  it('provjerava obaveznu oznaku za fizičku lokaciju', () => {
+    const result = createOpportunitySchema(false).safeParse({
+      ...validValues,
+      location: {
+        ...validValues.location,
+        latitude: '',
+        longitude: '',
+      },
+    })
+
+    expect(result.success).toBe(false)
+
+    if (!result.success) {
+      expect(
+        result.error.issues.some(
+          (issue) =>
+            issue.path.join('.') === 'location.latitude' &&
+            issue.message === 'Postavite oznaku na karti.',
+        ),
+      ).toBe(true)
+    }
+  })
+
+  it('za online lokaciju zahtijeva HTTP ili HTTPS poveznicu', () => {
+    const onlineLocation = {
+      ...validValues.location,
+      type: 'ONLINE' as const,
+      streetAddress: '',
+      city: '',
+      postalCode: '',
+      latitude: '',
+      longitude: '',
+      onlineUrl: 'https://example.com/event',
+    }
+
+    expect(
+      createOpportunitySchema(false).safeParse({
+        ...validValues,
+        location: onlineLocation,
+      }).success,
+    ).toBe(true)
+
+    expect(
+      createOpportunitySchema(false).safeParse({
+        ...validValues,
+        location: {
+          ...onlineLocation,
+          onlineUrl: 'ftp://example.com/event',
+        },
+      }).success,
+    ).toBe(false)
+  })
 })
