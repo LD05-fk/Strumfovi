@@ -25,11 +25,13 @@ import hr.fer.artconnect.catalog.domain.OpportunityTypeRepository;
 import hr.fer.artconnect.opportunity.domain.Location;
 import hr.fer.artconnect.opportunity.domain.Opportunity;
 import hr.fer.artconnect.opportunity.domain.OpportunityRepository;
+import hr.fer.artconnect.opportunity.domain.OpportunitySearchRepository;
 import hr.fer.artconnect.opportunity.domain.OpportunityStatus;
 import hr.fer.artconnect.opportunity.service.OpportunityDeletionGuard;
 import hr.fer.artconnect.opportunity.service.ApplicationCountsProvider;
 import hr.fer.artconnect.opportunity.service.OpportunityMapper;
 import hr.fer.artconnect.opportunity.service.OpportunityService;
+import hr.fer.artconnect.opportunity.service.OpportunityVisibilityPolicy;
 import hr.fer.artconnect.opportunity.web.OpportunityController;
 import hr.fer.artconnect.support.TestPrincipals;
 import hr.fer.artconnect.support.TestUsers;
@@ -54,7 +56,8 @@ import org.springframework.test.web.servlet.MockMvc;
         "spring.security.oauth2.client.registration.google.client-id=test-client",
         "spring.security.oauth2.client.registration.google.client-secret=test-secret"
 })
-@Import({SecurityConfig.class, CurrentUserProvider.class, OpportunityService.class, OpportunityMapper.class})
+@Import({SecurityConfig.class, CurrentUserProvider.class, OpportunityService.class,
+        OpportunityMapper.class, OpportunityVisibilityPolicy.class})
 class OpportunityStatusEndpointTest {
     private static final UUID ID = UUID.randomUUID();
     private static final String PATH = "/api/v1/opportunities/" + ID + "/status";
@@ -69,6 +72,8 @@ class OpportunityStatusEndpointTest {
     // @WebMvcTest ne skenira @Component, pa guard iz OpportunityServicea dolazi kao mock.
     @MockitoBean OpportunityDeletionGuard deletionGuard;
     @MockitoBean ApplicationCountsProvider applicationCounts;
+    // Javnu pretragu ovaj razred ne ispituje, ali je OpportunityService traži u konstruktoru.
+    @MockitoBean OpportunitySearchRepository searchRepository;
     @MockitoBean(name = "geocodingClock") Clock clock;
     private User organizer;
     private Opportunity opportunity;

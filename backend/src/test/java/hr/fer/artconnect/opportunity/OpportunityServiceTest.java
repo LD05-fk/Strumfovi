@@ -25,18 +25,23 @@ import hr.fer.artconnect.opportunity.domain.Location;
 import hr.fer.artconnect.opportunity.domain.LocationType;
 import hr.fer.artconnect.opportunity.domain.Opportunity;
 import hr.fer.artconnect.opportunity.domain.OpportunityRepository;
+import hr.fer.artconnect.opportunity.domain.OpportunitySearchRepository;
+import hr.fer.artconnect.opportunity.domain.OpportunitySearchRepository.OpportunitySearchFilter;
 import hr.fer.artconnect.opportunity.domain.OpportunityStatus;
 import hr.fer.artconnect.opportunity.service.OpportunityDeletionGuard;
 import hr.fer.artconnect.opportunity.service.OpportunityMapper;
 import hr.fer.artconnect.opportunity.service.OpportunityService;
+import hr.fer.artconnect.opportunity.service.OpportunityVisibilityPolicy;
 import hr.fer.artconnect.opportunity.service.ZeroApplicationCountsProvider;
 import hr.fer.artconnect.opportunity.web.LocationInput;
 import hr.fer.artconnect.opportunity.web.OpportunityInput;
+import hr.fer.artconnect.opportunity.web.OpportunitySearchParams;
 import hr.fer.artconnect.support.TestUsers;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +53,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class OpportunityServiceTest {
@@ -61,9 +67,12 @@ class OpportunityServiceTest {
     private final OrganizerProfileRepository profiles = mock(OrganizerProfileRepository.class);
     private final CurrentUserProvider currentUser = mock(CurrentUserProvider.class);
     private final OpportunityDeletionGuard deletionGuard = mock(OpportunityDeletionGuard.class);
+    private final OpportunitySearchRepository searchRepository = mock(OpportunitySearchRepository.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-10-26T10:00:00Z"), ZoneOffset.UTC);
     private final OpportunityService service = new OpportunityService(
-            opportunities, types, fields, profiles, currentUser, new OpportunityMapper(), deletionGuard, new ZeroApplicationCountsProvider(), clock);
+            opportunities, types, fields, profiles, currentUser, new OpportunityMapper(),
+            new OpportunityVisibilityPolicy(), deletionGuard, new ZeroApplicationCountsProvider(),
+            searchRepository, clock);
 
     @BeforeEach
     void organizer() {
@@ -271,6 +280,74 @@ class OpportunityServiceTest {
         assertThatThrownBy(() -> service.archive(OPPORTUNITY_ID)).isInstanceOfSatisfying(ApiException.class,
                 error -> assertThat(error.getCode()).isEqualTo(ErrorCode.FORBIDDEN));
         assertThat(opportunity.isArchived()).isFalse();
+    }
+
+    @Test
+    void javnaPretragaBezStatusaTraziSamoOtvorenePrilike() {
+        var result = service.search(new OpportunitySearchParams());
+
+        assertThat(result.data()).isEmpty();
+        assertThat(result.meta().page()).isEqualTo(1);
+        assertThat(result.meta().pageSize()).isEqualTo(20);
+        assertThat(capturedFilter().statuses()).containsExactly(OpportunityStatus.OPEN);
+    }
+
+    @Test
+    void pretragaOdbijaStatusKojiNijeJavnoVidljiv() {
+        var params = new OpportunitySearchParams();
+        params.setStatuses(Set.of(OpportunityStatus.OPEN, OpportunityStatus.PREPARATION));
+
+        assertThatThrownBy(() -> service.search(params)).isInstanceOfSatisfying(ApiException.class, error -> {
+            assertThat(error.getCode()).isEqualTo(ErrorCode.VALIDATION_ERROR);
+            assertThat(error.getDetails()).extracting(issue -> issue.field()).containsExactly("statuses");
+        });
+        verify(searchRepository, never()).countPublic(any());
+    }
+
+    @Test
+    void pretragaOdbijaObrnutRasponRoka() {
+        var params = new OpportunitySearchParams();
+        params.setDeadlineFrom(LocalDate.parse("2026-12-31"));
+        params.setDeadlineTo(LocalDate.parse("2026-12-01"));
+
+        assertThatThrownBy(() -> service.search(params)).isInstanceOfSatisfying(ApiException.class, error -> {
+            assertThat(error.getCode()).isEqualTo(ErrorCode.VALIDATION_ERROR);
+            assertThat(error.getDetails()).extracting(issue -> issue.field()).containsExactly("deadlineFrom");
+        });
+        verify(searchRepository, never()).countPublic(any());
+    }
+
+    @Test
+    void rasponRokaSeTumaciKaoCijeliDaniUZoniEuropeZagreb() {
+        var params = new OpportunitySearchParams();
+        params.setDeadlineFrom(LocalDate.parse("2026-12-01"));
+        params.setDeadlineTo(LocalDate.parse("2026-12-01"));
+
+        service.search(params);
+
+        // Gornja granica je početak sljedećeg dana jer je upit strogo manji od nje.
+        var filter = capturedFilter();
+        assertThat(filter.deadlineFrom()).isEqualTo(OffsetDateTime.parse("2026-12-01T00:00:00+01:00"));
+        assertThat(filter.deadlineTo()).isEqualTo(OffsetDateTime.parse("2026-12-02T00:00:00+01:00"));
+    }
+
+    @Test
+    void prazniKljucniPojamIGradSeIgnoriraju() {
+        var params = new OpportunitySearchParams();
+        params.setQ("   ");
+        params.setCity("  ");
+
+        service.search(params);
+
+        var filter = capturedFilter();
+        assertThat(filter.query()).isNull();
+        assertThat(filter.city()).isNull();
+    }
+
+    private OpportunitySearchFilter capturedFilter() {
+        var filter = ArgumentCaptor.forClass(OpportunitySearchFilter.class);
+        verify(searchRepository).countPublic(filter.capture());
+        return filter.getValue();
     }
 
     private void invalid(OpportunityInput input, String field) {

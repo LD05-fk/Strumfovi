@@ -185,6 +185,133 @@ uz ažurirane vrijednosti i očuvane podatke o statusu i vlasniku.
 
 Greške koriste istu zajedničku omotnicu kao kod stvaranja.
 
+## GET /opportunities
+
+`GET /api/v1/opportunities` javno pretražuje prilike. Sesija nije potrebna i ne
+mijenja rezultat: pretraga uvijek vraća **samo javno vidljive prilike**, pa ni
+vlasnik ni administrator ovdje ne vide svoje nacrte, arhivirane ni skrivene
+prilike (za njih postoji `GET /api/v1/me/opportunities`). Javno vidljiva je
+prilika statusa `OPEN`, `CLOSED`, `SELECTION` ili `FINISHED` koja nije arhivirana
+ni skrivena od administratora i čiji organizator nije blokiran — ista pravila kao
+kod `GET /opportunities/{opportunityId}`.
+
+### Parametri
+
+Svi su neobavezni. Parametri koji primaju više vrijednosti ponavljaju se u upitu
+(`?typeIds=...&typeIds=...`).
+
+| Parametar | Zadano | Ograničenje i značenje |
+| --- | --- | --- |
+| `q` | — | najviše 100 znakova; punotekstna pretraga **naslova i opisa**. Prazan niz ili samo razmaci se ignoriraju |
+| `artFieldIds` | — | UUID niz; prilika zadovoljava filtar ako ima **barem jedno** od navedenih područja |
+| `typeIds` | — | UUID niz; vrsta prilike je jedna od navedenih |
+| `city` | — | najviše 100 znakova; **točno podudaranje** bez obzira na velika i mala slova, nakon uklanjanja rubnih razmaka. Online prilike nemaju grad pa ovaj filtar uvijek ispadaju |
+| `locationType` | — | `PHYSICAL` ili `ONLINE` |
+| `statuses` | `[OPEN]` | niz iz `OPEN`, `CLOSED`, `SELECTION`, `FINISHED`. `PREPARATION` vraća 400 |
+| `deadlineFrom` | — | datum (`YYYY-MM-DD`); rok je **u ili nakon** tog dana |
+| `deadlineTo` | — | datum (`YYYY-MM-DD`); rok je **u ili prije** tog dana |
+| `sort` | `deadline` | `deadline`, `-deadline`, `publishedAt` ili `-publishedAt`; prefiks `-` znači silazno |
+| `page` | `1` | najmanje 1 |
+| `pageSize` | `20` | 1–100 |
+
+Granice raspona roka tumače se kao **cijeli dani u zoni `Europe/Zagreb`** i obje
+su uključene: `deadlineFrom=2026-12-01&deadlineTo=2026-12-01` vraća prilike s
+rokom bilo kada tijekom 1. prosinca 2026. Obrnut raspon
+(`deadlineFrom > deadlineTo`) vraća 400 s poljem `deadlineFrom`.
+
+Različiti filtri se kombiniraju konjunkcijom (prilika mora zadovoljiti sve), a
+više vrijednosti istog filtra disjunkcijom. Uz sortirno polje uvijek ide `id`
+kao sekundarni ključ, pa je straničenje stabilno i kod jednakih rokova.
+
+Punotekstna pretraga koristi PostgreSQL konfiguraciju `simple`, bez
+korjenovanja: `q=zagreb` i `q=zagrebu` daju različite rezultate. Pojam se traži
+i u naslovu i u opisu, pa prilika može biti u rezultatu zbog riječi koja se ne
+vidi u sažetku.
+
+### Odgovor
+
+Uobičajena omotnica stranice: `{ "data": OpportunitySummary[], "meta": { page, pageSize, total } }`.
+`meta.total` je ukupan broj prilika koje zadovoljavaju iste uvjete, neovisno o
+stranici. `OpportunitySummary` je isti oblik kao u `GET /api/v1/me/opportunities`,
+ali **bez** polja `archived`, `hiddenByAdmin` i `applicationCounts`; ne sadrži
+opis, uvjete ni nagradu — za njih treba detalj prilike. `artFields` su poredani
+po `position` šifrarnika. Vremena su u ISO-8601 obliku s pomakom (`Z` za UTC).
+
+```http
+GET /api/v1/opportunities?city=Zagreb&typeIds=370c6b71-d193-40dd-8b2d-a4860212703f&sort=-deadline
+```
+
+```json
+{
+  "data": [{
+    "id": "00000000-0000-4000-8000-000000000001",
+    "title": "Izložba mladih umjetnika",
+    "type": { "id": "370c6b71-d193-40dd-8b2d-a4860212703f", "code": "izlozba", "name": "Izložba" },
+    "artFields": [{ "id": "69f07177-26bd-4c07-9e1c-2aecdaa47859", "code": "slikarstvo", "name": "Slikarstvo" }],
+    "deadline": "2027-01-10T22:00:00Z",
+    "status": "OPEN",
+    "locationType": "PHYSICAL",
+    "city": "Zagreb",
+    "latitude": 45.815000,
+    "longitude": 15.981900,
+    "eventStart": null,
+    "organizer": {
+      "id": "00000000-0000-4000-8000-000000000003",
+      "displayName": "Testni Organizator",
+      "organizationName": "Galerija Nova"
+    }
+  }],
+  "meta": { "page": 1, "pageSize": 20, "total": 1 }
+}
+```
+
+Primjeri kombinacija:
+
+| Upit | Značenje |
+| --- | --- |
+| `?` | otvorene prilike, rok uzlazno, prva stranica od 20 |
+| `?q=keramika&locationType=PHYSICAL` | otvorene fizičke prilike koje u naslovu ili opisu imaju riječ „keramika” |
+| `?artFieldIds=<slikarstvo>&artFieldIds=<grafika>` | otvorene prilike iz slikarstva **ili** grafike |
+| `?statuses=CLOSED&statuses=SELECTION` | prilike kojima su prijave zatvorene ili je odabir u tijeku |
+| `?deadlineFrom=2026-12-01&deadlineTo=2026-12-31&sort=-publishedAt` | prilike s rokom u prosincu 2026., najnovije objavljene prve |
+
+### Greške
+
+| HTTP | Kod | Razlog |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | `statuses=PREPARATION` ili nepoznata vrijednost enumeracije, neispravan UUID ili datum, obrnut raspon roka, `q` dulji od 100 znakova, `page < 1`, `pageSize` izvan 1–100, nepodržano sortirno polje |
+
+`error.details[].field` navodi parametar (`statuses`, `deadlineFrom`, `typeIds`,
+`pageSize`, `sort`…). Nepostojeći `typeIds` ili `artFieldIds` **nije** greška —
+rezultat je prazna stranica s `meta.total = 0`.
+
+## GET /opportunities/{opportunityId}
+
+`GET /api/v1/opportunities/{opportunityId}` vraća puni detalj prilike. Ruta je
+javna; valjana sesija nije obavezna, ali određuje vidi li pozivatelj i nejavnu
+priliku. Korisnik u statusu `ONBOARDING` može dohvatiti javno vidljiv detalj;
+vrijede ista pravila vidljivosti kao i za druge pozivatelje. Uspjeh vraća objekt
+`Opportunity` u istom obliku kao kod stvaranja, uključujući sva polja lokacije.
+`artFields` su poredani po `position` šifrarnika,
+`hasResults` je `false`, a `myApplicationId` je `null` dok se ne uvede podrška
+za prijave. Obrisani organizator ostaje prikazan kao `"Obrisani korisnik"`.
+
+| Pozivatelj | Vidljivost |
+| --- | --- |
+| Anonimni ili drugi prijavljeni korisnik | Samo prilike statusa `OPEN`, `CLOSED`, `SELECTION` ili `FINISHED`, koje nisu arhivirane ni skrivene od administratora i čiji organizator nije blokiran |
+| Vlasnik prilike | Vlastita prilika u svakom statusu, uključujući arhiviranu ili skrivenu |
+| Administrator | Svaka prilika |
+
+Prilika koja ne postoji ili nije vidljiva pozivatelju vraća `404 NOT_FOUND`;
+odgovor ne otkriva postojanje nejavne prilike. Neispravan UUID također vraća
+`404 NOT_FOUND`. Prilike organizatora čiji je račun obrisan ostaju javno
+vidljive ako zadovoljavaju ostala javna pravila.
+
+| HTTP | Kod | Razlog |
+| --- | --- | --- |
+| 200 | — | Puni detalj vidljive prilike |
+| 404 | `NOT_FOUND` | Prilika ne postoji, nije vidljiva pozivatelju ili je UUID neispravan |
+
 ## GET /api/v1/me/opportunities
 
 Vraća prilike prijavljenog organizatora, uključujući sve statuse i prilike

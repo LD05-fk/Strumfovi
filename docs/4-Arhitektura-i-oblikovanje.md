@@ -164,6 +164,30 @@ Changeset `021-artworks-and-files.yaml` stvara:
 
 Indeksi: `ix_stored_files_owner (owner_id)`, `ix_artworks_artist_visibility (artist_id, visibility) WHERE hidden_by_admin = false`, `ix_artworks_artist_created (artist_id, created_at DESC)` za Moj portfolio i `ix_artwork_images_artwork (artwork_id, position)`. Dev kontekst dodaje testnom umjetniku jedno javno i jedno privatno djelo bez slika. Enum vrijednosti pohranjuju se kao varchar i provjeravaju CHECK ograničenjima.
 
+**Indeksi javne pretrage prilika (`008-opportunities.yaml`).** Javna pretraga
+(`GET /opportunities`) jedini je upit u sustavu pisan kao nativni SQL
+([OpportunitySearchRepository](../backend/src/main/java/hr/fer/artconnect/opportunity/domain/OpportunitySearchRepository.java)),
+jer djelomični i izrazni indeksi traže točan oblik izraza: planer ih koristi samo
+ako se izraz upita slovo po slovo poklapa s izrazom indeksa. Zato uvjeti
+`archived = false AND hidden_by_admin = false` stoje doslovno u upitu, a ne kao
+parametri, i zato punotekstni izraz nije skriven u JPA kriterij.
+
+| Filtar ili poredak | Indeks | Oblik koji indeks traži |
+| --- | --- | --- |
+| `statuses` + poredak po roku | `ix_opp_public (status, deadline) WHERE archived = false AND hidden_by_admin = false` | oba uvjeta vidljivosti doslovno u `WHERE` |
+| zadana pretraga (`statuses=[OPEN]`) | `ix_opp_open_deadline (deadline) WHERE status = 'OPEN'` | uži djelomični indeks koji planer bira umjesto `ix_opp_public` kad je status samo `OPEN` |
+| `q` | `ix_opp_fts` GIN nad `to_tsvector('simple', title \|\| ' ' \|\| description)` | identičan izraz, uključujući konfiguraciju `simple` i spajanje razmakom |
+| `city` | `ix_opp_city_lower (lower(city))` | `lower(city) = lower(:city)`, ne `ILIKE` |
+| `artFieldIds` | `ix_oaf_art_field (art_field_id)` | `EXISTS` nad `opportunity_art_fields` |
+| `sort=-publishedAt` | `ix_opp_published_at (published_at)` | poredak po `published_at` |
+
+Područja umjetnosti cijele stranice dohvaćaju se jednim dodatnim upitom
+(`WHERE opportunity_id IN (:ids)`), pa je po zahtjevu točno troje upita —
+`COUNT(*)`, stranica prilika i područja — neovisno o broju prilika na stranici.
+To čuva test `podrucjaUmjetnostiStraniceDohvacaJedanUpit`, a korištenje indeksa
+`upitiPretrageMoguKoristitiPredvideneIndekse` (oba u
+[OpportunitySearchIntegrationTest](../backend/src/test/java/hr/fer/artconnect/opportunity/OpportunitySearchIntegrationTest.java)).
+
 <details>
 <summary><strong>Jedna prijava poplave i povezani podaci</strong></summary>
 
@@ -250,6 +274,16 @@ Nakon uspješne obrade stvara se poslužiteljska sesija putem Spring Session JDB
 **Izvor dijagrama:** [`docs/puml/4-5-artconnect-opportunity-create-SD.puml`](puml/4-5-artconnect-opportunity-create-SD.puml)
 
 Dijagram prikazuje odabir fizičke ili online lokacije. Za fizičku lokaciju organizator može odabrati jedan od geokodiranih kandidata ili ručno postaviti odnosno ispraviti oznaku; prazan rezultat, ograničenje učestalosti i nedostupnost Nominatima vode u ručni odabir. Neuspjeh kartografskih pločica prikazuje upozorenje, bez ukidanja kontrola za odabir lokacije. Nakon provjere unosa API sprema priliku i područja umjetnosti u jednoj transakciji, u statusu `PREPARATION`; objava nije dio ovog scenarija.
+
+**Scenarij:** UC-02 — umjetnik uređuje profil i portfolio učitavanjem slike djela (PORT-04-BE2).
+
+![Sekvencijski dijagram UC-02: učitavanje slike djela](assets/diagrams/4-6-artconnect-artwork-image-upload-SD.svg)
+
+**Slika 4.6. Sekvencijski dijagram UC-02 — uređivanje profila i portfolija: učitavanje slike djela**
+
+**Izvor dijagrama:** [`docs/puml/4-6-artconnect-artwork-image-upload-SD.puml`](puml/4-6-artconnect-artwork-image-upload-SD.puml)
+
+Zahtjev s jednom slikom i neobaveznim alternativnim tekstom prolazi autentikaciju, provjeru uloge umjetnika i CSRF zaštitu. `ArtworkService` u jednoj transakciji zaključava djelo, zatim provjerava vlasništvo, limit slika iz `system_settings`, veličinu i vrstu sadržaja tim redoslijedom. `FileStorageService` prepoznaje JPEG/PNG prema bajtovima, pohranjuje datoteku na volumenu i metapodatke; servis zatim dodaje sliku na sljedeću poziciju, zadani `altText` uzima iz naslova djela i ažurira `artworks.updated_at`. Zaključavanje reda sprječava da konkurentni zahtjevi prijeđu limit, a rollback transakcije uklanja već zapisanu datoteku. Ugovor i odgovori rute opisani su u [API dokumentaciji djela](api/artworks.md#post-artworksartworkidimages).
 
 <details>
 <summary><strong>Odabir lokacije, provjera valjanosti i podnošenje prijave</strong></summary>
@@ -412,6 +446,16 @@ ADR pišite samo za odluku čije će obrazloženje ostati važno i nakon promjen
 ## 4.6 Koncepti koji prožimaju sustav
 
 Paket `hr.fer.artconnect.common` sadrži zajedničke klase za greške, provjeru podataka i straničenje (#8).
+
+### Vidljivost prilika
+
+`OpportunityVisibilityPolicy` središnje određuje može li pozivatelj vidjeti
+priliku. Vlasnik i administrator vide priliku neovisno o statusu, arhiviranosti
+i skrivenosti. Ostali pozivatelji, uključujući anonimne, vide samo nearhivirane
+i neskrivene prilike u statusima `OPEN`, `CLOSED`, `SELECTION` ili `FINISHED`
+čiji organizator nije blokiran. Odbijeni dohvat detalja vraća `404 NOT_FOUND`
+kao i nepostojeća prilika; pravilo je izdvojeno kako bi ga mogli koristiti i
+drugi dijelovi sustava.
 
 ### Sesija i sigurnost
 

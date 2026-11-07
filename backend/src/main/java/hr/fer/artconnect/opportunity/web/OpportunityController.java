@@ -1,6 +1,9 @@
 package hr.fer.artconnect.opportunity.web;
 
 import hr.fer.artconnect.common.ApiPaths;
+import hr.fer.artconnect.common.ApiException;
+import hr.fer.artconnect.common.ErrorCode;
+import hr.fer.artconnect.common.PageResponse;
 import hr.fer.artconnect.opportunity.service.OpportunityService;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -17,6 +20,16 @@ public class OpportunityController {
 
     public OpportunityController(OpportunityService opportunities) {
         this.opportunities = opportunities;
+    }
+
+    @GetMapping("/{opportunityId}")
+    public OpportunityDto get(@PathVariable String opportunityId) {
+        return opportunities.get(parseOpportunityId(opportunityId));
+    }
+
+    @GetMapping
+    public PageResponse<OpportunitySummary> search(@Valid @ModelAttribute OpportunitySearchParams params) {
+        return opportunities.search(params);
     }
 
     @PostMapping
@@ -50,5 +63,17 @@ public class OpportunityController {
     @PreAuthorize("hasRole('ORGANIZER')")
     public OpportunityDto archive(@PathVariable UUID opportunityId) {
         return opportunities.archive(opportunityId);
+    }
+
+    private static UUID parseOpportunityId(String opportunityId) {
+        try {
+            UUID id = UUID.fromString(opportunityId);
+            if (!id.toString().equalsIgnoreCase(opportunityId)) {
+                throw new IllegalArgumentException();
+            }
+            return id;
+        } catch (IllegalArgumentException exception) {
+            throw new ApiException(ErrorCode.NOT_FOUND, "Prilika nije pronađena.");
+        }
     }
 }

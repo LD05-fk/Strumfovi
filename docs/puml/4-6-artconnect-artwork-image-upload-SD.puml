@@ -1,0 +1,120 @@
+@startuml
+title ArtConnect — UC-02 Urediti profil i portfolio: učitati sliku djela
+
+autonumber
+
+actor "Umjetnik" as Artist
+participant "Frontend" as FE
+participant "Spring Security /\nREST API" as API
+participant "ArtworkController" as Controller
+participant "ArtworkService" as ArtworkService
+participant "CurrentUserProvider /\nUserRepository" as CurrentUser
+participant "ArtworkRepository" as ArtworkRepository
+participant "SettingsService /\nSystemSettingRepository" as SettingsService
+participant "ArtworkImageRepository" as ImageRepository
+participant "FileStorageService /\nStoredFileRepository" as FileStorage
+database "PostgreSQL" as DB
+collections "Volumen uploads" as Volume
+
+Artist -> FE: Odabire sliku i šalje multipart zahtjev\n(file, altText?)
+FE -> API: POST /api/v1/artworks/{artworkId}/images\n(session, CSRF, multipart/form-data)
+
+alt Nema valjane sesije
+    API --> FE: 401 UNAUTHENTICATED
+else Nema uloge ARTIST ili CSRF tokena
+    API --> FE: 403 FORBIDDEN
+else Zahtjev je autentificiran i zaštićen CSRF-om
+    API -> Controller: uploadArtworkImage(artworkId, file, altText)
+    Controller -> ArtworkService: uploadImage(artworkId, file, altText)
+    note over ArtworkService,DB
+    Počinje jedna transakcija; zaključavanje reda djela
+    ostaje do commita ili rollbacka.
+    end note
+
+    ArtworkService -> CurrentUser: getCurrentUser()
+    CurrentUser -> DB: SELECT prijavljenog korisnika
+    DB --> CurrentUser: Korisnik ili nema valjane sesije
+    CurrentUser --> ArtworkService: Korisnik
+
+    ArtworkService -> ArtworkRepository: findByIdForUpdate(artworkId)
+    ArtworkRepository -> DB: SELECT artwork FOR UPDATE
+    DB --> ArtworkRepository: Zaključano djelo ili nema retka
+    ArtworkRepository --> ArtworkService: Djelo
+
+    alt Djelo ne postoji ili pripada drugom korisniku
+        ArtworkService --> Controller: NOT_FOUND
+        Controller --> API: 404 NOT_FOUND
+        API --> FE: 404 NOT_FOUND
+    else Prijavljeni korisnik je vlasnik
+        ArtworkService -> SettingsService: getUploadLimits()
+        SettingsService -> DB: SELECT upload.artwork.*\n(system_settings)
+        DB --> SettingsService: Vrijednosti ili nedostajuće postavke
+        SettingsService --> ArtworkService: Limiti (zadano 5 MiB i 3 slike)
+        ArtworkService -> ImageRepository: countByArtwork_Id(artworkId)
+        ImageRepository -> DB: SELECT count(*) artwork_images
+        DB --> ImageRepository: Broj slika
+        ImageRepository --> ArtworkService: Broj slika
+
+        alt Broj slika doseže limit
+            ArtworkService --> Controller: IMAGE_LIMIT_REACHED
+            Controller --> API: 409 IMAGE_LIMIT_REACHED
+            API --> FE: 409 IMAGE_LIMIT_REACHED
+        else Ima mjesta za još jednu sliku
+            ArtworkService -> ArtworkService: Provjerava altText (najviše 300 znakova)
+            alt altText je predug
+                ArtworkService --> Controller: VALIDATION_ERROR
+                Controller --> API: 400 VALIDATION_ERROR
+                API --> FE: 400 VALIDATION_ERROR
+            else altText je valjan ili izostavljen
+                ArtworkService -> FileStorage: store(ownerId, ARTWORK_IMAGE,\nfile, JPEG/PNG, maxImageBytes)
+                FileStorage -> FileStorage: Provjerava praznu datoteku i veličinu
+                alt Datoteka je prazna
+                    FileStorage --> ArtworkService: VALIDATION_ERROR
+                    ArtworkService --> Controller: VALIDATION_ERROR
+                    Controller --> API: 400 VALIDATION_ERROR
+                    API --> FE: 400 VALIDATION_ERROR
+                else Datoteka prelazi limit veličine
+                    FileStorage --> ArtworkService: FILE_TOO_LARGE
+                    ArtworkService --> Controller: FILE_TOO_LARGE
+                    Controller --> API: 413 FILE_TOO_LARGE
+                    API --> FE: 413 FILE_TOO_LARGE
+                else Datoteka je neprazna i unutar limita
+                    FileStorage -> Volume: Zapisuje privremenu datoteku\nunutar ograničene veličine
+                    FileStorage -> FileStorage: Prepoznaje JPEG/PNG prema sadržaju
+                    alt Sadržaj nije JPEG ni PNG (npr. PDF)
+                        FileStorage --> ArtworkService: UNSUPPORTED_FILE_TYPE
+                        ArtworkService --> Controller: UNSUPPORTED_FILE_TYPE
+                        Controller --> API: 415 UNSUPPORTED_FILE_TYPE
+                        API --> FE: 415 UNSUPPORTED_FILE_TYPE
+                    else Sadržaj je JPEG ili PNG
+                        FileStorage -> Volume: Premješta u trajnu putanju
+                        FileStorage -> DB: Sprema stored_files\n(owner_id, ARTWORK_IMAGE, metapodaci)
+                        DB --> FileStorage: Spremljena datoteka
+                        FileStorage --> ArtworkService: StoredFile
+                        ArtworkService -> ImageRepository: findMaxPositionByArtworkId()
+                        ImageRepository -> DB: SELECT MAX(position)
+                        DB --> ImageRepository: Najveći position ili null
+                        ImageRepository --> ArtworkService: Sljedeća pozicija (prva je 0)
+                        ArtworkService -> ArtworkService: Zadani altText = naslov djela
+                        ArtworkService -> ImageRepository: Sprema ArtworkImage
+                        ImageRepository -> DB: INSERT artwork_images;\nUPDATE artworks.updated_at
+                        DB --> ImageRepository: Potvrđuje transakciju
+                        ImageRepository --> ArtworkService: ArtworkImage
+                        ArtworkService --> Controller: ArtworkImageDto
+                        Controller --> API: 201 Created
+                        API --> FE: 201 + ArtworkImage\n(id, file, altText)
+                    end
+                end
+            end
+        end
+    end
+end
+
+note over ArtworkService,Volume
+Ako transakcija ne uspije nakon zapisa datoteke,
+FileStorageService uklanja datoteku pri rollbacku.
+Zaključavanje djela serijalizira konkurentne uploade
+i sprječava prelazak konfiguriranog limita.
+end note
+
+@enduml
