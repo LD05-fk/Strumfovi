@@ -282,6 +282,34 @@ E2E koristi dev seed: prije testa sprema izvorni sadržaj profila i priprema
 prazan obrazac, a nakon testa vraća sadržaj i odjavljuje sesiju, uključujući
 slučaj pada testa. Testovi istog dev umjetnika izvode se redom.
 
+### OPP-02 — Javna pretraga prilika
+
+Izvori su [OpportunitySearchIntegrationTest](../backend/src/test/java/hr/fer/artconnect/opportunity/OpportunitySearchIntegrationTest.java)
+(42 provjere nad `GET /api/v1/opportunities`, PostgreSQL iz Testcontainersa) i
+[OpportunityServiceTest](../backend/src/test/java/hr/fer/artconnect/opportunity/OpportunityServiceTest.java)
+(jedinične provjere pravila pretrage bez baze). Skup prilika postavlja se
+izravno u bazu jer se ispituju filtriranje i vidljivost, a ne stvaranje prilike.
+Pripremljene su četiri javno vidljive prilike (tri `OPEN`, jedna `CLOSED`) i
+četiri koje pretraga nikad ne smije vratiti: nacrt, arhivirana, skrivena od
+administratora i prilika blokiranog organizatora.
+
+| ID | Zadano (Given) | Kada (When) | Tada (Then) | Ishod |
+| --- | --- | --- | --- | --- |
+| OPP-02-IT-01 | Osam prilika u bazi, od kojih su tri `OPEN`. | Neprijavljeni posjetitelj pozove `GET /opportunities` bez parametara. | 200 s točno tri prilike poredane po roku uzlazno; `meta` je `page=1, pageSize=20, total=3`; sažetak sadrži vrstu, područja, lokaciju, koordinate i organizatora, a ne opis; online prilika nema grad ni koordinate. | Prošlo |
+| OPP-02-IT-02 | Nacrt, arhivirana i skrivena prilika vlasnika te prilika blokiranog organizatora. | Pretragu po svim javnim statusima izvede anonimni posjetitelj, pa vlasnik prilika, pa administrator. | Sva tri pozivatelja dobivaju iste četiri javno vidljive prilike; nejavne se ne pojavljuju ni vlasniku ni administratoru. | Prošlo (3 pozivatelja) |
+| OPP-02-IT-03 | Pripremljeni skup prilika. | 25 upita: svaki filtar zasebno (`q`, `artFieldIds`, `typeIds`, `city`, `locationType`, `statuses`, raspon roka) i u kombinaciji. | Svaki upit vraća točno očekivani podskup i `meta.total`; više vrijednosti istog filtra djeluje kao „ili”, različiti filtri kao „i”; `city` je točno podudaranje bez obzira na velika i mala slova i isključuje online prilike; `q` ne korjenuje (`slikar` ne nalazi „slikare”); nepostojeći UUID šifrarnika daje praznu stranicu, a ne grešku. | Prošlo (25 ulaza) |
+| OPP-02-IT-04 | Tri otvorene prilike s različitim rokovima i datumima objave. | `sort=-deadline`, `sort=-publishedAt` te straničenje `pageSize=2` za stranice 1 i 2. | Poredak odgovara traženom polju i smjeru; `meta.total` ostaje 3 na svakoj stranici; druga stranica vraća preostalu prilika bez ponavljanja. | Prošlo |
+| OPP-02-IT-05 | Javna ruta pretrage. | Devet neispravnih upita: `statuses=PREPARATION`, nepoznata enumeracija, obrnut raspon roka, neispravan datum, neispravan UUID, nepoznata vrsta lokacije, `pageSize=101`, `page=0`, nepodržano sortiranje; dodatno `q` od 101 znaka. | Svi vraćaju 400 `VALIDATION_ERROR`, a `error.details[].field` navodi upravo pogrešni parametar. | Prošlo (10 ulaza) |
+| OPP-02-IT-06 | Stranica s tri prilike, od kojih jedna ima dva područja umjetnosti. | Pretraga uz nadziran `JdbcClient`. | Izvedena su točno tri SQL upita (`COUNT(*)`, stranica prilika i jedan upit za sva područja stranice), pa nema N+1 upita za područja. | Prošlo |
+| OPP-02-IT-07 | Prazna testna baza s indeksima iz `008-opportunities.yaml`. | `EXPLAIN` punotekstnog upita i upita po statusu s uvjetima vidljivosti, uz isključen sekvencijalni prolaz. | Planovi koriste `ix_opp_fts` odnosno `ix_opp_public`. | Prošlo |
+| OPP-02-UT-01 | Servis pretrage s nadomjesnim repozitorijem. | Pretraga bez statusa, sa statusom `PREPARATION`, s obrnutim rasponom roka, s istim datumom od i do te s praznim `q` i `city`. | Zadani status je `OPEN`; nejavni status i obrnut raspon vraćaju `VALIDATION_ERROR` s poljem `statuses` odnosno `deadlineFrom`; granice raspona postaju cijeli dan u zoni `Europe/Zagreb` (gornja granica je početak sljedećeg dana); prazni `q` i `city` ne ulaze u filtar. | Prošlo (5 provjera) |
+
+**Ograničenje OPP-02-IT-07:** plan se traži uz `enable_seqscan = off` jer je
+ispitni skup premali da bi ga planer sam odbacio. Test zato dokazuje da je
+indeks *upotrebljiv* za dani oblik upita — što je i svrha, jer bi promjena
+izraza (druga konfiguracija punotekstne pretrage ili uvjet vidljivosti predan
+kao parametar) indeks učinila neupotrebljivim. Ne dokazuje da ga planer odabire
+na produkcijskoj količini podataka; mjerenje odziva pod opterećenjem je DOC-41.
 ### PORT-02 — Prethodne izložbe
 
 Zahtjevi su u [issueu #94](https://github.com/LD05-fk/Strumfovi/issues/94).

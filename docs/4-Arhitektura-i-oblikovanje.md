@@ -164,6 +164,30 @@ Changeset `021-artworks-and-files.yaml` stvara:
 
 Indeksi: `ix_stored_files_owner (owner_id)`, `ix_artworks_artist_visibility (artist_id, visibility) WHERE hidden_by_admin = false`, `ix_artworks_artist_created (artist_id, created_at DESC)` za Moj portfolio i `ix_artwork_images_artwork (artwork_id, position)`. Dev kontekst dodaje testnom umjetniku jedno javno i jedno privatno djelo bez slika. Enum vrijednosti pohranjuju se kao varchar i provjeravaju CHECK ograničenjima.
 
+**Indeksi javne pretrage prilika (`008-opportunities.yaml`).** Javna pretraga
+(`GET /opportunities`) jedini je upit u sustavu pisan kao nativni SQL
+([OpportunitySearchRepository](../backend/src/main/java/hr/fer/artconnect/opportunity/domain/OpportunitySearchRepository.java)),
+jer djelomični i izrazni indeksi traže točan oblik izraza: planer ih koristi samo
+ako se izraz upita slovo po slovo poklapa s izrazom indeksa. Zato uvjeti
+`archived = false AND hidden_by_admin = false` stoje doslovno u upitu, a ne kao
+parametri, i zato punotekstni izraz nije skriven u JPA kriterij.
+
+| Filtar ili poredak | Indeks | Oblik koji indeks traži |
+| --- | --- | --- |
+| `statuses` + poredak po roku | `ix_opp_public (status, deadline) WHERE archived = false AND hidden_by_admin = false` | oba uvjeta vidljivosti doslovno u `WHERE` |
+| zadana pretraga (`statuses=[OPEN]`) | `ix_opp_open_deadline (deadline) WHERE status = 'OPEN'` | uži djelomični indeks koji planer bira umjesto `ix_opp_public` kad je status samo `OPEN` |
+| `q` | `ix_opp_fts` GIN nad `to_tsvector('simple', title \|\| ' ' \|\| description)` | identičan izraz, uključujući konfiguraciju `simple` i spajanje razmakom |
+| `city` | `ix_opp_city_lower (lower(city))` | `lower(city) = lower(:city)`, ne `ILIKE` |
+| `artFieldIds` | `ix_oaf_art_field (art_field_id)` | `EXISTS` nad `opportunity_art_fields` |
+| `sort=-publishedAt` | `ix_opp_published_at (published_at)` | poredak po `published_at` |
+
+Područja umjetnosti cijele stranice dohvaćaju se jednim dodatnim upitom
+(`WHERE opportunity_id IN (:ids)`), pa je po zahtjevu točno troje upita —
+`COUNT(*)`, stranica prilika i područja — neovisno o broju prilika na stranici.
+To čuva test `podrucjaUmjetnostiStraniceDohvacaJedanUpit`, a korištenje indeksa
+`upitiPretrageMoguKoristitiPredvideneIndekse` (oba u
+[OpportunitySearchIntegrationTest](../backend/src/test/java/hr/fer/artconnect/opportunity/OpportunitySearchIntegrationTest.java)).
+
 <details>
 <summary><strong>Jedna prijava poplave i povezani podaci</strong></summary>
 

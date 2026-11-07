@@ -8,22 +8,11 @@ import hr.fer.artconnect.auth.domain.UserStatus;
 import hr.fer.artconnect.catalog.domain.ArtField;
 import hr.fer.artconnect.catalog.domain.ArtFieldRepository;
 import hr.fer.artconnect.catalog.domain.OpportunityTypeRepository;
-import hr.fer.artconnect.common.ApiException;
-import hr.fer.artconnect.common.ErrorCode;
-import hr.fer.artconnect.common.FieldIssue;
-import hr.fer.artconnect.common.PageResponse;
-import hr.fer.artconnect.opportunity.domain.Location;
-import hr.fer.artconnect.opportunity.domain.LocationType;
-import hr.fer.artconnect.opportunity.domain.Opportunity;
-import hr.fer.artconnect.opportunity.domain.OpportunityRepository;
-import hr.fer.artconnect.opportunity.domain.OpportunityStatus;
-import hr.fer.artconnect.opportunity.domain.OpportunityStatusMachine;
-import hr.fer.artconnect.opportunity.web.LocationInput;
-import hr.fer.artconnect.opportunity.web.OpportunityDto;
-import hr.fer.artconnect.opportunity.web.OpportunityInput;
-import hr.fer.artconnect.opportunity.web.OpportunityStatusChange;
-import hr.fer.artconnect.opportunity.web.OrganizerOpportunity;
-import hr.fer.artconnect.opportunity.web.OrganizerOpportunityQueryParams;
+import hr.fer.artconnect.common.*;
+import hr.fer.artconnect.opportunity.domain.*;
+import hr.fer.artconnect.opportunity.web.*;
+import hr.fer.artconnect.opportunity.domain.OpportunitySearchRepository.OpportunitySearchFilter;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Clock;
@@ -35,6 +24,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,13 +41,14 @@ public class OpportunityService {
     private final OpportunityVisibilityPolicy visibilityPolicy;
     private final OpportunityDeletionGuard deletionGuard;
     private final ApplicationCountsProvider applicationCounts;
+    private final OpportunitySearchRepository searchRepository;
     private final Clock clock;
 
     public OpportunityService(OpportunityRepository opportunities, OpportunityTypeRepository types,
             ArtFieldRepository artFields, OrganizerProfileRepository profiles, CurrentUserProvider currentUser,
             OpportunityMapper mapper, OpportunityVisibilityPolicy visibilityPolicy,
             OpportunityDeletionGuard deletionGuard, ApplicationCountsProvider applicationCounts,
-            @Qualifier("geocodingClock") Clock clock) {
+            OpportunitySearchRepository searchRepository, @Qualifier("geocodingClock") Clock clock) {
         this.opportunities = opportunities;
         this.types = types;
         this.artFields = artFields;
@@ -66,6 +58,7 @@ public class OpportunityService {
         this.visibilityPolicy = visibilityPolicy;
         this.deletionGuard = deletionGuard;
         this.applicationCounts = applicationCounts;
+        this.searchRepository = searchRepository;
         // Postojeći UTC Clock dijelimo s geokodiranjem umjesto dodavanja drugog UTC beana.
         this.clock = clock;
     }
@@ -91,6 +84,50 @@ public class OpportunityService {
         }
         var profile = profiles.findById(opportunity.getOrganizer().getId()).orElse(null);
         return mapper.toDto(opportunity, profile);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<OpportunitySummary> search(OpportunitySearchParams params) {
+        Set<OpportunityStatus> statuses = params.getStatuses() == null || params.getStatuses().isEmpty()
+                ? Set.of(OpportunityStatus.OPEN)
+                : params.getStatuses();
+
+        if (!visibilityPolicy.publicStatuses().containsAll(statuses)) {
+            throw new ApiException(ErrorCode.VALIDATION_ERROR, "Parametri pretrage nisu ispravni.",
+                    List.of(new FieldIssue("statuses", "Status nije dopušten u javnoj pretrazi.")));
+        }
+
+        if (params.getDeadlineFrom() != null && params.getDeadlineTo() != null
+            && params.getDeadlineFrom().isAfter(params.getDeadlineTo())) {
+            throw new ApiException(ErrorCode.VALIDATION_ERROR, "Parametri pretrage nisu ispravni.", List.of(
+                    new FieldIssue("deadlineFrom", "Početak raspona roka ne smije biti nakon završetka.")));
+        }
+        OffsetDateTime deadlineFrom = params.getDeadlineFrom() == null ? null
+                : params.getDeadlineFrom().atStartOfDay(TimeConfiguration.APP_ZONE).toOffsetDateTime();
+        OffsetDateTime deadlineTo = params.getDeadlineTo() == null ? null
+                : params.getDeadlineTo().plusDays(1).atStartOfDay(TimeConfiguration.APP_ZONE).toOffsetDateTime();
+
+        if (params.getQ() != null) {
+            params.setQ(params.getQ().trim());
+            if (params.getQ().isEmpty()) params.setQ(null);
+        }
+        if (params.getCity() != null) {
+            params.setCity(params.getCity().trim());
+            if (params.getCity().isEmpty()) params.setCity(null);
+        }
+
+        Sort order = SortParser.parse(params.getSort(), Set.of("deadline", "publishedAt"));
+        Pageable pageable = params.toPageable(order);
+
+        OpportunitySearchFilter filter = new OpportunitySearchFilter(
+                params.getQ(), params.getArtFieldIds(), params.getTypeIds(), params.getCity(), params.getLocationType(),
+                statuses, deadlineFrom, deadlineTo
+        );
+        long total = searchRepository.countPublic(filter);
+        List<OpportunitySummary> data = searchRepository.findPublic(filter, pageable).stream()
+                .map(mapper::toSummary).toList();
+
+        return PageResponse.from(new PageImpl<>(data, pageable, total));
     }
 
     @Transactional
