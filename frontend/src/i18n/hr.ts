@@ -193,6 +193,8 @@ export const hr = {
     previousImage: 'Prethodna slika',
     nextImage: 'Sljedeća slika',
     noArtworkImage: 'Djelo nema sliku.',
+  },
+  
   portfolio: {
     pageTitle: 'Moj portfolio',
     viewPublic: 'Pogledaj javni portfolio',
