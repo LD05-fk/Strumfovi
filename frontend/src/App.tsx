@@ -21,6 +21,8 @@ import { HomePage } from './features/auth/pages/HomePage'
 import { hr } from './i18n/hr'
 import { OrganizerProfilePage } from './features/organizer-profile/OrganizerProfilePage'
 import { OpportunityEditorPage } from './features/opportunities/OpportunityEditorPage'
+import { MyPortfolioPage } from './features/portfolio/MyPortfolioPage'
+import { ArtworkFormPage } from './features/portfolio/ArtworkFormPage'
 
 type PageProps = {
     title: string
@@ -125,12 +127,28 @@ const router = createBrowserRouter(
                 }
             />
             <Route
-                path="portfolio/*"
-                element={
-                    <RequireRole roles={['ARTIST']}>
-                        <Page title="Portfolio" />
-                    </RequireRole>
-                }
+              path="portfolio"
+              element={
+                <RequireRole roles={['ARTIST']}>
+                  <MyPortfolioPage />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="portfolio/artworks/new"
+              element={
+                <RequireRole roles={['ARTIST']}>
+                  <ArtworkFormPage />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="portfolio/artworks/:artworkId"
+              element={
+                <RequireRole roles={['ARTIST']}>
+                  <ArtworkFormPage />
+                </RequireRole>
+              }
             />
             <Route
                 path="applications/*"
