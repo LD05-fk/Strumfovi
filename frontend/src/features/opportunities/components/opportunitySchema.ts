@@ -165,13 +165,13 @@ export function createOpportunitySchema(isCreating: boolean) {
             field: 'latitude',
             min: -90,
             max: 90,
-            message: hr.opportunities.validation.latitudeRange,
+            message: hr.opportunities.validation.locationMarkerRequired,
           },
           {
             field: 'longitude',
             min: -180,
             max: 180,
-            message: hr.opportunities.validation.longitudeRange,
+            message: hr.opportunities.validation.locationMarkerRequired,
           },
         ] as const
 
