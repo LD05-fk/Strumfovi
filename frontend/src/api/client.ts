@@ -88,7 +88,7 @@ export async function apiFetch<T>(
       ...init,
       method,
       headers,
-      credentials: 'include',
+      credentials: init.credentials ?? 'include',
     })
   } catch {
     // mreža ili backend nedostupni (fetch tada ne vraća odgovor)

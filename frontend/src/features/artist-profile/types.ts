@@ -26,8 +26,16 @@ export type PastExhibition = {
   place: string
 }
 
+export interface Participation {
+  id: string
+  title: string
+  organizerName: string
+  year: number
+}
+
 export type ArtistPublicProfile = ArtistProfile & {
   pastExhibitions: PastExhibition[]
+  participations?: Participation[]
 }
 
 export type PastExhibitionInput = {
