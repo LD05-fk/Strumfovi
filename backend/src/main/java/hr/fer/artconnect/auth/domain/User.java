@@ -140,6 +140,15 @@ public class User {
         this.lastLoginAt = OffsetDateTime.now();
     }
 
+    public void resetForDevOnboarding() {
+        this.role = null;
+        this.status = UserStatus.ONBOARDING;
+        this.organizerApproval = null;
+        this.blockedAt = null;
+        this.deletedAt = null;
+        this.lastLoginAt = null;
+    }
+
     public void activateInvitedGoogleAccount(String googleSub, String email, String displayName, String avatarUrl){
         this.googleSub = googleSub;
         this.email = email;
