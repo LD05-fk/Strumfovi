@@ -119,6 +119,9 @@ describe('LocationPicker', () => {
 
     expect(screen.getByTestId('latitude')).toHaveTextContent('45.82')
     expect(screen.getByTestId('longitude')).toHaveTextContent('15.99')
+    expect(
+      screen.queryByText(hr.opportunities.locationPicker.addressChanged),
+    ).not.toBeInTheDocument()
   })
 
   it('prikazuje poruku kad geokodiranje ne pronađe adresu', async () => {

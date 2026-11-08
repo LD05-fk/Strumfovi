@@ -101,6 +101,12 @@ export function LocationPicker({
       latitude: candidate.latitude,
       longitude: candidate.longitude,
     }
+    const city = location.city.trim() || candidate.city?.trim() || ''
+    const postalCode =
+      location.postalCode.trim() || candidate.postalCode?.trim() || ''
+    setSearchedAddress(
+      [location.streetAddress.trim(), city, postalCode].join('\u0000'),
+    )
     setSelectedCandidate(String(index))
     setCoordinates(coordinates)
     setMapCenter(coordinates)
@@ -133,7 +139,6 @@ export function LocationPicker({
       })
 
       setCandidates(result.data)
-      setSearchedAddress(addressKey)
 
       if (result.data.length === 0) {
         setSearchMessage(hr.opportunities.locationPicker.noResults)
