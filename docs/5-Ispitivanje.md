@@ -331,11 +331,73 @@ nakon testa briše korisnike i pripadajuće izložbe, profile i sesije. E2E fixt
 postojećih izložbi. Testovi ne ovise o redoslijedu; zbog zajedničkog dev korisnika
 E2E se izvodi redom. [Upute za pokretanje](../tests/Readme.md) navode ciljane naredbe.
 
+### PORT-03 — Djela u portfoliju
+
+Zahtjevi su u [issueu #103](https://github.com/LD05-fk/Strumfovi/issues/103).
+API scenariji su u [ArtworkLifecycleIT](../backend/src/test/java/hr/fer/artconnect/portfolio/it/ArtworkLifecycleIT.java),
+a E2E scenariji u [test_portfolio.py](../tests/selenium/test_portfolio.py).
+Postojeći [test_auth.py](../tests/selenium/test_auth.py) pokriva organizatorov 403.
+
+| ID | Zadano (Given) | Kada (When) | Tada (Then) | Ishod |
+| --- | --- | --- | --- | --- |
+| PORT-03-IT-01 | Umjetnik sa stvarnom sesijom i CSRF tokenom. | Stvori javno djelo, promijeni ga u privatno i obriše ga. | POST daje 201 i djelo je javno; PUT daje 200 i posjetitelj ga ne vidi, a vlasnik ga vidi; DELETE daje 204 i vlasnikov popis je prazan. | Prošlo |
+| PORT-03-IT-02 | 25 javnih djela s različitim vremenima nastanka. | Posjetitelj dohvati drugu stranicu s `pageSize=10`. | Deset očekivanih djela u poretku od najnovijeg, `meta.page=2`, `meta.pageSize=10`, `meta.total=25`. | Prošlo |
+| PORT-03-IT-03 | Djelo jednog umjetnika i stvarna sesija drugog umjetnika. | Drugi umjetnik pošalje PUT i DELETE. | Oba daju 404 `NOT_FOUND`; djelo ostaje javno i nepromijenjeno. | Prošlo |
+| PORT-03-IT-04 | Stvarna sesija organizatora ili korisnika `ONBOARDING`. | Pošalje POST, PUT i DELETE uz ispravan CSRF token. | Sve radnje daju 403: organizatoru `FORBIDDEN`, korisniku `ONBOARDING` `ONBOARDING_REQUIRED`. | Prošlo |
+| PORT-03-E2E-01 | Umjetnik na `/portfolio/artworks/new`. | Spremi obrazac bez naslova, godine i tehnike. | Uz sva tri polja prikazuju se odgovarajuće poruke obaveznosti. | Prošlo |
+| PORT-03-E2E-02 | Javno testno djelo vidljivo neprijavljenom posjetitelju. | Vlasnik u obrascu odabere „Privatno” i spremi. | Djelo ostaje na vlasnikovu popisu, a nakon novog otvaranja javnog portfolija bez prijave više nije prikazano. | Prošlo |
+| PORT-03-E2E-03 | Javno testno djelo vidljivo vlasniku i posjetitelju. | Vlasnik ga obriše s popisa uz potvrdu u dijalogu. | Djelo nestaje s vlastitog popisa i javnog portfolija. | Prošlo |
+| PORT-03-E2E-04 | Prijavljeni organizator. | Izravno otvori `/portfolio`. | Vidi stranicu 403; koristi se postojeći test `organizer-forbidden-from-portfolio`. | Prošlo |
+
+Integracija koristi `PortfolioFixtures`, PostgreSQL iz Testcontainersa i
+privremeni korijen pohrane `@TempDir`. Nakon svakog testa brišu se njegovi
+korisnici, djela i sesije. E2E fixture `public_artwork` kroz API priprema i
+briše samo svoje djelo, uključujući čišćenje nakon pada. Testovi se izvode
+redom zbog zajedničkog dev korisnika; svaki priprema vlastite podatke.
+[Upute za testove](../tests/Readme.md#djela-u-portfoliju-port-03-test) navode ciljane naredbe.
+
 ## 5.3 Provedena ispitivanja i rezultati
 
 AUTH-01-TEST - 3.11.2026. - revizija `7125d91` (grana `feature/AUTH-01-TEST`), lokalno docker-compose okruženje s profilom dev, Selenium (headless Chrome); svih 9 ispitnih slučajeva prošlo.
 
 **Cilj:** Navesti reviziju aplikacije, okruženje i dokaze potrebne za tumačenje stvarnih rezultata u tablici ispitnih slučajeva. Dodajte kratak zapis izvođenja kada te podatke nije moguće jasno prenijeti poveznicom na kod ispitivanja ili CI izvođenje.
+
+### PORT-03 — lokalno izvođenje 8. 11. 2026.
+
+Ispitana je promjena za [issue #103](https://github.com/LD05-fk/Strumfovi/issues/103)
+na grani `test/PORT-03-TEST`, temeljena na reviziji `510fe20`.
+Okruženje: Windows 11, Maven u Dockeru s Javom 25.0.4.1, Spring Boot 4.1.1,
+Python 3.12.6, pytest 9.2.0, Selenium 4.52.0 i Chrome 156.0.8078.79 headless.
+Integracija koristi PostgreSQL 16 iz Testcontainersa. E2E koristi zaseban
+privremeni PostgreSQL 17, backend s profilom `dev` na portu 18080 i Vite na
+portu 15173 (`BASE_URL=http://127.0.0.1:15173`).
+
+- Ciljani `mvn -B '-Dtest=ArtworkLifecycleIT,ArtistProfileFlowIT' test`:
+  **18 provjera prošlo**, bez grešaka i preskakanja; `BUILD SUCCESS`.
+  Nova klasa ima 5 provjera, a povezana klasa profila i izložbi 13.
+  Surefire XML/TXT izvještaji nastali su u `backend/target/surefire-reports/`.
+- Prvo E2E izvođenje nije uspjelo zbog nepotpunih lokalnih ovisnosti frontenda
+  (nedostajali su `dayjs` i `@mui/x-date-pickers`). Lokalni `node_modules`
+  osvježen je prema postojećem `package-lock.json`. Drugo izvođenje prekinulo je
+  gašenje privremenog Vite procesa; frontend je zatim pokrenut u trajnoj sesiji.
+  Ti problemi testnog okruženja nisu zahtijevali promjenu koda aplikacije.
+- Završni Selenium skup: **8 testova prošlo za 91,32 sekunde**, bez grešaka
+  i preskakanja. Pokrenut je cijeli `test_portfolio.py` (7 testova) i postojeći
+  `organizer-forbidden-from-portfolio` iz `test_auth.py`. Nastali su samostalni
+  HTML i JUnit XML izvještaj. Time su pokrivena sva četiri E2E scenarija PORT-03
+  te povezani testovi profila i izložbi.
+- Privremeni test namjerno je pao nakon pripreme i prikaza javnog djela.
+  Potvrđeni su jedan očekivani pad, nula grešaka čišćenja, PNG/HTML dokazi
+  i snimka zaslona ugrađena u HTML izvještaj. Test je zatim uklonjen; to je
+  provjera čišćenja i izvještavanja, a ne pad funkcionalnosti aplikacije.
+- Završni SQL upiti nakon uspješnog skupa i namjernog pada potvrdili su
+  **nula testnih djela, testnih poveznica i prijavljenih sesija** u E2E bazi.
+
+[Backend CI](../.github/workflows/ci.yml) izvodi novu `ArtworkLifecycleIT` preko
+Failsafea i sprema `backend-test-reports`, a [E2E workflow](../.github/workflows/e2e.yml)
+izvodi cijelu Selenium mapu i sprema `e2e-report`, uključujući PNG/HTML dokaze pada.
+[Upute za testove](../tests/Readme.md#djela-u-portfoliju-port-03-test) navode naredbe
+za ponavljanje provjere.
 
 ### PORT-02 — lokalno izvođenje 4. 11. 2026.
 

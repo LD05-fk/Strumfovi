@@ -128,6 +128,34 @@ def past_exhibition_artist(login_as, base_url):
 
 
 @pytest.fixture
+def public_artwork(login_as, base_url):
+    """Priprema jedno javno djelo; postojeća djela dev umjetnika ne mijenja."""
+    session = login_as("umjetnik@artconnect.test")
+    path = f"{base_url}/api/v1/artworks"
+    artwork = None
+    try:
+        # Priprema ide kroz API, a radnju koju ispitujemo test obavlja kroz sučelje.
+        response = session.post(path, json={
+            "title": f"E2E djelo {uuid4()}",
+            "year": 2024,
+            "technique": "Akril",
+            "dimensions": None,
+            "description": None,
+            "visibility": "PUBLIC",
+        }, timeout=10)
+        response.raise_for_status()
+        artwork = response.json()
+        yield artwork
+    finally:
+        # API sesija ostaje dostupna i kad preglednik prijeđe u neprijavljeni prikaz.
+        # Ako je sam test već obrisao djelo, očekivani 404 nije greška čišćenja.
+        if artwork is not None:
+            response = session.delete(f"{path}/{artwork['id']}", timeout=10)
+            if response.status_code != 404:
+                response.raise_for_status()
+
+
+@pytest.fixture
 def cleanup():
     undo_actions = []
     yield undo_actions.append

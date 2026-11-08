@@ -45,7 +45,7 @@ Korisnici: organizator@artconnect.test, umjetnik@artconnect.test, admin@artconne
 Tri E2E scenarija profila (bez testa izložbi):
 
 ```bash
-pytest tests/selenium/test_portfolio.py -k 'not past_exhibition' --html=report.html --self-contained-html
+pytest tests/selenium/test_portfolio.py -k 'not past_exhibition and not artwork' --html=report.html --self-contained-html
 ```
 
 `ProfilePage` sadrži unos biografije, odabir područja i dodavanje poveznice.
@@ -89,7 +89,38 @@ pytest tests/selenium/test_portfolio.py -k past_exhibition --html=report.html --
 `past_exhibition_artist` prijavljuje dev umjetnika i priprema jedinstven naslov.
 Ako test padne prije brisanja, preko API-ja briše samo tu testnu izložbu.
 Postojeće izložbe ostaju netaknute. Prijava i odjava koriste postojeći `login_as`.
-Za sva četiri E2E testa portfolija pokrenite gornju naredbu bez `-k` filtra.
+Za svih sedam E2E testova profila, izložbi i djela pokrenite gornju naredbu bez `-k` filtra.
 
 Postojeći backend i E2E workflowi automatski uključuju ove scenarije i spremaju
 izvještaje te PNG/HTML dokaze pada opisane iznad.
+
+## Djela u portfoliju (PORT-03-TEST)
+
+`ArtworkLifecycleIT` koristi stvarnu sesiju i CSRF token. Provjerava stvaranje
+djela, promjenu u privatno i brisanje, drugu stranicu od 25 javnih djela
+te zabrane uređivanja i brisanja tuđeg djela. Organizator i korisnik
+`ONBOARDING` odbijaju se za dodavanje, uređivanje i brisanje uz pripadne kodove.
+`PortfolioFixtures` priprema djela s različitim datumima i nakon testa briše
+njegove podatke i sesije. Korijen pohrane je `@TempDir` za ovu testnu klasu.
+
+Ciljano pokretanje iz `backend/`:
+
+```bash
+./mvnw '-Dtest=ArtworkLifecycleIT' test
+```
+
+Tri nova E2E testa provjeravaju obavezna polja, promjenu javnog djela u privatno
+i brisanje uz potvrdu. Koriste `ArtworkFormPage`, `MyPortfolioPage` i
+`PublicPortfolioPage`. Fixture `public_artwork` stvara jedno javno djelo kroz
+API te ga nakon testa briše, čak i kod pada. Postojeća djela ostaju netaknuta.
+Prije promjene potvrđuje se da posjetitelj vidi djelo; nakon promjene ponovno
+se otvara javna stranica bez prijave i čeka učitavanje galerije.
+Organizatorov 403 već pokriva `test_auth_01_wrong_role_sees_403` u `test_auth.py`.
+Sva četiri scenarija iz issuea pokrenite iz korijena repozitorija:
+
+```bash
+pytest tests/selenium/test_portfolio.py tests/selenium/test_auth.py -k 'test_artwork or organizer-forbidden-from-portfolio' --html=report.html --self-contained-html --junitxml=test-results/pytest.xml
+```
+
+Postojeći CI izvodi novu `IT` klasu preko Failsafea i Selenium testove kroz
+E2E posao. Izvještaji i dokazi pada spremaju se kao artefakti opisani iznad.
