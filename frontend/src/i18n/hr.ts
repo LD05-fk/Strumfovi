@@ -277,6 +277,7 @@ export const hr = {
   },
 
   opportunities: {
+    pageTitle: 'Prilike',
     form: {
       title: 'Naslov',
       description: 'Opis',
@@ -330,6 +331,12 @@ export const hr = {
       onlineUrlMax: 'Poveznica smije imati najviše 1024 znaka.',
       onlineUrlFormat:
         'Unesite valjanu HTTP ili HTTPS poveznicu za online lokaciju.',
+    },
+    search: {
+      emptyTitle: 'Nema prilika za odabrane filtre',
+      emptyDescription: 'Pokušajte s drugim filtrima.',
+      clearFilters: 'Očisti filtre',
+      resultsCount: (count: number) => `Pronađenih prilika: ${count}`,
     },
   },
 

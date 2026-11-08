@@ -2,6 +2,9 @@ import { dayjs, OPPORTUNITY_TIME_ZONE } from '../../app/dayjs'
 
 export type OpportunityLocationType = 'PHYSICAL' | 'ONLINE'
 
+export const OPPORTUNITY_LOCATION_TYPES =
+  ['PHYSICAL', 'ONLINE'] as const satisfies readonly OpportunityLocationType[]
+
 export type OpportunityStatus =
   | 'PREPARATION'
   | 'OPEN'
@@ -199,5 +202,83 @@ export function emptyOpportunityFormValues(): OpportunityFormValues {
       longitude: '',
       onlineUrl: '',
     },
+  }
+}
+
+export const SEARCHABLE_OPPORTUNITY_STATUSES = [
+  'OPEN',
+  'CLOSED',
+  'SELECTION',
+  'FINISHED',
+] as const satisfies readonly OpportunityStatus[]
+
+export type SearchableOpportunityStatus = (typeof SEARCHABLE_OPPORTUNITY_STATUSES)[number]
+
+export const OPPORTUNITY_SORT_VALUES = [
+  'deadline',
+  '-deadline',
+  'publishedAt',
+  '-publishedAt',
+] as const
+
+export type OpportunitySort = (typeof OPPORTUNITY_SORT_VALUES)[number]
+
+export const OPPORTUNITY_VIEWS = ['list', 'map'] as const
+
+export type OpportunityView = (typeof OPPORTUNITY_VIEWS)[number]
+
+export type OpportunitySearchParams = {
+  q: string
+  artFieldIds: string[]
+  typeIds: string[]
+  city: string
+  locationType: OpportunityLocationType | null
+  statuses: SearchableOpportunityStatus[]
+  deadlineFrom: string | null
+  deadlineTo: string | null
+  sort: OpportunitySort
+  page: number
+  view: OpportunityView
+}
+
+export const DEFAULT_OPPORTUNITY_SEARCH_PARAMS: OpportunitySearchParams = {
+  q: '',
+  artFieldIds: [],
+  typeIds: [],
+  city: '',
+  locationType: null,
+  statuses: ['OPEN'],
+  deadlineFrom: null,
+  deadlineTo: null,
+  sort: 'deadline',
+  page: 1,
+  view: 'list',
+}
+
+export type OpportunitySummary = {
+  id: string
+  title: string
+  type: CatalogReference
+  artFields: CatalogReference[]
+  deadline: string
+  status: OpportunityStatus
+  locationType: OpportunityLocationType
+  city: string | null
+  latitude: number | null
+  longitude: number | null
+  eventStart: string | null
+  organizer: {
+    id: string
+    displayName: string
+    organizationName: string | null
+  }
+}
+
+export type OpportunitySummaryPage = {
+  data: OpportunitySummary[]
+  meta: {
+    page: number
+    pageSize: number
+    total: number
   }
 }

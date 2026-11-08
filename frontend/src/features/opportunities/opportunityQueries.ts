@@ -1,5 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../../api/client'
+import { toApiQuery } from './opportunitySearchParams'
+import type {
+  OpportunitySearchParams,
+  OpportunitySummaryPage,
+} from './types'
 
 import type {
   CatalogOption,
@@ -23,6 +28,11 @@ type SaveOpportunityVariables =
       opportunityId: string
       input: OpportunityInput
     }
+
+type UseOpportunitySearchOptions = {
+  /** `false` dok klijentska validacija filtara ne prođe - zahtjev se ne šalje. */
+  enabled?: boolean
+}
 
 export function useSaveOpportunity() {
   const queryClient = useQueryClient()
@@ -71,5 +81,19 @@ export function useOpportunityTypes() {
   return useQuery({
     queryKey: ['opportunity-types', { pageSize: 100 }],
     queryFn: () => apiFetch<CatalogPage>('/opportunity-types?pageSize=100'),
+  })
+}
+
+export function useOpportunitySearch(
+  params: OpportunitySearchParams,
+  { enabled = true }: UseOpportunitySearchOptions = {},
+) {
+  const query = toApiQuery(params).toString()
+
+  return useQuery({
+    queryKey: ['opportunities', 'search', query],
+    queryFn: () => apiFetch<OpportunitySummaryPage>(`/opportunities?${query}`),
+    placeholderData: keepPreviousData,
+    enabled: enabled,
   })
 }
