@@ -337,6 +337,15 @@ export const hr = {
       emptyDescription: 'Pokušajte s drugim filtrima.',
       clearFilters: 'Očisti filtre',
       resultsCount: (count: number) => `Pronađenih prilika: ${count}`,
+      emptyPageTitle: 'Na ovoj stranici nema prilika',
+      firstPage: 'Prva stranica',
+      pagination: 'Stranice rezultata',
+      card: {
+        details: 'Detalji',
+        detailsAriaLabel: (title: string) => `Detalji prilike ${title}`,
+        deadlineLabel: 'Rok prijave:',
+        online: 'Online',
+      },
     },
   },
 

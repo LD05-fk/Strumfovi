@@ -18,9 +18,11 @@ export function GoogleSignInButton() {
         color: 'text.primary',
         bgcolor: 'background.paper',
         borderColor: '#78716C',
+        borderWidth: 1,
         '&:hover': {
           borderColor: 'text.primary',
           bgcolor: 'background.paper',
+          borderWidth: 1,
         },
       }}
     >

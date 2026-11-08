@@ -59,7 +59,11 @@ export const theme = createTheme(
     components: {
       MuiButton: {
         defaultProps: { disableElevation: true },
-        styleOverrides: { root: { minHeight: 44, borderRadius: 8 } },
+        styleOverrides: {
+          root: { minHeight: 44, borderRadius: 8 },
+          sizeSmall: { minHeight: 36, paddingLeft: 12, paddingRight: 12 },
+          outlined: { borderWidth: 2, '&:hover': { borderWidth: 2 } },
+        },
       },
       MuiCard: {
         styleOverrides: {

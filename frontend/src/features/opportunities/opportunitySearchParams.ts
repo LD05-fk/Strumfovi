@@ -99,3 +99,13 @@ export function toApiQuery(params: OpportunitySearchParams): URLSearchParams {
 
   return query
 }
+
+export function hasActiveFilters(params: OpportunitySearchParams): boolean {
+  const query = toSearchQuery(params)
+
+  query.delete('sort')
+  query.delete('page')
+  query.delete('view')
+
+  return query.size > 0
+}
