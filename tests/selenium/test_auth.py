@@ -1,6 +1,5 @@
 import pytest
-from selenium.webdriver.support.ui import WebDriverWait
-from page_objects.base_page import DEFAULT_TIMEOUT
+from page_objects.choose_role_page import ChooseRolePage
 from page_objects.home_page import HomePage
 from page_objects.layout_page import LayoutPage
 from page_objects.user_menu import UserMenu
@@ -62,16 +61,12 @@ def test_auth_01_wrong_role_sees_403(driver, base_url, login_as, email, path):
 def test_auth_01_artist_can_logout(driver, base_url, login_as):
     """Zadano prijavljeni umjetnik, Kada odabere "Odjava", Tada dolazi na `/`, vidi gumb za prijavu, a `/api/v1/me` vraća 401."""
     login_as(ARTIST)
-    HomePage(driver, base_url).open_path("/opportunities")
+    page = HomePage(driver, base_url).open_path("/opportunities")
     menu = UserMenu(driver, base_url)
     menu.open_menu()
     menu.logout()
 
-    WebDriverWait(driver, DEFAULT_TIMEOUT).until(
-        lambda current_driver: current_driver.current_url.rstrip("/")
-        == base_url.rstrip("/")
-    )
-    page = HomePage(driver, base_url)
+    page.wait_for_path("/")
     assert page.wait_visible(page.LOGIN_BUTTON).is_displayed()
     assert page.me_status() == 401
 
@@ -110,3 +105,36 @@ def test_auth_01_html_language_is_croatian(driver, base_url):
     page = HomePage(driver, base_url).open()
 
     assert page.html_language() == "hr"
+
+
+def test_auth_02_onboarding_user_is_redirected_from_profile(
+    driver, base_url, onboarding_user
+):
+    """Zadano prijavljen novi korisnik, Kada otvori `/profile`, Tada je preusmjeren na `/onboarding`."""
+    page = ChooseRolePage(driver, base_url)
+    page.open_path("/profile")
+    page.wait_for_path("/onboarding")
+
+
+def test_auth_02_confirm_is_disabled_without_role(driver, base_url, onboarding_user):
+    """Zadano novi korisnik na `/onboarding`, Kada ne odabere ulogu, Tada je gumb "Potvrdi" onemogućen."""
+    page = ChooseRolePage(driver, base_url).open()
+
+    assert page.confirm_is_disabled()
+
+
+def test_auth_02_artist_role_redirects_and_is_visible_in_menu(
+    driver, base_url, onboarding_user
+):
+    """Zadano novi korisnik na `/onboarding`, Kada odabere "Umjetnik" i potvrdi, Tada dolazi na `/profile`, izbornik prikazuje "Umjetnik", a `/onboarding` preusmjerava na `/profile`."""
+    page = ChooseRolePage(driver, base_url).open()
+    page.select_role("Umjetnik")
+    page.confirm()
+    page.wait_for_path("/profile")
+
+    menu = UserMenu(driver, base_url)
+    menu.open_menu()
+    assert menu.role_is_displayed("Umjetnik")
+
+    page.open_path("/onboarding")
+    page.wait_for_path("/profile")
