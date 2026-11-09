@@ -52,6 +52,15 @@ async function mockApiFetch<T>(
   options: ApiFetchOptions = {},
 ): Promise<T> {
   if (path === '/me') return currentUser as T
+  if (path === '/settings/public') {
+    return {
+      artworkMaxImageBytes: 5 * 1024 * 1024,
+      artworkMaxImages: 3,
+      applicationMaxImageBytes: 5 * 1024 * 1024,
+      applicationMaxPdfBytes: 10 * 1024 * 1024,
+      applicationMaxFiles: 10,
+    } as T
+  }
   if (path === '/artworks' && options.method === 'POST') {
     savedInput = options.json as ArtworkInput
     if (saveError) throw saveError
@@ -133,7 +142,7 @@ describe('ArtworkFormPage', () => {
   })
 
   it(
-    'sends the selected visibility and redirects to the portfolio after creating an artwork',
+    'saves the selected visibility and opens the saved artwork for image uploads',
     { timeout: 15000 },
     async () => {
       vi.mocked(apiFetch).mockImplementation(mockApiFetch)
@@ -145,7 +154,9 @@ describe('ArtworkFormPage', () => {
       await user.click(screen.getByRole('button', { name: 'Spremi' }))
 
       await waitFor(() => {
-        expect(router.state.location.pathname).toBe('/portfolio')
+        expect(router.state.location.pathname).toBe(
+          `/portfolio/artworks/${artworkId}`,
+        )
       })
       expect(savedInput).toEqual({
         title: 'Plavi horizont',
@@ -199,6 +210,15 @@ describe('ArtworkFormPage', () => {
       vi.mocked(apiFetch).mockImplementation(
         async <T,>(path: string, options: ApiFetchOptions = {}): Promise<T> => {
           if (path === '/me') return currentUser as T
+          if (path === '/settings/public') {
+            return {
+              artworkMaxImageBytes: 5 * 1024 * 1024,
+              artworkMaxImages: 3,
+              applicationMaxImageBytes: 5 * 1024 * 1024,
+              applicationMaxPdfBytes: 10 * 1024 * 1024,
+              applicationMaxFiles: 10,
+            } as T
+          }
           if (path === `/artworks/${artworkId}` && !options.method) {
             return { ...savedArtwork, hiddenByAdmin: true } as T
           }
@@ -222,7 +242,9 @@ describe('ArtworkFormPage', () => {
 
       await waitFor(() => {
         expect(savedInput?.visibility).toBe('PUBLIC')
-        expect(router.state.location.pathname).toBe('/portfolio')
+        expect(router.state.location.pathname).toBe(
+          `/portfolio/artworks/${artworkId}`,
+        )
       })
       expect(apiFetch).toHaveBeenCalledWith(
         `/artworks/${artworkId}`,
