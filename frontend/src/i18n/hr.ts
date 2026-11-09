@@ -179,7 +179,8 @@ export const hr = {
     noPublicArtworks: 'Umjetnik još nema javnih djela',
     noArtworksOnPage: 'Nema djela na ovoj stranici.',
     firstPage: 'Prva stranica',
-    lastAvailablePage: (page: number) => `Posljednja dostupna stranica (${page})`,
+    lastAvailablePage: (page: number) =>
+      `Posljednja dostupna stranica (${page})`,
     notFound: 'Umjetnik nije pronađen',
     profileUnavailable: 'Profil ne postoji ili više nije dostupan.',
     browseOpportunities: 'Pregledaj prilike',
@@ -194,7 +195,7 @@ export const hr = {
     nextImage: 'Sljedeća slika',
     noArtworkImage: 'Djelo nema sliku.',
   },
-  
+
   portfolio: {
     pageTitle: 'Moj portfolio',
     viewPublic: 'Pogledaj javni portfolio',
@@ -254,6 +255,39 @@ export const hr = {
         dimensionsMaxLength: 'Dimenzije smiju imati najviše 100 znakova.',
         descriptionMaxLength: 'Opis smije imati najviše 5000 znakova.',
       },
+    },
+    images: {
+      title: 'Slike djela',
+      countLabel: (count: number) =>
+        count % 100 >= 11 && count % 100 <= 14
+          ? 'slika'
+          : count % 10 === 1
+            ? 'slika'
+            : count % 10 >= 2 && count % 10 <= 4
+              ? 'slike'
+              : 'slika',
+      saveFirst: 'Spremite djelo kako biste dodali slike.',
+      empty: 'Djelo još nema slika.',
+      altTextLabel: 'Opis slike (alternativni tekst)',
+      altTextPlaceholder: 'Npr. Plavi horizont, pogled s obale',
+      dropHint: 'Povucite sliku ovdje ili',
+      choose: 'Odaberi sliku',
+      remove: 'Ukloni',
+      uploading: 'Učitavanje slike',
+      uploadingFile: (name: string) => `Učitavanje: ${name}`,
+      unsupportedType: 'Dopuštene su samo JPG i PNG slike.',
+      fileTooLarge: (limit: string) => `Slika je veća od ${limit}.`,
+      limitReached: 'Djelo već ima najveći dopušteni broj slika.',
+      limitReachedHint:
+        'Dosegnut je najveći broj slika. Uklonite sliku da biste dodali novu.',
+      notFound: 'Djelo nije pronađeno ili više nije dostupno.',
+      settingsError: 'Ograničenja učitavanja nije moguće učitati.',
+      limits: (size: string, count: number) =>
+        `JPG ili PNG, do ${size} po slici, najviše ${count} ${
+          count === 1 ? 'sliku' : count >= 2 && count <= 4 ? 'slike' : 'slika'
+        }.`,
+      deleteTitle: 'Ukloniti sliku?',
+      deleteDescription: 'Slika će biti trajno uklonjena s djela.',
     },
   },
 

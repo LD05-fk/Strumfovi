@@ -45,6 +45,7 @@ import {
 } from './portfolioQueries'
 import type { Artwork } from './types'
 import { ConfirmDialog } from './ConfirmDialog'
+import { ArtworkImageUploader } from './components/ArtworkImageUploader'
 
 function formValuesFromArtwork(artwork: Artwork): ArtworkFormValues {
   return {
@@ -134,6 +135,7 @@ function ArtworkForm({ artwork, artistId }: ArtworkFormProps) {
         },
   })
   const description = useWatch({ control, name: 'description' }) ?? ''
+  const artworkTitle = useWatch({ control, name: 'title' }) ?? ''
   const visibility = useWatch({ control, name: 'visibility' }) ?? 'PRIVATE'
   const blocker = useBlocker(isDirty)
 
@@ -155,7 +157,9 @@ function ArtworkForm({ artwork, artistId }: ArtworkFormProps) {
 
   useEffect(() => {
     if (pendingNavigation && !isDirty) {
-      navigate(pendingNavigation.to, { replace: pendingNavigation.replace })
+      const { to, replace } = pendingNavigation
+      setPendingNavigation(null)
+      navigate(to, { replace })
     }
   }, [isDirty, navigate, pendingNavigation])
 
@@ -183,7 +187,12 @@ function ArtworkForm({ artwork, artistId }: ArtworkFormProps) {
     const onSuccess = (savedArtwork: Artwork) => {
       reset(formValuesFromArtwork(savedArtwork))
       notify(hr.portfolio.form.saved, 'success')
-      setPendingNavigation({ to: '/portfolio', replace: true })
+      if (isNew) {
+        setPendingNavigation({
+          to: `/portfolio/artworks/${encodeURIComponent(savedArtwork.id)}`,
+          replace: true,
+        })
+      }
     }
 
     if (isNew) {
@@ -203,7 +212,7 @@ function ArtworkForm({ artwork, artistId }: ArtworkFormProps) {
 
   return (
     <>
-      <Box sx={{ width: '100%', maxWidth: 720, mx: 'auto' }}>
+      <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto' }}>
         <Typography component="h1" variant="h2" sx={{ mb: 2 }}>
           {title}
         </Typography>
@@ -214,177 +223,190 @@ function ArtworkForm({ artwork, artistId }: ArtworkFormProps) {
           </Alert>
         )}
 
-        <Card
+        <Box
           component="form"
           noValidate
           onSubmit={onSubmit}
-          sx={{ p: { xs: 2, sm: 3 } }}
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: '3fr 2fr' },
+            alignItems: 'start',
+            gap: 2,
+          }}
         >
-          <Stack spacing={2}>
-            <TextField
-              id="artwork-title"
-              label={hr.portfolio.form.title}
-              required
-              fullWidth
-              error={Boolean(errors.title)}
-              helperText={errors.title?.message ?? ' '}
-              slotProps={{
-                htmlInput: {
-                  'aria-describedby': 'artwork-title-helper-text',
-                  'aria-invalid': Boolean(errors.title),
-                  maxLength: 200,
-                },
-              }}
-              {...register('title')}
-            />
-
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <Card sx={{ p: { xs: 2, sm: 3 } }}>
+            <Stack spacing={2}>
               <TextField
-                id="artwork-year"
-                label={hr.portfolio.form.year}
-                type="number"
+                id="artwork-title"
+                label={hr.portfolio.form.title}
                 required
                 fullWidth
-                error={Boolean(errors.year)}
-                helperText={errors.year?.message ?? ' '}
+                error={Boolean(errors.title)}
+                helperText={errors.title?.message ?? ' '}
                 slotProps={{
                   htmlInput: {
-                    'aria-describedby': 'artwork-year-helper-text',
-                    'aria-invalid': Boolean(errors.year),
-                    inputMode: 'numeric',
-                    step: 1,
-                  },
-                }}
-                {...register('year')}
-              />
-              <TextField
-                id="artwork-technique"
-                label={hr.portfolio.form.technique}
-                required
-                fullWidth
-                error={Boolean(errors.technique)}
-                helperText={errors.technique?.message ?? ' '}
-                slotProps={{
-                  htmlInput: {
-                    'aria-describedby': 'artwork-technique-helper-text',
-                    'aria-invalid': Boolean(errors.technique),
+                    'aria-describedby': 'artwork-title-helper-text',
+                    'aria-invalid': Boolean(errors.title),
                     maxLength: 200,
                   },
                 }}
-                {...register('technique')}
+                {...register('title')}
               />
-            </Stack>
 
-            <TextField
-              id="artwork-dimensions"
-              label={hr.portfolio.form.dimensions}
-              fullWidth
-              error={Boolean(errors.dimensions)}
-              helperText={errors.dimensions?.message ?? ' '}
-              slotProps={{
-                htmlInput: {
-                  'aria-describedby': 'artwork-dimensions-helper-text',
-                  'aria-invalid': Boolean(errors.dimensions),
-                  maxLength: 100,
-                },
-              }}
-              {...register('dimensions')}
-            />
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  id="artwork-year"
+                  label={hr.portfolio.form.year}
+                  type="number"
+                  required
+                  fullWidth
+                  error={Boolean(errors.year)}
+                  helperText={errors.year?.message ?? ' '}
+                  slotProps={{
+                    htmlInput: {
+                      'aria-describedby': 'artwork-year-helper-text',
+                      'aria-invalid': Boolean(errors.year),
+                      inputMode: 'numeric',
+                      step: 1,
+                    },
+                  }}
+                  {...register('year')}
+                />
+                <TextField
+                  id="artwork-technique"
+                  label={hr.portfolio.form.technique}
+                  required
+                  fullWidth
+                  error={Boolean(errors.technique)}
+                  helperText={errors.technique?.message ?? ' '}
+                  slotProps={{
+                    htmlInput: {
+                      'aria-describedby': 'artwork-technique-helper-text',
+                      'aria-invalid': Boolean(errors.technique),
+                      maxLength: 200,
+                    },
+                  }}
+                  {...register('technique')}
+                />
+              </Stack>
 
-            <TextField
-              id="artwork-description"
-              label={hr.portfolio.form.description}
-              fullWidth
-              multiline
-              minRows={4}
-              error={Boolean(errors.description)}
-              helperText={
-                errors.description?.message ??
-                hr.portfolio.form.descriptionCount(description.length)
-              }
-              slotProps={{
-                htmlInput: {
-                  'aria-describedby': 'artwork-description-helper-text',
-                  'aria-invalid': Boolean(errors.description),
-                  maxLength: 5000,
-                },
-              }}
-              {...register('description')}
-            />
-
-            <FormControl component="fieldset" required>
-              <FormLabel component="legend">
-                {hr.portfolio.form.visibility}
-              </FormLabel>
-              <ToggleButtonGroup
-                exclusive
-                size="small"
-                color="primary"
-                value={visibility}
-                aria-label={hr.portfolio.form.visibility}
-                aria-describedby="artwork-visibility-helper-text"
-                aria-invalid={Boolean(errors.visibility)}
-                onChange={(_, value: 'PUBLIC' | 'PRIVATE' | null) => {
-                  if (value) {
-                    setValue('visibility', value, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    })
-                  }
+              <TextField
+                id="artwork-dimensions"
+                label={hr.portfolio.form.dimensions}
+                fullWidth
+                error={Boolean(errors.dimensions)}
+                helperText={errors.dimensions?.message ?? ' '}
+                slotProps={{
+                  htmlInput: {
+                    'aria-describedby': 'artwork-dimensions-helper-text',
+                    'aria-invalid': Boolean(errors.dimensions),
+                    maxLength: 100,
+                  },
                 }}
-              >
-                <ToggleButton value="PUBLIC">
-                  {hr.portfolio.form.public}
-                </ToggleButton>
-                <ToggleButton value="PRIVATE">
-                  {hr.portfolio.form.private}
-                </ToggleButton>
-              </ToggleButtonGroup>
-              <FormHelperText
-                id="artwork-visibility-helper-text"
-                error={Boolean(errors.visibility)}
-              >
-                {errors.visibility?.message ?? hr.portfolio.form.visibilityHint}
-              </FormHelperText>
-            </FormControl>
+                {...register('dimensions')}
+              />
 
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={1}
-              sx={{ alignItems: { xs: 'stretch', sm: 'center' } }}
-            >
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={saving || deleteArtwork.isPending}
+              <TextField
+                id="artwork-description"
+                label={hr.portfolio.form.description}
+                fullWidth
+                multiline
+                minRows={4}
+                error={Boolean(errors.description)}
+                helperText={
+                  errors.description?.message ??
+                  hr.portfolio.form.descriptionCount(description.length)
+                }
+                slotProps={{
+                  htmlInput: {
+                    'aria-describedby': 'artwork-description-helper-text',
+                    'aria-invalid': Boolean(errors.description),
+                    maxLength: 5000,
+                  },
+                }}
+                {...register('description')}
+              />
+
+              <FormControl component="fieldset" required>
+                <FormLabel component="legend">
+                  {hr.portfolio.form.visibility}
+                </FormLabel>
+                <ToggleButtonGroup
+                  exclusive
+                  size="small"
+                  color="primary"
+                  value={visibility}
+                  aria-label={hr.portfolio.form.visibility}
+                  aria-describedby="artwork-visibility-helper-text"
+                  aria-invalid={Boolean(errors.visibility)}
+                  onChange={(_, value: 'PUBLIC' | 'PRIVATE' | null) => {
+                    if (value) {
+                      setValue('visibility', value, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  }}
+                >
+                  <ToggleButton value="PUBLIC">
+                    {hr.portfolio.form.public}
+                  </ToggleButton>
+                  <ToggleButton value="PRIVATE">
+                    {hr.portfolio.form.private}
+                  </ToggleButton>
+                </ToggleButtonGroup>
+                <FormHelperText
+                  id="artwork-visibility-helper-text"
+                  error={Boolean(errors.visibility)}
+                >
+                  {errors.visibility?.message ??
+                    hr.portfolio.form.visibilityHint}
+                </FormHelperText>
+              </FormControl>
+
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                sx={{ alignItems: { xs: 'stretch', sm: 'center' } }}
               >
-                {saving ? hr.portfolio.form.saving : hr.portfolio.form.save}
-              </Button>
-              <Button
-                component={RouterLink}
-                to="/portfolio"
-                color="inherit"
-                variant="outlined"
-                disabled={saving || deleteArtwork.isPending}
-              >
-                {hr.common.cancel}
-              </Button>
-              {!isNew && (
-                <>
-                  <Box sx={{ flexGrow: 1 }} />
-                  <Button
-                    color="error"
-                    variant="text"
-                    disabled={saving || deleteArtwork.isPending}
-                    onClick={() => setDeleteDialogOpen(true)}
-                  >
-                    {hr.common.delete}
-                  </Button>
-                </>
-              )}
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={saving || deleteArtwork.isPending}
+                >
+                  {saving ? hr.portfolio.form.saving : hr.portfolio.form.save}
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/portfolio"
+                  color="inherit"
+                  variant="outlined"
+                  disabled={saving || deleteArtwork.isPending}
+                >
+                  {hr.common.cancel}
+                </Button>
+                {!isNew && (
+                  <>
+                    <Box sx={{ flexGrow: 1 }} />
+                    <Button
+                      color="error"
+                      variant="text"
+                      disabled={saving || deleteArtwork.isPending}
+                      onClick={() => setDeleteDialogOpen(true)}
+                    >
+                      {hr.common.delete}
+                    </Button>
+                  </>
+                )}
+              </Stack>
             </Stack>
-          </Stack>
-        </Card>
+          </Card>
+          <ArtworkImageUploader
+            artwork={artwork}
+            artistId={artistId}
+            title={artworkTitle}
+          />
+        </Box>
       </Box>
 
       <ConfirmDialog
