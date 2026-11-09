@@ -347,9 +347,19 @@ export const hr = {
       emptyPageTitle: 'Na ovoj stranici nema prilika',
       firstPage: 'Prva stranica',
       pagination: 'Stranice rezultata',
+      sort: {
+        label: 'Sortiraj',
+        options: {
+          deadline: 'Najbliži rok',
+          '-deadline': 'Najdalji rok',
+          '-publishedAt': 'Najnovije objavljeno',
+          publishedAt: 'Najstarije objavljeno',
+        },
+      },
       filters: {
         title: 'Filtri',
         apply: (count: number) => `Prikaži rezultate (${count})`,
+        applyPending: 'Prikaži rezultate',
         q: 'Ključna riječ',
         qPlaceholder: 'Pretraži prilike',
         artFields: 'Područje',

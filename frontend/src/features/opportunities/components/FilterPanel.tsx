@@ -25,15 +25,26 @@ import {
 import { hr } from '../../../i18n/hr'
 import type {
   OpportunityLocationType,
+  OpportunitySort,
   SearchableOpportunityStatus,
   OpportunitySearchParams,
 } from '../types'
 import {
+  DEFAULT_OPPORTUNITY_SEARCH_PARAMS,
   OPPORTUNITY_LOCATION_TYPES,
+  OPPORTUNITY_SORT_VALUES,
   SEARCHABLE_OPPORTUNITY_STATUSES,
 } from '../types'
 
 const filters = hr.opportunities.search.filters
+const sorting = hr.opportunities.search.sort
+const FILTER_DRAWER_TITLE_ID = 'filter-drawer-title'
+
+const FIELD_SX = {
+  flexGrow: 1,
+  flexBasis: { xs: '100%', md: 0 },
+  minWidth: { xs: '100%', md: 150 },
+}
 
 // Tipkanje u `q` i `city` mijenja URL tek kad korisnik stane
 const TEXT_DEBOUNCE_MS = 400
@@ -48,6 +59,12 @@ function toIds(options: CatalogFilterOption[], values: string[]): string[] {
   return options
     .filter((option) => values.includes(option.id))
     .map((option) => option.id)
+}
+
+function toSort(value: string): OpportunitySort {
+  return OPPORTUNITY_SORT_VALUES.includes(value as OpportunitySort)
+    ? (value as OpportunitySort)
+    : DEFAULT_OPPORTUNITY_SEARCH_PARAMS.sort
 }
 
 function toLocationType(value: string): OpportunityLocationType | null {
@@ -178,7 +195,7 @@ export function FilterPanel({
         onChange={(event) =>
           onChange({ locationType: toLocationType(event.target.value) })
         }
-        sx={{ flexGrow: 1, flexBasis: { xs: '100%', md: 0 } }}
+        sx={FIELD_SX}
       >
         <MenuItem value="">{filters.anyLocationType}</MenuItem>
         {OPPORTUNITY_LOCATION_TYPES.map((type) => (
@@ -231,7 +248,7 @@ export function FilterPanel({
             },
           },
         }}
-        sx={{ flexGrow: 1, flexBasis: { xs: '100%', md: 0 } }}
+        sx={FIELD_SX}
       >
         {options.map((option) => (
           <MenuItem key={option.id} value={option.id} sx={{ py: 0 }}>
@@ -282,7 +299,11 @@ export function FilterPanel({
         onChange={(event) => handleTextChange(key, event.target.value)}
         error={textErrors[key] !== undefined}
         helperText={textErrors[key]}
-        sx={{ flexGrow: field.grow, flexBasis: { xs: '100%', md: 0 } }}
+        sx={{
+          ...FIELD_SX,
+          flexGrow: field.grow,
+          minWidth: { xs: '100%', md: 200 },
+        }}
       />
     )
   }
@@ -313,7 +334,7 @@ export function FilterPanel({
                 .join(', '),
           },
         }}
-        sx={{ flexGrow: 1, flexBasis: { xs: '100%', md: 0 } }}
+        sx={FIELD_SX}
       >
         {SEARCHABLE_OPPORTUNITY_STATUSES.map((status) => {
           const selected = params.statuses.includes(status)
@@ -359,11 +380,30 @@ export function FilterPanel({
         key="deadline"
         direction="row"
         spacing={1}
-        sx={{ flexGrow: 1, flexBasis: { xs: '100%', md: 0 }, minWidth: 0 }}
+        sx={{ ...FIELD_SX, flexGrow: 0, minWidth: { xs: '100%', md: 280 } }}
       >
         {renderDeadlineField('deadlineFrom', filters.deadlineFrom)}
         {renderDeadlineField('deadlineTo', filters.deadlineTo)}
       </Stack>
+    )
+  }
+
+  function renderSort() {
+    return (
+      <TextField
+        select
+        size="small"
+        label={sorting.label}
+        value={params.sort}
+        onChange={(event) => onChange({ sort: toSort(event.target.value) })}
+        sx={{ minWidth: 200 }}
+      >
+        {OPPORTUNITY_SORT_VALUES.map((value) => (
+          <MenuItem key={value} value={value}>
+            {sorting.options[value]}
+          </MenuItem>
+        ))}
+      </TextField>
     )
   }
 
@@ -416,15 +456,21 @@ export function FilterPanel({
         {renderClearButton()}
       </Box>
 
-      <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
         <Button
           variant="outlined"
           aria-haspopup="dialog"
+          aria-expanded={drawerOpen}
           onClick={() => setDrawerOpen(true)}
+          sx={{ display: { xs: 'inline-flex', md: 'none' } }}
         >
           {filters.title}
         </Button>
-      </Box>
+
+        <Box sx={{ flexGrow: 1 }} />
+
+        {renderSort()}
+      </Stack>
 
       <Drawer
         anchor="bottom"
@@ -434,13 +480,20 @@ export function FilterPanel({
         ModalProps={{ keepMounted: true }}
         slotProps={{
           paper: {
+            role: 'dialog',
+            'aria-labelledby': FILTER_DRAWER_TITLE_ID,
             sx: { borderRadius: '16px 16px 0 0', p: 2, maxHeight: '90vh' },
           },
         }}
       >
-        <Stack component="section" aria-label={filters.title} spacing={2}>
+        <Stack spacing={2}>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Typography component="h2" variant="h6" sx={{ flexGrow: 1 }}>
+            <Typography
+              id={FILTER_DRAWER_TITLE_ID}
+              component="h2"
+              variant="h6"
+              sx={{ flexGrow: 1 }}
+            >
               {filters.title}
             </Typography>
             {renderClearButton()}
@@ -448,9 +501,10 @@ export function FilterPanel({
 
           {renderFields()}
 
-          {/* TODO: dok se novi broj učitava, zadržati zadnji poznati (keepPreviousData). */}
           <Button variant="contained" fullWidth onClick={closeDrawer}>
-            {filters.apply(resultCount ?? 0)}
+            {resultCount === undefined
+              ? filters.applyPending
+              : filters.apply(resultCount)}
           </Button>
         </Stack>
       </Drawer>
