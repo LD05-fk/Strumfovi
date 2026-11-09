@@ -57,6 +57,11 @@ class ArtworkReadIntegrationTest extends IntegrationTestBase {
         mockMvc.perform(get(ARTISTS_PATH + artistId + "/artworks"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.meta.total").value(3));
+        mockMvc.perform(get(ARTWORKS_PATH + privateId))
+                .andExpect(status().isOk());
+        mockMvc.perform(get(ARTWORKS_PATH + hiddenId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hiddenByAdmin").value(true));
 
         loginAs("ARTIST");
         mockMvc.perform(get(ARTISTS_PATH + artistId + "/artworks"))

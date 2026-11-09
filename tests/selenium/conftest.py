@@ -128,6 +128,89 @@ def past_exhibition_artist(login_as, base_url):
 
 
 @pytest.fixture
+def public_portfolio_data(base_url):
+    """Stvara jedinstvene javne podatke, a nakon testa briše samo svoje zapise."""
+    session = requests.Session()
+    artwork_ids = []
+    exhibition_id = None
+    logged_in = False
+    try:
+        login = session.post(
+            f"{base_url}/api/v1/dev/login-as",
+            json={"email": "umjetnik@artconnect.test"},
+            timeout=10,
+        )
+        if login.status_code == 404:
+            raise RuntimeError("dev/login-as ne postoji.")
+        login.raise_for_status()
+        logged_in = True
+
+        csrf = session.get(f"{base_url}/api/v1/auth/csrf", timeout=10)
+        csrf.raise_for_status()
+        session.headers["X-XSRF-TOKEN"] = csrf.json()["token"]
+
+        profile = session.get(f"{base_url}/api/v1/me/artist-profile", timeout=10)
+        profile.raise_for_status()
+        artist_id = profile.json()["userId"]
+        exhibition = session.post(
+            f"{base_url}/api/v1/past-exhibitions",
+            json={
+                "title": f"E2E javna izložba {uuid4()}",
+                "year": 2024,
+                "place": "Galerija test",
+            },
+            timeout=10,
+        )
+        exhibition.raise_for_status()
+        exhibition_id = exhibition.json()["id"]
+
+        artworks = {}
+        for visibility in ("PUBLIC", "PRIVATE"):
+            title = f"E2E {visibility} djelo {uuid4()}"
+            response = session.post(
+                f"{base_url}/api/v1/artworks",
+                json={
+                    "title": title,
+                    "year": 2024,
+                    "technique": "Ulje",
+                    "dimensions": None,
+                    "description": None,
+                    "visibility": visibility,
+                },
+                timeout=10,
+            )
+            response.raise_for_status()
+            artwork_id = response.json()["id"]
+            artwork_ids.append(artwork_id)
+            artworks[visibility] = {"id": artwork_id, "title": title}
+
+        yield {
+            "artist_id": artist_id,
+            "exhibition_title": exhibition.json()["title"],
+            "artworks": artworks,
+        }
+    finally:
+        try:
+            for artwork_id in reversed(artwork_ids):
+                deleted = session.delete(
+                    f"{base_url}/api/v1/artworks/{artwork_id}", timeout=10
+                )
+                deleted.raise_for_status()
+            if exhibition_id:
+                deleted = session.delete(
+                    f"{base_url}/api/v1/past-exhibitions/{exhibition_id}", timeout=10
+                )
+                deleted.raise_for_status()
+        finally:
+            try:
+                if logged_in:
+                    logout = session.post(f"{base_url}/api/v1/auth/logout", timeout=10)
+                    logout.raise_for_status()
+            finally:
+                session.close()
+
+
+@pytest.fixture
 def cleanup():
     undo_actions = []
     yield undo_actions.append

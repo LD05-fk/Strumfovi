@@ -1,9 +1,11 @@
 import json
 from urllib.parse import urlparse
+from uuid import uuid4
 
 from selenium.webdriver.common.by import By
 
 from page_objects.profile_page import ProfilePage
+from page_objects.public_portfolio_page import PublicPortfolioPage
 
 
 def test_artist_adds_edits_and_deletes_past_exhibition(driver, base_url, past_exhibition_artist):
@@ -88,3 +90,32 @@ def test_organizer_sees_own_profile_without_artist_options(driver, base_url, log
     assert menu.find_element(By.CSS_SELECTOR, 'a[href="/profile"]').text == "Profil"
     assert menu.find_elements(By.CSS_SELECTOR, 'a[href="/portfolio"]') == []
     assert menu.find_elements(By.XPATH, ".//a[normalize-space()='Moj profil']") == []
+
+
+def test_visitor_sees_only_public_portfolio_and_can_open_lightbox(
+    driver, base_url, public_portfolio_data
+):
+    data = public_portfolio_data
+    public_artwork = data["artworks"]["PUBLIC"]
+    private_artwork = data["artworks"]["PRIVATE"]
+    page = PublicPortfolioPage(driver, base_url).open_artist(data["artist_id"])
+
+    assert page.wait_for_artist().text
+    assert data["exhibition_title"] in page.wait_visible(page.PAST_EXHIBITIONS).text
+    assert page.wait_for_artwork(public_artwork["title"], 2024)
+    assert driver.find_elements(
+        By.XPATH, f"//h3[normalize-space()='{private_artwork['title']}']"
+    ) == []
+    assert driver.find_elements(*page.PARTICIPATIONS) == []
+
+    lightbox = page.open_artwork(public_artwork["title"], 2024)
+    assert public_artwork["title"] in lightbox.text
+    page.close_lightbox_with_escape()
+
+
+def test_unknown_artist_shows_not_found_page(driver, base_url):
+    page = PublicPortfolioPage(driver, base_url).open_artist(uuid4())
+
+    assert page.wait_visible(
+        (By.XPATH, "//h1[normalize-space()='Umjetnik nije pronađen']")
+    ).is_displayed()

@@ -17,25 +17,34 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.TestSecurityContextHolder;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
-@SpringBootTest(properties = "artconnect.storage.root=target/test-uploads")
+@SpringBootTest
 class FileDownloadIntegrationTest extends IntegrationTestBase {
     private static final String FILES_PATH = "/api/v1/files/";
     private static final String PUBLIC_CACHE = "public, max-age=3600";
     private static final String PRIVATE_CACHE = "private, no-store";
     private static final byte[] PNG = {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x01};
-    private static final Path STORAGE_ROOT = Path.of("target/test-uploads").toAbsolutePath().normalize();
+    @TempDir
+    static Path storageRoot;
 
     @Autowired
     JdbcTemplate jdbc;
 
     @Autowired
     UserRepository users;
+
+    @DynamicPropertySource
+    static void storageProperties(DynamicPropertyRegistry registry) {
+        registry.add("artconnect.storage.root", () -> storageRoot.toString());
+    }
 
     @Test
     void javnaSlikaDostupnaJeBezPrijaveSIspravnimZaglavljimaIIzvornimSadrzajem() throws Exception {
@@ -193,7 +202,7 @@ class FileDownloadIntegrationTest extends IntegrationTestBase {
     }
 
     private void writeToStorage(String storageKey) throws IOException {
-        Path path = STORAGE_ROOT.resolve(storageKey);
+        Path path = storageRoot.resolve(storageKey);
         Files.createDirectories(path.getParent());
         Files.write(path, PNG);
     }
