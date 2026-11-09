@@ -89,6 +89,11 @@ export const hr = {
     FINISHED: 'Završena',
   },
 
+  opportunityLocationType: {
+    PHYSICAL: 'Fizička',
+    ONLINE: 'Online',
+  },
+
   applicationStatus: {
     SUBMITTED: 'Poslana',
     UNDER_REVIEW: 'U razmatranju',
@@ -325,6 +330,7 @@ export const hr = {
       addressMax: 'Adresa smije imati najviše 200 znakova.',
       cityRequired: 'Grad je obavezan za fizičku lokaciju.',
       cityMax: 'Grad smije imati najviše 100 znakova.',
+      queryMax: 'Ključna riječ smije imati najviše 100 znakova.',
       postalCodeMax: 'Poštanski broj smije imati najviše 10 znakova.',
       latitudeRange: 'Zemljopisna širina mora biti između -90 i 90.',
       longitudeRange: 'Zemljopisna dužina mora biti između -180 i 180.',
@@ -340,6 +346,23 @@ export const hr = {
       emptyPageTitle: 'Na ovoj stranici nema prilika',
       firstPage: 'Prva stranica',
       pagination: 'Stranice rezultata',
+      filters: {
+        title: 'Filtri',
+        apply: (count: number) => `Prikaži rezultate (${count})`,
+        q: 'Ključna riječ',
+        qPlaceholder: 'Pretraži prilike',
+        artFields: 'Područje',
+        anyArtField: 'Sva područja',
+        types: 'Vrsta',
+        anyType: 'Sve vrste',
+        city: 'Grad',
+        anyCity: 'Svi gradovi',
+        locationType: 'Lokacija',
+        anyLocationType: 'Sve',
+        statuses: 'Status',
+        deadline: 'Rok prijave',
+        anyDeadline: 'Bilo kada',
+      },
       card: {
         details: 'Detalji',
         detailsAriaLabel: (title: string) => `Detalji prilike ${title}`,

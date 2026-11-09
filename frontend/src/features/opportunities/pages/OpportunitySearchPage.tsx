@@ -15,6 +15,7 @@ import { ErrorState } from '../../../components/state/ErrorState'
 import { ApiError } from '../../../api/client'
 import { EmptyState } from '../../../components/state/EmptyState'
 import { OpportunityCard } from '../components/OpportunityCard'
+import { FilterPanel } from '../components/FilterPanel'
 import { DEFAULT_OPPORTUNITY_SEARCH_PARAMS } from '../types'
 
 export function OpportunitySearchPage() {
@@ -24,6 +25,9 @@ export function OpportunitySearchPage() {
   const params = parseSearchParams(searchParams)
   const activeFilters = hasActiveFilters(params)
   const search = useOpportunitySearch(params)
+  const apiError = search.error instanceof ApiError ? search.error : undefined
+  // status 400 znači neispravnu kombinaciju filtara, pa greška ide uz filtre
+  const filterError = apiError?.status === 400 ? apiError : undefined
 
   function setParams(change: Partial<OpportunitySearchParams>) {
     const keepsPage = 'page' in change
@@ -67,12 +71,10 @@ export function OpportunitySearchPage() {
     if (search.isPending) return <LoadingState />
 
     if (search.isError) {
-      // TODO: ApiError sa statusom 400 ide kao Alert uz filtre, ne ovdje.
+      if (filterError !== undefined) return null
+
       return (
-        <ErrorState
-          error={search.error instanceof ApiError ? search.error : undefined}
-          onRetry={() => void search.refetch()}
-        />
+        <ErrorState error={apiError} onRetry={() => void search.refetch()} />
       )
     }
 
@@ -141,43 +143,22 @@ export function OpportunitySearchPage() {
         {hr.opportunities.pageTitle}
       </Typography>
 
-      {/* TODO: ListMapToggle desno u zaglavlju, FilterPanel ispod (Drawer na xs),
-          Select za sortiranje, Pagination pod rezultatima (pageCount). */}
+      {/* TODO: ListMapToggle desno u zaglavlju i Select za sortiranje uz filtre. */}
 
-      {/* TODO: gumb „Očisti filtre” preseliti u FilterPanel kad ta komponenta nastane. */}
-      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-        <Typography color="text.secondary" sx={{ flexGrow: 1 }}>
-          {search.data === undefined
-            ? ''
-            : hr.opportunities.search.resultsCount(search.data.meta.total)}
-        </Typography>
+      <FilterPanel
+        params={params}
+        onChange={setParams}
+        onClear={clearFilters}
+        activeFilters={activeFilters}
+        resultCount={search.data?.meta.total}
+        error={filterError}
+      />
 
-        <Button
-          variant="text"
-          size="small"
-          onClick={clearFilters}
-          disabled={!activeFilters}
-          sx={{ minHeight: { xs: 44, sm: 36 } }}
-        >
-          {hr.opportunities.search.clearFilters}
-        </Button>
-      </Stack>
-
-      {/* Privremeno, za provjeru URL-a i povijesti */}
-      <Stack direction="row" spacing={1}>
-        <button
-          type="button"
-          onClick={() => setParams({ sort: '-publishedAt' })}
-        >
-          Sortiraj po objavi
-        </button>
-        <button
-          type="button"
-          onClick={() => setParams({ statuses: ['CLOSED'] })}
-        >
-          Samo zatvorene
-        </button>
-      </Stack>
+      <Typography color="text.secondary" sx={{ flexGrow: 1 }}>
+        {search.data === undefined
+          ? ''
+          : hr.opportunities.search.resultsCount(search.data.meta.total)}
+      </Typography>
 
       {renderBody()}
     </Stack>
