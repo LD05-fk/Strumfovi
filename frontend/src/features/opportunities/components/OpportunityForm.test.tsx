@@ -8,13 +8,18 @@ import type { Dayjs } from 'dayjs'
 import { toOpportunityFormValues, type OpportunityDetail } from '../types'
 import { createOpportunitySchema } from './opportunitySchema'
 
-const { mutateAsync, notify } = vi.hoisted(() => ({
+const { mutateAsync, searchMutateAsync, notify } = vi.hoisted(() => ({
   mutateAsync: vi.fn(),
+  searchMutateAsync: vi.fn(),
   notify: vi.fn(),
 }))
 
 vi.mock('../opportunityQueries', () => ({
   useSaveOpportunity: () => ({ mutateAsync }),
+  useSearchGeocoding: () => ({
+    mutateAsync: searchMutateAsync,
+    isPending: false,
+  }),
 }))
 
 vi.mock('../../../components/state/useNotify', () => ({
@@ -115,6 +120,7 @@ function renderForm() {
 describe('OpportunityForm', () => {
   beforeEach(() => {
     mutateAsync.mockReset()
+    searchMutateAsync.mockReset()
     notify.mockReset()
   })
 
