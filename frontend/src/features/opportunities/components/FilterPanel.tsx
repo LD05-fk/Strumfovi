@@ -18,6 +18,7 @@ import type { ApiError } from '../../../api/client'
 import { useArtFields } from '../../artist-profile/artistProfileQueries'
 import { useOpportunityTypes } from '../opportunityQueries'
 import {
+  validateDeadlineRange,
   validateTextFilter,
   type TextFilterKey,
 } from './opportunityFilterSchema'
@@ -61,17 +62,6 @@ function toStatuses(values: string[]): SearchableOpportunityStatus[] {
   )
 }
 
-/**
- * Što još treba dopuniti (OPP-02-FE1, 4. korak):
- *
- * - `deadlineFrom` / `deadlineTo`: dva polja datuma (`YYYY-MM-DD`).
- * - Zod validacija uz polja: duljina `q` i `city` najviše 100 znakova te obrnut raspon
- *   roka — poruka ide uz polje i zahtjev se ne šalje.
- *
- * Svaka promjena ide kroz `onChange`, koji u stranici resetira `page` na 1.
- * Do tada su polja samo za čitanje i prikazuju stanje iz URL-a.
- */
-
 type FilterPanelProps = {
   params: OpportunitySearchParams
   onChange: (change: Partial<OpportunitySearchParams>) => void
@@ -81,68 +71,41 @@ type FilterPanelProps = {
   error: ApiError | undefined
 }
 
-type FilterField = {
-  key: string
-  label: string
-  placeholder: string
-  value: string
-  grow?: number
+// Polja koja se drže u lokalnom stanju prije upisa u URL
+const DRAFT_KEYS = ['q', 'city', 'deadlineFrom', 'deadlineTo'] as const
+
+type DraftKey = (typeof DRAFT_KEYS)[number]
+type DraftValues = Record<DraftKey, string>
+type DeadlineKey = 'deadlineFrom' | 'deadlineTo'
+
+function toDate(value: string): string | null {
+  return value === '' ? null : value
+}
+
+function toDraftValues(params: OpportunitySearchParams): DraftValues {
+  return {
+    q: params.q,
+    city: params.city,
+    deadlineFrom: params.deadlineFrom ?? '',
+    deadlineTo: params.deadlineTo ?? '',
+  }
+}
+
+/**
+ * Polje preuzima vrijednost iz URL-a samo kad se stvarno razlikuje od upisane.
+ * Razlika u rubnim razmacima ne broji, pa se korisniku ne briše razmak u pisanju.
+ */
+function syncDraft(current: DraftValues, incoming: DraftValues): DraftValues {
+  const next = { ...current }
+
+  for (const key of DRAFT_KEYS) {
+    if (current[key].trim() !== incoming[key]) next[key] = incoming[key]
+  }
+
+  return next
 }
 
 type Timer = ReturnType<typeof setTimeout>
-
-/** Privremeni raspored polja; svako se zamjenjuje pravom kontrolom iz popisa gore. */
-function toFields(params: OpportunitySearchParams): FilterField[] {
-  const deadline = [params.deadlineFrom, params.deadlineTo]
-    .filter((date) => date !== null)
-    .join(' – ')
-
-  return [
-    {
-      key: 'q',
-      label: filters.q,
-      placeholder: filters.qPlaceholder,
-      value: '',
-      grow: 2,
-    },
-    {
-      key: 'artFieldIds',
-      label: filters.artFields,
-      placeholder: filters.anyArtField,
-      value: '',
-    },
-    {
-      key: 'typeIds',
-      label: filters.types,
-      placeholder: filters.anyType,
-      value: '',
-    },
-    {
-      key: 'city',
-      label: filters.city,
-      placeholder: filters.anyCity,
-      value: '',
-    },
-    {
-      key: 'locationType',
-      label: filters.locationType,
-      placeholder: filters.anyLocationType,
-      value: '',
-    },
-    {
-      key: 'statuses',
-      label: filters.statuses,
-      placeholder: hr.opportunityStatus.OPEN,
-      value: '',
-    },
-    {
-      key: 'deadline',
-      label: filters.deadline,
-      placeholder: filters.anyDeadline,
-      value: deadline,
-    },
-  ]
-}
 
 export function FilterPanel({
   params,
@@ -156,38 +119,39 @@ export function FilterPanel({
   const desktop = useMediaQuery(theme.breakpoints.up('md'))
   const [drawerOpen, setDrawerOpen] = useState(false)
   const closeDrawer = () => setDrawerOpen(false)
-  const fields = toFields(params)
   const artFields = useArtFields()
   const opportunityTypes = useOpportunityTypes()
-  const [draft, setDraft] = useState({ q: params.q, city: params.city })
-  const [urlText, setUrlText] = useState({ q: params.q, city: params.city })
+  const urlValues = toDraftValues(params)
+  const [draft, setDraft] = useState(urlValues)
+  const [urlSeen, setUrlSeen] = useState(urlValues)
   const latestChange = useRef(onChange)
-  const commitTimers = useRef<{ q?: Timer; city?: Timer}>({})
+  const commitTimers = useRef<{ q?: Timer; city?: Timer }>({})
 
   // Greške se izvode iz upisanog teksta, pa ne mogu ostati zalijepljene na staroj vrijednosti.
   const textErrors = {
     q: validateTextFilter('q', draft.q),
     city: validateTextFilter('city', draft.city),
   }
+  const deadlineError = validateDeadlineRange(
+    toDate(draft.deadlineFrom),
+    toDate(draft.deadlineTo),
+  )
 
   // Odgođeni upis uvijek koristi zadnji `onChange`
   useEffect(() => {
     latestChange.current = onChange
   })
 
-  if (urlText.q !== params.q || urlText.city !== params.city) {
-    setUrlText({ q: params.q, city: params.city })
-    setDraft((current) => ({
-      q: current.q.trim() === params.q ? current.q : params.q,
-      city: current.city.trim() === params.city ? current.city : params.city,
-    }))
+  if (DRAFT_KEYS.some((key) => urlSeen[key] !== urlValues[key])) {
+    setUrlSeen(urlValues)
+    setDraft((current) => syncDraft(current, urlValues))
   }
 
   useEffect(() => {
+    const timers = commitTimers.current
+
     return () => {
-      Object.values(commitTimers.current).forEach((timer) =>
-          clearTimeout(timer),
-      )
+      Object.values(timers).forEach((timer) => clearTimeout(timer))
     }
   }, [])
 
@@ -289,6 +253,19 @@ export function FilterPanel({
     )
   }
 
+  function handleDeadlineChange(key: DeadlineKey, value: string) {
+    const next = { ...draft, [key]: value }
+    setDraft(next)
+
+    // Neispravan raspon ostaje u poljima uz poruku, ali se ne šalje.
+    if (validateDeadlineRange(toDate(next.deadlineFrom), toDate(next.deadlineTo)) !== undefined) return
+
+    onChange({
+      deadlineFrom: toDate(next.deadlineFrom),
+      deadlineTo: toDate(next.deadlineTo),
+    })
+  }
+
   function renderText(key: TextFilterKey) {
     const field =
       key === 'q'
@@ -357,49 +334,55 @@ export function FilterPanel({
     )
   }
 
-  function renderPlaceholder(field: FilterField) {
+  function renderDeadlineField(key: DeadlineKey, label: string) {
+    const first = key === 'deadlineFrom'
+
     return (
       <TextField
-        key={field.key}
+        key={key}
+        type="date"
         size="small"
-        label={field.label}
-        placeholder={field.placeholder}
-        value={field.value}
-        slotProps={{ input: { readOnly: true } }}
-        sx={{ flexGrow: field.grow ?? 1, flexBasis: { xs: '100%', md: 0 } }}
+        label={label}
+        value={draft[key]}
+        onChange={(event) => handleDeadlineChange(key, event.target.value)}
+        error={first && deadlineError !== undefined}
+        helperText={first ? deadlineError : undefined}
+        slotProps={{ inputLabel: { shrink: true } }}
+        sx={{ flexGrow: 1, minWidth: 0 }}
       />
     )
   }
 
+  function renderDeadline() {
+    return (
+      <Stack
+        key="deadline"
+        direction="row"
+        spacing={1}
+        sx={{ flexGrow: 1, flexBasis: { xs: '100%', md: 0 }, minWidth: 0 }}
+      >
+        {renderDeadlineField('deadlineFrom', filters.deadlineFrom)}
+        {renderDeadlineField('deadlineTo', filters.deadlineTo)}
+      </Stack>
+    )
+  }
+
   function renderFields() {
-    return fields.map((field) => {
-      if (field.key === 'q') return renderText('q')
-      if (field.key === 'city') return renderText('city')
-
-      if (field.key === 'artFieldIds') {
-        return renderCatalogFilter(
-          'artFieldIds',
-          filters.artFields,
-          filters.anyArtField,
-          {
-            data: artFields.data?.data ?? [],
-            unavailable: artFields.isPending || artFields.isError,
-          },
-        )
-      }
-
-      if (field.key === 'typeIds') {
-        return renderCatalogFilter('typeIds', filters.types, filters.anyType, {
-          data: opportunityTypes.data?.data ?? [],
-          unavailable: opportunityTypes.isPending || opportunityTypes.isError,
-        })
-      }
-
-      if (field.key === 'locationType') return renderLocationType()
-      if (field.key === 'statuses') return renderStatuses()
-
-      return renderPlaceholder(field)
-    })
+    return [
+      renderText('q'),
+      renderCatalogFilter('artFieldIds', filters.artFields, filters.anyArtField, {
+          data: artFields.data?.data ?? [],
+          unavailable: artFields.isPending || artFields.isError,
+      }),
+      renderCatalogFilter('typeIds', filters.types, filters.anyType, {
+        data: opportunityTypes.data?.data ?? [],
+        unavailable: opportunityTypes.isPending || opportunityTypes.isError,
+      }),
+      renderText('city'),
+      renderLocationType(),
+      renderStatuses(),
+      renderDeadline(),
+    ]
   }
 
   function renderClearButton() {
