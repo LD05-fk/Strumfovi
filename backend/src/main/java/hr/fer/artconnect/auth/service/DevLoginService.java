@@ -31,4 +31,14 @@ public class DevLoginService {
         user.loginAsDev();
         return user;
     }
+
+    @Transactional
+    public User resetOnboardingUser() {
+        User user = userRepository.findByEmailIgnoreCase("novi@artconnect.test")
+                .filter(candidate -> candidate.getStatus() != UserStatus.DELETED)
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND,
+                        "Korisnik novi@artconnect.test nije pronađen."));
+        user.resetForDevOnboarding();
+        return user;
+    }
 }

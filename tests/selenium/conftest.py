@@ -72,6 +72,31 @@ def login_as(driver, base_url):
 
 
 @pytest.fixture
+def reset_dev_user(base_url):
+    def _reset_dev_user():
+        response = requests.post(
+            f"{base_url}/api/v1/dev/reset-user",
+            timeout=10,
+        )
+        if response.status_code == 404:
+            raise RuntimeError("dev/reset-user ne postoji.")
+        response.raise_for_status()
+        return response.json()
+
+    return _reset_dev_user
+
+
+@pytest.fixture
+def onboarding_user(reset_dev_user, login_as):
+    reset_dev_user()
+    session = login_as("novi@artconnect.test")
+    try:
+        yield session
+    finally:
+        reset_dev_user()
+
+
+@pytest.fixture
 def portfolio_artist(login_as, base_url):
     """Svaki test počinje praznim obrascem, a zatim vraća izvorni dev profil."""
     session = login_as("umjetnik@artconnect.test")
