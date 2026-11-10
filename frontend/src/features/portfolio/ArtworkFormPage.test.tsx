@@ -44,6 +44,18 @@ const savedArtwork: Artwork = {
   createdAt: '2026-01-01T10:00:00Z',
 }
 
+const uploadedImage: Artwork['images'][number] = {
+  id: '00000000-0000-4000-8000-000000000021',
+  file: {
+    id: '00000000-0000-4000-8000-000000000031',
+    originalName: 'artwork.jpg',
+    contentType: 'image/jpeg',
+    sizeBytes: 5,
+    url: '/api/v1/files/00000000-0000-4000-8000-000000000031',
+  },
+  altText: 'Plavi horizont',
+}
+
 let saveError: ApiError | undefined
 let savedInput: ArtworkInput | undefined
 
@@ -252,6 +264,61 @@ describe('ArtworkFormPage', () => {
       )
     },
   )
+
+  it('preserves unsaved form edits when artwork images are refreshed', async () => {
+    let images: Artwork['images'] = []
+    vi.mocked(apiFetch).mockImplementation(
+      async <T,>(path: string, options: ApiFetchOptions = {}): Promise<T> => {
+        if (path === '/me') return currentUser as T
+        if (path === '/settings/public') {
+          return {
+            artworkMaxImageBytes: 5 * 1024 * 1024,
+            artworkMaxImages: 3,
+            applicationMaxImageBytes: 5 * 1024 * 1024,
+            applicationMaxPdfBytes: 10 * 1024 * 1024,
+            applicationMaxFiles: 10,
+          } as T
+        }
+        if (
+          path === `/artworks/${artworkId}/images` &&
+          options.method === 'POST'
+        ) {
+          images = [uploadedImage]
+          return uploadedImage as T
+        }
+        if (path === `/artworks/${artworkId}` && !options.method) {
+          return { ...savedArtwork, images } as T
+        }
+        if (path === `/artworks/${artworkId}` && options.method === 'PUT') {
+          savedInput = options.json as ArtworkInput
+          return { ...savedArtwork, ...savedInput, images } as T
+        }
+        throw new Error(`Unexpected API request: ${path}`)
+      },
+    )
+    const user = userEvent.setup()
+    renderPage(`/portfolio/artworks/${artworkId}`)
+
+    const title = await screen.findByRole('textbox', { name: 'Naslov' })
+    await user.clear(title)
+    await user.type(title, 'Novi nespremljeni naslov')
+    await user.upload(
+      await screen.findByLabelText('Odaberi sliku'),
+      new File(['image'], 'artwork.jpg', { type: 'image/jpeg' }),
+    )
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('img', { name: 'Plavi horizont' }),
+      ).toBeInTheDocument()
+      expect(title).toHaveValue('Novi nespremljeni naslov')
+    })
+    await user.click(screen.getByRole('button', { name: 'Spremi' }))
+
+    await waitFor(() => {
+      expect(savedInput?.title).toBe('Novi nespremljeni naslov')
+    })
+  })
 
   it('shows not found when the artwork belongs to another artist', async () => {
     vi.mocked(apiFetch).mockImplementation(

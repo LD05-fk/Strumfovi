@@ -429,7 +429,10 @@ export function ArtworkImageUploader({
               setDeleteTarget(null)
               setErrorMessage('')
             },
-            onError: showError,
+            onError: (error) => {
+              setDeleteTarget(null)
+              showError(error)
+            },
           })
         }}
       />

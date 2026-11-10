@@ -120,7 +120,7 @@ function ArtworkForm({ artwork, artistId }: ArtworkFormProps) {
     reset,
     setError,
     setValue,
-    formState: { errors, isDirty },
+    formState: { errors, isDirty, dirtyFields },
   } = useForm<ArtworkFormValues, unknown, ArtworkFormSubmission>({
     resolver: zodResolver(artworkSchema),
     defaultValues: artwork
@@ -137,11 +137,16 @@ function ArtworkForm({ artwork, artistId }: ArtworkFormProps) {
   const description = useWatch({ control, name: 'description' }) ?? ''
   const artworkTitle = useWatch({ control, name: 'title' }) ?? ''
   const visibility = useWatch({ control, name: 'visibility' }) ?? 'PRIVATE'
+  const hasDirtyFields = Object.keys(dirtyFields).length > 0
   const blocker = useBlocker(isDirty)
 
   useEffect(() => {
-    if (artwork) reset(formValuesFromArtwork(artwork))
-  }, [artwork, reset])
+    if (artwork) {
+      reset(formValuesFromArtwork(artwork), {
+        keepDirtyValues: hasDirtyFields,
+      })
+    }
+  }, [artwork, hasDirtyFields, reset])
 
   useEffect(() => {
     if (!isDirty) return

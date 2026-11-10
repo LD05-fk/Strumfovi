@@ -49,6 +49,7 @@ const artwork: Artwork = {
 }
 
 let uploadError: ApiError | undefined
+let deleteError: ApiError | undefined
 let publicSettings = {
   artworkMaxImageBytes: 5 * 1024 * 1024,
   artworkMaxImages: 3,
@@ -67,6 +68,7 @@ async function mockApiFetch<T>(
     return uploadedImage as T
   }
   if (path.endsWith(`/${uploadedImage.id}`) && options.method === 'DELETE') {
+    if (deleteError) throw deleteError
     return undefined as T
   }
   throw new Error(`Unexpected API request: ${path}`)
@@ -101,6 +103,7 @@ function getFileInput() {
 afterEach(() => {
   vi.clearAllMocks()
   uploadError = undefined
+  deleteError = undefined
   publicSettings = {
     artworkMaxImageBytes: 5 * 1024 * 1024,
     artworkMaxImages: 3,
@@ -308,6 +311,29 @@ describe('ArtworkImageUploader', () => {
         expect.objectContaining({ method: 'DELETE' }),
       )
     })
+  })
+
+  it('closes the confirmation and shows an error when deleting fails', async () => {
+    vi.mocked(apiFetch).mockImplementation(mockApiFetch)
+    deleteError = new ApiError(404, {
+      code: 'NOT_FOUND',
+      message: 'Server error.',
+    })
+    const user = userEvent.setup()
+    renderUploader({ ...artwork, images: [uploadedImage] })
+
+    await user.click(await screen.findByRole('button', { name: 'Ukloni' }))
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Ukloniti sliku?',
+    })
+    await user.click(within(dialog).getByRole('button', { name: 'Ukloni' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Djelo nije pronađeno ili više nije dostupno.',
+    )
+    expect(
+      screen.queryByRole('dialog', { name: 'Ukloniti sliku?' }),
+    ).not.toBeInTheDocument()
   })
 
   it.each([
