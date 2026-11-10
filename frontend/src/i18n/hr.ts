@@ -392,7 +392,6 @@ export const hr = {
         details: 'Detalji',
         detailsAriaLabel: (title: string) => `Detalji prilike ${title}`,
         deadlineLabel: 'Rok prijave:',
-        online: 'Online',
       },
     },
   },

@@ -17,7 +17,7 @@ type OpportunityCardProps = {
 export function OpportunityCard({ opportunity }: OpportunityCardProps) {
   const organizer = opportunity.organizer.organizationName ?? opportunity.organizer.displayName
   const place = opportunity.locationType === 'ONLINE'
-      ? hr.opportunities.search.card.online
+      ? hr.opportunityLocationType.ONLINE
       : opportunity.city
 
   return (

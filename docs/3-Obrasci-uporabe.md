@@ -118,9 +118,9 @@ Detalji su u [API dokumentaciji prilika](api/opportunities.md), za [pregled](api
 | **Vanjski akter** | OpenStreetMap/Nominatim (karta i pretraga lokacija) |
 | **Povezani zahtjevi** | FR-04 |
 | **Preduvjeti** | Nema; pregled ne traži prijavu. |
-| **Glavni uspješni tok** | 1. Korisnik otvara popis prilika ili kartu.<br>2. Pretražuje i filtrira prilike (područje umjetnosti, vrsta prilike).<br>3. Otvara pojedinu priliku. |
-| **Alternativni tokovi** | **2a — Arhivirana ili neobjavljena prilika:** ne prikazuje se u javnoj pretrazi.<br>**2b — Kartografske pločice nisu dostupne:** sustav prikazuje upozorenje. |
-| **Rezultat** | Korisnik vidi javno objavljene prilike. |
+| **Glavni uspješni tok** | 1. Korisnik otvara `/opportunities`; prikazuju se otvorene prilike (zadani status `OPEN`), poredane po najbližem roku, 20 po stranici.<br>2. Sužava pretragu filtrima: ključna riječ, područja umjetnosti, vrste prilike, grad, vrsta lokacije, status i raspon roka prijave. Ključna riječ i grad šalju se tek kad korisnik prestane tipkati, a svaka promjena filtra vraća pretragu na prvu stranicu.<br>3. Mijenja redoslijed (rok prijave ili vrijeme objave) i prelazi među stranicama rezultata.<br>4. Po potrebi prebacuje prikaz s popisa na kartu, koja prikazuje do 100 rezultata s koordinatama.<br>5. Otvara pojedinu priliku s kartice ili iz skočnog opisa na karti.<br>6. Adresu pretrage može podijeliti ili spremiti: filtri, sortiranje, stranica i prikaz zapisani su u URL upitu, pa i gumbi natrag i naprijed vraćaju prethodne pretrage. |
+| **Alternativni tokovi** | **2a — Arhivirana ili neobjavljena prilika:** ne prikazuje se u javnoj pretrazi.<br>**2b — Nevaljan raspon roka:** poruka se prikazuje uz polje "Rok od" i zahtjev se ne šalje. Ako takav raspon stigne iz dijeljene adrese, API vraća `400 VALIDATION_ERROR`, a poruka se prikazuje uz filtre.<br>**2c — Nema rezultata:** prazno stanje. Uz postavljene filtre nudi se "Očisti filtre", a bez njih poruka da još nema objavljenih prilika.<br>**3a — Stranica izvan raspona:** prazno stanje s povratkom na prvu stranicu.<br>**4a — Prilika bez koordinata (online):** ne prikazuje se na karti. Obavijest javlja koliko je takvih prilika i je li prikazan samo dio rezultata.<br>**4b — Kartografske pločice nisu dostupne:** sustav prikazuje upozorenje.<br>**5a — Dohvaćanje nije uspjelo:** prikazuje se poruka API-ja i "Pokušaj ponovno". |
+| **Rezultat** | Korisnik vidi javno objavljene prilike. Rokovi i datumi prikazani su u zoni `Europe/Zagreb`. |
 
 ### UC-06 Postaviti uvjete i prijaviti se na priliku
 
