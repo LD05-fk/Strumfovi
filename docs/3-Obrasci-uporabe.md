@@ -122,6 +122,18 @@ Detalji su u [API dokumentaciji prilika](api/opportunities.md), za [pregled](api
 | **Alternativni tokovi** | **2a — Arhivirana ili neobjavljena prilika:** ne prikazuje se u javnoj pretrazi.<br>**2b — Kartografske pločice nisu dostupne:** sustav prikazuje upozorenje. |
 | **Rezultat** | Korisnik vidi javno objavljene prilike. |
 
+#### Pregled detalja prilike
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Posjetitelj, umjetnik, organizator (vlasnik prilike) |
+| **Vanjski akter** | OpenStreetMap (karta i poveznica na lokaciju) |
+| **Povezani zahtjevi** | FR-04; OPP-02-BE1; OPP-02-DES; OPP-01-FE1 |
+| **Preduvjeti** | Prilika postoji i vidljiva je korisniku; prijava nije obavezna za javno vidljive prilike. |
+| **Glavni uspješni tok** | 1. Korisnik otvara `/opportunities/{id}`.<br>2. Sustav dohvaća detalj (`GET /api/v1/opportunities/{id}`) i, ako postoji prijavljena sesija, trenutnog korisnika (`GET /api/v1/me`).<br>3. Sustav prikazuje naslov, organizatora, status, vrstu, područja umjetnosti, opis, kriterije, nagradu, rok i datume događanja. Datumi i vremena prikazuju se u vremenskoj zoni `Europe/Zagreb`; opis, kriteriji i nagrada prikazuju se kao običan tekst.<br>4. Za fizičku lokaciju sustav prikazuje adresu, kartu s nepomičnom oznakom, atribuciju OpenStreetMap i poveznicu za otvaranje lokacije na OpenStreetMapu. Za online lokaciju prikazuje vanjsku poveznicu u novoj kartici.<br>5. Ako je korisnik vlasnik prilike, sustav prikazuje vlasničku traku i oznake statusa; za priliku u pripremi prikazuje „U pripremi - vidljivo samo vama”. Akcije vlasnika, gumb „Prijavi se” i rezultati prikazuju se kao mjesta za uključivanje pripadajućih funkcionalnosti. |
+| **Alternativni tokovi** | **2a - Dohvat je u tijeku:** sustav prikazuje stanje učitavanja.<br>**2b - Prilika ne postoji ili nije vidljiva korisniku (`404 NOT_FOUND`):** sustav prikazuje poruku „Prilika ne postoji ili nije dostupna” i poveznicu na popis prilika.<br>**2c - Druga pogreška poslužitelja:** sustav prikazuje poruku pogreške i omogućuje ponovni pokušaj.<br>**4a - Kartografske pločice nisu dostupne:** sustav prikazuje upozorenje, a poveznica na OpenStreetMap ostaje dostupna ako su koordinate poznate. |
+| **Rezultat** | Korisnik vidi dostupne detalje prilike i njezinu lokaciju; vlasnik vidi dodatne oznake vlasništva. |
+
 ### UC-06 Postaviti uvjete i prijaviti se na priliku
 
 | Element specifikacije | Opis |

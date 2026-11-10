@@ -277,6 +277,28 @@ export const hr = {
   },
 
   opportunities: {
+    detail: {
+      defaultTitle: 'Prilika',
+      notFound: 'Prilika ne postoji ili nije dostupna.',
+      allOpportunities: 'Sve prilike',
+      owner: 'Vi ste vlasnik prilike',
+      archived: 'Arhivirano',
+      hiddenByAdmin: 'Skriveno od strane administratora',
+      ownerActions: {
+        edit: 'Uredi',
+        closeApplications: 'Zatvori prijave',
+        archive: 'Arhiviraj',
+        delete: 'Obriši',
+      },
+      description: 'Opis',
+      criteria: 'Kriteriji',
+      prize: 'Nagrada',
+      event: 'Događanje',
+      apply: 'Prijavi se',
+      preparationPrivate: 'U pripremi – vidljivo samo vama',
+      resultsPlaceholder: 'Ovdje će se prikazati rezultati prilike.',
+      results: 'Rezultati',
+    },
     form: {
       title: 'Naslov',
       description: 'Opis',
