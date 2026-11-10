@@ -7,6 +7,9 @@ from page_objects.base_page import BasePage
 
 
 class PublicPortfolioPage(BasePage):
+    """Javni popis: prije provjere odsutnosti djela čekamo učitanu galeriju."""
+
+    GALLERY = (By.CSS_SELECTOR, 'section[aria-labelledby="artworks-heading"]')
     ARTIST_NAME = (By.CSS_SELECTOR, "main h1")
     PAST_EXHIBITIONS = (By.CSS_SELECTOR, 'section[aria-labelledby="past-exhibitions-heading"]')
     PARTICIPATIONS = (By.CSS_SELECTOR, 'section[aria-labelledby="participations-heading"]')
@@ -14,6 +17,8 @@ class PublicPortfolioPage(BasePage):
 
     def open_artist(self, artist_id):
         self.open_path(f"/artists/{artist_id}")
+        # Galerija se prikazuje tek nakon dohvata podataka; skeleton nije dovoljan.
+        self.wait_visible(self.GALLERY)
         return self
 
     def wait_for_artist(self):
@@ -39,3 +44,6 @@ class PublicPortfolioPage(BasePage):
         WebDriverWait(self.driver, 10).until(
             EC.invisibility_of_element_located(self.LIGHTBOX)
         )
+    def artwork_titles(self):
+        gallery = self.wait_visible(self.GALLERY)
+        return [heading.text for heading in gallery.find_elements(By.TAG_NAME, "h3")]

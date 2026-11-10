@@ -1,6 +1,7 @@
 package hr.fer.artconnect.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -84,6 +85,27 @@ class DevLoginIntegrationTest extends IntegrationTestBase {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT last_login_at IS NOT NULL FROM users WHERE id = ?", Boolean.class, userId))
                 .isTrue();
+    }
+
+    @Test
+    void resetUserVracaDevKorisnikaUOnboarding() throws Exception {
+        UUID userId = addUser("novi@artconnect.test", "ARTIST", "ACTIVE");
+
+        mockMvc.perform(post("/api/v1/dev/reset-user"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("novi@artconnect.test"))
+                .andExpect(jsonPath("$.role").value(nullValue()))
+                .andExpect(jsonPath("$.status").value("ONBOARDING"))
+                .andExpect(jsonPath("$.organizerApproval").value(nullValue()));
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT role FROM users WHERE id = ?", String.class, userId)).isNull();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT status FROM users WHERE id = ?", String.class, userId))
+                .isEqualTo("ONBOARDING");
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT organizer_approval FROM users WHERE id = ?", String.class, userId))
+                .isNull();
     }
 
     @Test

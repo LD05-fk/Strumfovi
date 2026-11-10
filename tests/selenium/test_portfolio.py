@@ -5,7 +5,67 @@ from uuid import uuid4
 from selenium.webdriver.common.by import By
 
 from page_objects.profile_page import ProfilePage
+from page_objects.artwork_form_page import ArtworkFormPage
+from page_objects.my_portfolio_page import MyPortfolioPage
 from page_objects.public_portfolio_page import PublicPortfolioPage
+
+
+def test_artwork_empty_form_shows_three_required_errors(driver, base_url, login_as):
+    """Prazan obrazac mora objasniti da nedostaju naslov, godina i tehnika."""
+    login_as("umjetnik@artconnect.test")
+    page = ArtworkFormPage(driver, base_url).open()
+    page.save()
+
+    assert page.field_error("title") == "Ovo polje je obavezno."
+    assert page.field_error("year") == "Godina je obavezna."
+    assert page.field_error("technique") == "Ovo polje je obavezno."
+
+
+def test_artwork_made_private_disappears_from_public_portfolio(
+    driver, base_url, login_as, public_artwork
+):
+    """Javno djelo vidljivo je posjetitelju, a nakon promjene u privatno više nije."""
+    artwork = public_artwork
+    public_page = PublicPortfolioPage(driver, base_url)
+
+    # Brisanjem kolačića preglednik postaje posjetitelj; API fixture zadržava sesiju.
+    driver.delete_all_cookies()
+    public_page.open_artist(artwork["artistId"])
+    assert public_page.wait_for_artwork(artwork["title"]).is_displayed()
+
+    login_as("umjetnik@artconnect.test")
+    ArtworkFormPage(driver, base_url).open_artwork(artwork["id"]).make_private_and_save()
+    # Djelo se skriva od posjetitelja, ali mora ostati na vlasnikovom popisu.
+    assert MyPortfolioPage(driver, base_url).wait_for_artwork(artwork["title"]).is_displayed()
+
+    driver.delete_all_cookies()
+    public_page.open_artist(artwork["artistId"])
+    assert artwork["title"] not in public_page.artwork_titles()
+
+
+def test_artwork_deleted_with_confirmation_disappears_from_both_portfolios(
+    driver, base_url, login_as, public_artwork
+):
+    """Brisanje javnog djela kroz karticu uklanja ga i iz javne galerije."""
+    artwork = public_artwork
+    public_page = PublicPortfolioPage(driver, base_url)
+    driver.delete_all_cookies()
+    public_page.open_artist(artwork["artistId"])
+    assert public_page.wait_for_artwork(artwork["title"]).is_displayed()
+
+    login_as("umjetnik@artconnect.test")
+    page = MyPortfolioPage(driver, base_url).open()
+    page.wait_for_artwork(artwork["title"])
+    page.delete_artwork(artwork["title"])
+    page.wait_for_artwork_removed(artwork["title"])
+
+    driver.delete_all_cookies()
+    public_page.open_artist(artwork["artistId"])
+    assert artwork["title"] not in public_page.artwork_titles()
+
+
+# Organizatorov 403 na /portfolio već pokriva test_auth_01_wrong_role_sees_403
+# u test_auth.py. Koristimo postojeći test kako ne bismo ponavljali istu provjeru.
 
 
 def test_artist_adds_edits_and_deletes_past_exhibition(driver, base_url, past_exhibition_artist):

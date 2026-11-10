@@ -29,6 +29,7 @@ import {
   type OpportunityFormValues,
 } from '../types'
 import { createOpportunitySchema } from './opportunitySchema'
+import { LocationPicker } from './LocationPicker'
 
 type OpportunityFormProps = {
   isCreating: boolean
@@ -126,6 +127,7 @@ export function OpportunityForm({
     handleSubmit,
     reset,
     setError,
+    setValue,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<OpportunityFormValues>({
     resolver: zodResolver(createOpportunitySchema(isCreating)),
@@ -406,12 +408,16 @@ export function OpportunityForm({
               id="opportunity-location-heading"
               component="h2"
               variant="h6"
+              sx={{ mb: 2 }}
             >
               {hr.opportunities.form.location}
             </Typography>
-            <Typography color="text.secondary">
-              {hr.opportunities.form.locationPlaceholder}
-            </Typography>
+
+            <LocationPicker
+              control={control}
+              setError={setError}
+              setValue={setValue}
+            />
           </Box>
 
           <Box
