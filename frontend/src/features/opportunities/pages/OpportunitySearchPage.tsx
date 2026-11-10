@@ -16,6 +16,7 @@ import { ApiError } from '../../../api/client'
 import { EmptyState } from '../../../components/state/EmptyState'
 import { OpportunityCard } from '../components/OpportunityCard'
 import { FilterPanel } from '../components/FilterPanel'
+import { OpportunityMapPanel } from '../components/OpportunityMapPanel'
 import { ListMapToggle } from '../components/ListMapToggle'
 import { DEFAULT_OPPORTUNITY_SEARCH_PARAMS } from '../types'
 
@@ -100,7 +101,10 @@ export function OpportunitySearchPage() {
       )
     }
 
-    // TODO: na view=map ide MapView s oznakama umjesto grida.
+    if (params.view === 'map') {
+      return <OpportunityMapPanel opportunities={data} total={meta.total} />
+    }
+
     return (
       <Stack spacing={3}>
         <Box

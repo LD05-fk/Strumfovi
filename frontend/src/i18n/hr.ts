@@ -383,6 +383,11 @@ export const hr = {
         deadlineTo: 'Rok do',
         anyDeadline: 'Bilo kada',
       },
+      map: {
+        ariaLabel: 'Karta prilika',
+        truncated: (count: number) => `Na karti je prikazano prvih ${count} rezultata.`,
+        missingLocation: (count: number) => `Prilike bez lokacije: ${count}.`,
+      },
       card: {
         details: 'Detalji',
         detailsAriaLabel: (title: string) => `Detalji prilike ${title}`,

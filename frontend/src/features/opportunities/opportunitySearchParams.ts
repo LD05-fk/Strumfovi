@@ -94,6 +94,8 @@ export function toApiQuery(params: OpportunitySearchParams): URLSearchParams {
   const query = toSearchQuery(params)
 
   query.delete('view')
+  // karta nema straničenja
+  if (params.view === 'map') query.delete('page')
   const pageSize = params.view === 'map' ? MAP_PAGE_SIZE : LIST_PAGE_SIZE
   query.set('pageSize', String(pageSize))
 
