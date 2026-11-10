@@ -16,6 +16,7 @@ import { ApiError } from '../../../api/client'
 import { EmptyState } from '../../../components/state/EmptyState'
 import { OpportunityCard } from '../components/OpportunityCard'
 import { FilterPanel } from '../components/FilterPanel'
+import { ListMapToggle } from '../components/ListMapToggle'
 import { DEFAULT_OPPORTUNITY_SEARCH_PARAMS } from '../types'
 
 export function OpportunitySearchPage() {
@@ -139,11 +140,30 @@ export function OpportunitySearchPage() {
 
   return (
     <Stack spacing={2}>
-      <Typography component="h1" variant="h1">
-        {hr.opportunities.pageTitle}
-      </Typography>
-
-      {/* TODO: ListMapToggle desno u zaglavlju i Select za sortiranje uz filtre. */}
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+        }}
+      >
+        <Box>
+          <Typography component="h1" variant="h1">
+            {hr.opportunities.pageTitle}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {search.data === undefined
+              ? ''
+              : hr.opportunities.search.resultsCount(search.data.meta.total)}
+          </Typography>
+        </Box>
+        <ListMapToggle
+          view={params.view}
+          onChange={(view) => setParams({ view })}
+        />
+      </Stack>
 
       <FilterPanel
         params={params}
@@ -153,12 +173,6 @@ export function OpportunitySearchPage() {
         resultCount={search.data?.meta.total}
         error={filterError}
       />
-
-      <Typography color="text.secondary" sx={{ flexGrow: 1 }}>
-        {search.data === undefined
-          ? ''
-          : hr.opportunities.search.resultsCount(search.data.meta.total)}
-      </Typography>
 
       {renderBody()}
     </Stack>

@@ -347,6 +347,13 @@ export const hr = {
       emptyPageTitle: 'Na ovoj stranici nema prilika',
       firstPage: 'Prva stranica',
       pagination: 'Stranice rezultata',
+      view: {
+        label: 'Prikaz',
+        options: {
+          list: 'Popis',
+          map: 'Karta',
+        },
+      },
       sort: {
         label: 'Sortiraj',
         options: {
