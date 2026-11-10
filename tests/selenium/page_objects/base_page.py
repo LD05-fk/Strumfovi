@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
@@ -18,6 +20,12 @@ class BasePage:
     def open_path(self, path):
         self.driver.get(self.base_url + path)
         return self
+
+    def wait_for_path(self, path, timeout=DEFAULT_TIMEOUT):
+        WebDriverWait(self.driver, timeout).until(
+            lambda driver: urlparse(driver.current_url).path.rstrip("/")
+            == path.rstrip("/")
+        )
 
     def wait_visible(self, locator, timeout=DEFAULT_TIMEOUT):
         return WebDriverWait(self.driver, timeout).until(

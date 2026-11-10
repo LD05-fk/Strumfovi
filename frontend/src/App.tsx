@@ -22,9 +22,10 @@ import { OpportunitySearchPage} from './features/opportunities/pages/Opportunity
 import { hr } from './i18n/hr'
 import { OrganizerProfilePage } from './features/organizer-profile/OrganizerProfilePage'
 import { PublicPortfolioPage } from './features/public-portfolio/PublicPortfolioPage'
-import { OpportunityEditorPage } from './features/opportunities/OpportunityEditorPage'
+import { OpportunityEditorPage } from './features/opportunities/pages/OpportunityEditorPage'
 import { MyPortfolioPage } from './features/portfolio/MyPortfolioPage'
 import { ArtworkFormPage } from './features/portfolio/ArtworkFormPage'
+import { OpportunityDetailPage } from './features/opportunities/pages/OpportunityDetailPage'
 
 type PageProps = {
     title: string
@@ -76,127 +77,130 @@ function AppRouteLayout() {
 }
 
 const router = createBrowserRouter(
-  createRoutesFromElements(
-    <Route element={<AppRouteLayout />}>
-      <Route index element={<HomePage />} />
-      <Route path="opportunities" element={<OpportunitySearchPage />} />
-      <Route
-        path="my-opportunities"
-        element={
-          <RequireRole roles={['ORGANIZER']}>
-            <Page title="Moje prilike" />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="statistics"
-        element={
-          <RequireRole roles={['ORGANIZER']}>
-            <Page title="Statistika" />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="opportunities/:opportunityId"
-        element={<Page title="Prilika" />}
-      />
-      <Route
-        path="opportunities/:opportunityId/apply"
-        element={
-          <RequireRole roles={['ARTIST']}>
-            <Page title="Prijava na priliku" />
-          </RequireRole>
-        }
-      />
-      <Route path="artists/:artistId" element={<PublicPortfolioPage />} />
-      <Route
-        path="onboarding"
-        element={
-          <OnboardingOnly>
-            <ChooseRolePage />
-          </OnboardingOnly>
-        }
-      />
-      <Route
-        path="profile"
-        element={
-          <RequireRole
-            roles={['ARTIST', 'ORGANIZER']}
-            unauthenticatedRedirect="/"
-          >
-            <ProfileRoute />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="portfolio"
-        element={
-          <RequireRole roles={['ARTIST']}>
-            <MyPortfolioPage />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="portfolio/artworks/new"
-        element={
-          <RequireRole roles={['ARTIST']}>
-            <ArtworkFormPage />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="portfolio/artworks/:artworkId"
-        element={
-          <RequireRole roles={['ARTIST']}>
-            <ArtworkFormPage />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="applications/*"
-        element={
-          <RequireRole roles={['ARTIST']}>
-            <Page title="Moje prijave" />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="organizer/*"
-        element={
-          <RequireRole roles={['ORGANIZER']}>
-            <Page title="Organizatorski portal" />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="organizer/opportunities/new"
-        element={
-          <RequireRole roles={['ORGANIZER']}>
-            <OpportunityEditorPage mode="create" />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="organizer/opportunities/:opportunityId/edit"
-        element={
-          <RequireRole roles={['ORGANIZER']}>
-            <OpportunityEditorPage mode="edit" />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="admin/*"
-        element={
-          <RequireRole roles={['ADMIN']}>
-            <Page title="Administracija" />
-          </RequireRole>
-        }
-      />
-      <Route path="403" element={<ForbiddenPage />} />
-      <Route path="error" element={<ErrorPage />} />
-      <Route path="*" element={<NotFoundPage />} />
-    </Route>,
-  ),
+    createRoutesFromElements(
+        <Route element={<AppRouteLayout />}>
+            <Route index element={<HomePage />} />
+            <Route path="opportunities" element={<OpportunitySearchPage />} />
+            <Route
+                path="my-opportunities"
+                element={
+                    <RequireRole roles={['ORGANIZER']}>
+                        <Page title="Moje prilike" />
+                    </RequireRole>
+                }
+            />
+            <Route
+                path="statistics"
+                element={
+                    <RequireRole roles={['ORGANIZER']}>
+                        <Page title="Statistika" />
+                    </RequireRole>
+                }
+            />
+            <Route
+                path="opportunities/:opportunityId"
+                element={<OpportunityDetailPage />}
+            />
+            <Route
+                path="opportunities/:opportunityId/apply"
+                element={
+                    <RequireRole roles={['ARTIST']}>
+                        <Page title="Prijava na priliku" />
+                    </RequireRole>
+                }
+            />
+            <Route
+                path="artists/:artistId"
+                element={<PublicPortfolioPage />}
+            />
+            <Route
+                path="onboarding"
+                element={
+                    <OnboardingOnly>
+                        <ChooseRolePage />
+                    </OnboardingOnly>
+                }
+            />
+            <Route
+                path="profile"
+                element={
+                    <RequireRole
+                        roles={['ARTIST', 'ORGANIZER']}
+                        unauthenticatedRedirect="/"
+                    >
+                        <ProfileRoute />
+                    </RequireRole>
+                }
+            />
+            <Route
+                path="portfolio"
+                element={
+                    <RequireRole roles={['ARTIST']}>
+                        <MyPortfolioPage />
+                    </RequireRole>
+                }
+            />
+            <Route
+                path="portfolio/artworks/new"
+                element={
+                    <RequireRole roles={['ARTIST']}>
+                        <ArtworkFormPage />
+                    </RequireRole>
+                }
+            />
+            <Route
+                path="portfolio/artworks/:artworkId"
+                element={
+                    <RequireRole roles={['ARTIST']}>
+                        <ArtworkFormPage />
+                    </RequireRole>
+                }
+            />
+            <Route
+                path="applications/*"
+                element={
+                    <RequireRole roles={['ARTIST']}>
+                        <Page title="Moje prijave" />
+                    </RequireRole>
+                }
+            />
+            <Route
+                path="organizer/*"
+                element={
+                    <RequireRole roles={['ORGANIZER']}>
+                        <Page title="Organizatorski portal" />
+                    </RequireRole>
+                }
+            />
+            <Route
+                path="organizer/opportunities/new"
+                element={
+                    <RequireRole roles={['ORGANIZER']}>
+                        <OpportunityEditorPage mode="create" />
+                    </RequireRole>
+                }
+            />
+            <Route
+                path="organizer/opportunities/:opportunityId/edit"
+                element={
+                    <RequireRole roles={['ORGANIZER']}>
+                        <OpportunityEditorPage mode="edit" />
+                    </RequireRole>
+                }
+            />
+            <Route
+                path="admin/*"
+                element={
+                    <RequireRole roles={['ADMIN']}>
+                        <Page title="Administracija" />
+                    </RequireRole>
+                }
+            />
+            <Route path="403" element={<ForbiddenPage />} />
+            <Route path="error" element={<ErrorPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+        </Route>,
+    ),
 )
 
 function App() {

@@ -41,4 +41,9 @@ public class DevAuthController {
 
         return CurrentUserDto.from(user);
     }
+
+    @PostMapping("/reset-user")
+    public CurrentUserDto resetUser() {
+        return CurrentUserDto.from(devLoginService.resetOnboardingUser());
+    }
 }

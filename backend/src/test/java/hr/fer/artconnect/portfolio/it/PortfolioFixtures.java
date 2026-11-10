@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import jakarta.servlet.http.Cookie;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -12,7 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
-/** Testni korisnici, područja, izložbe i stvarne sesije za testove portfolija. */
+/** Testni korisnici, područja, izložbe, djela i stvarne sesije za testove portfolija. */
 public class PortfolioFixtures {
     private final JdbcTemplate jdbc;
     private final MockMvc mockMvc;
@@ -68,8 +69,18 @@ public class PortfolioFixtures {
         return id;
     }
 
+    public UUID artwork(UUID artistId, OffsetDateTime createdAt) {
+        // Različita vremena nastanka omogućuju pouzdanu provjeru redoslijeda bez čekanja.
+        UUID id = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO artworks (id, artist_id, title, year, technique, visibility, created_at)
+                VALUES (?, ?, 'Gradski motivi', 2024, 'Akril', 'PUBLIC', ?)
+                """, id, artistId, createdAt);
+        return id;
+    }
+
     public void cleanup() {
-        // Brisanje korisnika kaskadno briše profil, izložbe, odabire područja i poveznice.
+        // Brisanje korisnika kaskadno briše profil, izložbe, djela, odabire područja i poveznice.
         for (UUID id : users) {
             jdbc.update("DELETE FROM spring_session WHERE principal_name = ?", id.toString());
             jdbc.update("DELETE FROM users WHERE id = ?", id);

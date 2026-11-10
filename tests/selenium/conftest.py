@@ -72,6 +72,31 @@ def login_as(driver, base_url):
 
 
 @pytest.fixture
+def reset_dev_user(base_url):
+    def _reset_dev_user():
+        response = requests.post(
+            f"{base_url}/api/v1/dev/reset-user",
+            timeout=10,
+        )
+        if response.status_code == 404:
+            raise RuntimeError("dev/reset-user ne postoji.")
+        response.raise_for_status()
+        return response.json()
+
+    return _reset_dev_user
+
+
+@pytest.fixture
+def onboarding_user(reset_dev_user, login_as):
+    reset_dev_user()
+    session = login_as("novi@artconnect.test")
+    try:
+        yield session
+    finally:
+        reset_dev_user()
+
+
+@pytest.fixture
 def portfolio_artist(login_as, base_url):
     """Svaki test počinje praznim obrascem, a zatim vraća izvorni dev profil."""
     session = login_as("umjetnik@artconnect.test")
@@ -125,6 +150,34 @@ def past_exhibition_artist(login_as, base_url):
                     f"{base_url}/api/v1/past-exhibitions/{exhibition['id']}", timeout=10
                 )
                 deleted.raise_for_status()
+
+
+@pytest.fixture
+def public_artwork(login_as, base_url):
+    """Priprema jedno javno djelo; postojeća djela dev umjetnika ne mijenja."""
+    session = login_as("umjetnik@artconnect.test")
+    path = f"{base_url}/api/v1/artworks"
+    artwork = None
+    try:
+        # Priprema ide kroz API, a radnju koju ispitujemo test obavlja kroz sučelje.
+        response = session.post(path, json={
+            "title": f"E2E djelo {uuid4()}",
+            "year": 2024,
+            "technique": "Akril",
+            "dimensions": None,
+            "description": None,
+            "visibility": "PUBLIC",
+        }, timeout=10)
+        response.raise_for_status()
+        artwork = response.json()
+        yield artwork
+    finally:
+        # API sesija ostaje dostupna i kad preglednik prijeđe u neprijavljeni prikaz.
+        # Ako je sam test već obrisao djelo, očekivani 404 nije greška čišćenja.
+        if artwork is not None:
+            response = session.delete(f"{path}/{artwork['id']}", timeout=10)
+            if response.status_code != 404:
+                response.raise_for_status()
 
 
 @pytest.fixture

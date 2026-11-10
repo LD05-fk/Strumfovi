@@ -75,7 +75,7 @@ function MapViewport({
           markers.map(({ latitude, longitude }) => [latitude, longitude]),
         ])
       : JSON.stringify(['center', latitude, longitude, zoom])
-
+  const lastZoom = useRef(zoom)
   useEffect(() => {
     if (lastViewportKey.current === viewportKey) return
 
@@ -91,10 +91,17 @@ function MapViewport({
         Math.max(map.getZoom(), 13),
       )
     } else {
-      map.setView([latitude, longitude], zoom)
+      const shouldUseRequestedZoom =
+        lastViewportKey.current === null || lastZoom.current !== zoom
+
+      map.setView(
+        [latitude, longitude],
+        shouldUseRequestedZoom ? zoom : map.getZoom(),
+      )
     }
 
     lastViewportKey.current = viewportKey
+    lastZoom.current = zoom
   }, [fitToMarkers, latitude, longitude, map, markers, viewportKey, zoom])
 
   return null
