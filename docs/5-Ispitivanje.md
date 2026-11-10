@@ -346,12 +346,12 @@ objektom [PublicPortfolioPage](../tests/selenium/page_objects/public_portfolio_p
 
 | ID | Zadano (Given) | Kada (When) | Tada (Then) | Ishod |
 | --- | --- | --- | --- | --- |
-| PORT-03-IT-01 | Umjetnik s tri područja i dvije poveznice. | Spremi profil uz stvarnu sesiju i CSRF token pa anonimno dohvati `GET /api/v1/artists/{id}`. | Profil vraća ista tri područja i dvije poveznice istim redom; `participations` je prazan. | Prošlo |
-| PORT-03-IT-02 | Umjetnik ima javno, privatno i administrativno skriveno djelo. | Posjetitelj čita popis i detalj; vlasnik i administrator čitaju privatno djelo. | Popis sadrži samo javno djelo; detalj privatnog i skrivenog djela je 404; vlasnik i administrator dobivaju 200 za privatno djelo, a vlasnik vidi `hiddenByAdmin=true`. | Prošlo |
-| PORT-03-IT-03 | Privatno i skriveno djelo imaju slike. | Posjetitelj, vlasnik i administrator čitaju datoteke slika. | Posjetitelju su privatna i skrivena slika 404; vlasnik i administrator dobivaju 200. | Prošlo |
-| PORT-03-IT-04 | Umjetnik je blokiran, a ima profil, javno djelo i sliku. | Posjetitelj otvara profil, popis djela, detalj djela i sliku. | Sve četiri javne rute vraćaju 404. | Prošlo |
-| PORT-03-E2E-01 | Dev umjetnik; jedinstvena prethodna izložba, jedno javno i jedno privatno djelo stvoreni preko API-ja. | Neprijavljeni posjetitelj otvara `/artists/{artistId}`, klikne javno djelo i pritisne Esc. | Profil i izložba su vidljivi, prikazano je samo javno djelo, sudjelovanja se ne prikazuju, a lightbox se otvara i zatvara. | Prošlo |
-| PORT-03-E2E-02 | Neprijavljeni posjetitelj. | Otvara `/artists/{nepostojeći UUID}`. | Prikazuje se „Umjetnik nije pronađen”. | Prošlo |
+| PORT-05-IT-01 | Umjetnik s tri područja različitih kataloških pozicija i dvije poveznice. | Spremi profil obrnutim redoslijedom područja uz stvarnu sesiju i CSRF token pa anonimno dohvati `GET /api/v1/artists/{id}`. | Profil vraća područja prema kataloškoj poziciji (ne redoslijedu slanja), poveznice redom kojim su spremljene, a `participations` je prazan. | Prošlo |
+| PORT-05-IT-02 | Umjetnik ima javno, privatno i administrativno skriveno djelo. | Posjetitelj čita popis i detalj; vlasnik i administrator čitaju privatno djelo. | Popis sadrži samo javno djelo; detalj privatnog i skrivenog djela je 404; vlasnik i administrator dobivaju 200 za privatno djelo, a vlasnik vidi `hiddenByAdmin=true`. | Prošlo |
+| PORT-05-IT-03 | Privatno i skriveno djelo imaju slike. | Posjetitelj, vlasnik i administrator čitaju datoteke slika. | Posjetitelju su privatna i skrivena slika 404; vlasnik i administrator dobivaju 200. | Prošlo |
+| PORT-05-IT-04 | Umjetnik je blokiran, a ima profil, javno djelo i sliku. | Posjetitelj otvara profil, popis djela, detalj djela i sliku. | Sve četiri javne rute vraćaju 404. | Prošlo |
+| PORT-05-E2E-01 | Dev umjetnik; jedinstvena prethodna izložba, jedno javno i jedno privatno djelo stvoreni preko API-ja. | Neprijavljeni posjetitelj otvara `/artists/{artistId}`, klikne javno djelo i pritisne Esc. | Profil i izložba su vidljivi, prikazano je samo javno djelo, sudjelovanja se ne prikazuju, a lightbox se otvara i zatvara. | Prošlo |
+| PORT-05-E2E-02 | Neprijavljeni posjetitelj. | Otvara `/artists/{nepostojeći UUID}`. | Prikazuje se „Umjetnik nije pronađen”. | Prošlo |
 
 Integracijski testovi koriste PostgreSQL iz Testcontainersa i `PortfolioFixtures`;
 slike za provjeru preuzimanja spremaju se pod privremeni `@TempDir`. E2E prijava

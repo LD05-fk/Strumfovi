@@ -39,7 +39,7 @@ class PortfolioVisibilityIT extends IntegrationTestBase {
     }
 
     @Test
-    void javniProfilVraćaPodručjaIPovezniceRedomKojimSuSpremljeni() throws Exception {
+    void javniProfilVraćaPodručjaPoPozicijiIPovezniceRedomKojimSuSpremljene() throws Exception {
         UUID artistId = fixtures.user("ARTIST", "ACTIVE");
         UserSession artist = fixtures.login(artistId);
         UUID firstField = fixtures.artField();
@@ -57,7 +57,7 @@ class PortfolioVisibilityIT extends IntegrationTestBase {
                                    {"label":"Portfolio","url":"https://portfolio.example.test"},
                                    {"label":"Instagram","url":"https://instagram.com/portfolio-test"}
                                  ]}
-                                """.formatted(firstField, secondField, thirdField)))
+                                """.formatted(thirdField, firstField, secondField)))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get(PUBLIC_PROFILE_PATH + artistId).with(anonymous()))

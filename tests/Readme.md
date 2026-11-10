@@ -107,7 +107,8 @@ brišu se samo zapisi stvoreni za taj test.
 pytest tests/selenium/test_portfolio.py -k 'visitor or unknown_artist' --html=report.html --self-contained-html --junitxml=test-results/pytest.xml
 ```
 
-Integracijski `PortfolioVisibilityIT` provjerava redoslijed područja i
+Integracijski `PortfolioVisibilityIT` provjerava redoslijed područja prema
+kataloškoj poziciji (zahtjev ih šalje obrnutim redoslijedom), redoslijed
 poveznica javnog profila te nedostupnost profila blokiranog umjetnika. Matrica
 privatnih i skrivenih djela/slika te blokiranog umjetnika dodatno je pokrivena
 u `ArtworkReadIntegrationTest` i `FileDownloadIntegrationTest`; pohrana slika
