@@ -31,7 +31,7 @@ def test_artwork_made_private_disappears_from_public_portfolio(
     # Brisanjem kolačića preglednik postaje posjetitelj; API fixture zadržava sesiju.
     driver.delete_all_cookies()
     public_page.open_artist(artwork["artistId"])
-    assert public_page.wait_for_artwork(artwork["title"]).is_displayed()
+    assert public_page.wait_for_artwork(artwork["title"], artwork["year"]).is_displayed()
 
     login_as("umjetnik@artconnect.test")
     ArtworkFormPage(driver, base_url).open_artwork(artwork["id"]).make_private_and_save()
@@ -51,7 +51,7 @@ def test_artwork_deleted_with_confirmation_disappears_from_both_portfolios(
     public_page = PublicPortfolioPage(driver, base_url)
     driver.delete_all_cookies()
     public_page.open_artist(artwork["artistId"])
-    assert public_page.wait_for_artwork(artwork["title"]).is_displayed()
+    assert public_page.wait_for_artwork(artwork["title"], artwork["year"]).is_displayed()
 
     login_as("umjetnik@artconnect.test")
     page = MyPortfolioPage(driver, base_url).open()
