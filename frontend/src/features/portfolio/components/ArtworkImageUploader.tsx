@@ -135,6 +135,7 @@ export function ArtworkImageUploader({
       abortControllerRef.current = null
       setUploadingFile('')
       setIsUploading(false)
+      setAltText('')
     }
   }
 

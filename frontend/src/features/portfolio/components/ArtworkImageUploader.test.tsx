@@ -240,10 +240,11 @@ describe('ArtworkImageUploader', () => {
     const user = userEvent.setup()
     renderUploader()
 
+    const altTextInput = await screen.findByRole('textbox', {
+      name: 'Opis slike (alternativni tekst)',
+    })
     await user.type(
-      await screen.findByRole('textbox', {
-        name: 'Opis slike (alternativni tekst)',
-      }),
+      altTextInput,
       'Detalj poteza kistom',
     )
     await user.upload(getFileInput(), imageFile)
@@ -262,6 +263,7 @@ describe('ArtworkImageUploader', () => {
         'Detalj poteza kistom',
       )
     })
+    await waitFor(() => expect(altTextInput).toHaveValue(''))
   })
 
   it('uploads selected files one at a time and stops at the image limit', async () => {
@@ -349,10 +351,15 @@ describe('ArtworkImageUploader', () => {
       const user = userEvent.setup()
       renderUploader()
 
+      const altTextInput = await screen.findByRole('textbox', {
+        name: 'Opis slike (alternativni tekst)',
+      })
+      await user.type(altTextInput, 'Opis neuspjele slike')
       await screen.findByRole('button', { name: 'Odaberi sliku' })
       await user.upload(getFileInput(), imageFile)
 
       expect(await screen.findByRole('alert')).toHaveTextContent(message)
+      await waitFor(() => expect(altTextInput).toHaveValue(''))
     },
   )
 })
