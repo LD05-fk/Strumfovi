@@ -20,7 +20,8 @@ import { ArtistProfilePage } from './features/artist-profile/ArtistProfilePage'
 import { HomePage } from './features/auth/pages/HomePage'
 import { hr } from './i18n/hr'
 import { OrganizerProfilePage } from './features/organizer-profile/OrganizerProfilePage'
-import { OpportunityEditorPage } from './features/opportunities/OpportunityEditorPage'
+import { OpportunityEditorPage } from './features/opportunities/pages/OpportunityEditorPage'
+import { OpportunityDetailPage } from './features/opportunities/pages/OpportunityDetailPage'
 
 type PageProps = {
     title: string
@@ -94,7 +95,7 @@ const router = createBrowserRouter(
             />
             <Route
                 path="opportunities/:opportunityId"
-                element={<Page title="Prilika" />}
+                element={<OpportunityDetailPage />}
             />
             <Route
                 path="opportunities/:opportunityId/apply"
