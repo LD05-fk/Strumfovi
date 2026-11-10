@@ -21,9 +21,10 @@ import { HomePage } from './features/auth/pages/HomePage'
 import { hr } from './i18n/hr'
 import { OrganizerProfilePage } from './features/organizer-profile/OrganizerProfilePage'
 import { PublicPortfolioPage } from './features/public-portfolio/PublicPortfolioPage'
-import { OpportunityEditorPage } from './features/opportunities/OpportunityEditorPage'
+import { OpportunityEditorPage } from './features/opportunities/pages/OpportunityEditorPage'
 import { MyPortfolioPage } from './features/portfolio/MyPortfolioPage'
 import { ArtworkFormPage } from './features/portfolio/ArtworkFormPage'
+import { OpportunityDetailPage } from './features/opportunities/pages/OpportunityDetailPage'
 
 type PageProps = {
     title: string
@@ -97,7 +98,7 @@ const router = createBrowserRouter(
             />
             <Route
                 path="opportunities/:opportunityId"
-                element={<Page title="Prilika" />}
+                element={<OpportunityDetailPage />}
             />
             <Route
                 path="opportunities/:opportunityId/apply"
@@ -131,28 +132,28 @@ const router = createBrowserRouter(
                 }
             />
             <Route
-              path="portfolio"
-              element={
-                <RequireRole roles={['ARTIST']}>
-                  <MyPortfolioPage />
-                </RequireRole>
-              }
+                path="portfolio"
+                element={
+                    <RequireRole roles={['ARTIST']}>
+                        <MyPortfolioPage />
+                    </RequireRole>
+                }
             />
             <Route
-              path="portfolio/artworks/new"
-              element={
-                <RequireRole roles={['ARTIST']}>
-                  <ArtworkFormPage />
-                </RequireRole>
-              }
+                path="portfolio/artworks/new"
+                element={
+                    <RequireRole roles={['ARTIST']}>
+                        <ArtworkFormPage />
+                    </RequireRole>
+                }
             />
             <Route
-              path="portfolio/artworks/:artworkId"
-              element={
-                <RequireRole roles={['ARTIST']}>
-                  <ArtworkFormPage />
-                </RequireRole>
-              }
+                path="portfolio/artworks/:artworkId"
+                element={
+                    <RequireRole roles={['ARTIST']}>
+                        <ArtworkFormPage />
+                    </RequireRole>
+                }
             />
             <Route
                 path="applications/*"
