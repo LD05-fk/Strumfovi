@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, apiFetch } from '../../api/client'
-import type { Artwork, ArtworkInput, ArtworkPage } from './types'
+import type { Artwork, ArtworkImage, ArtworkInput, ArtworkPage } from './types'
 
 export const artworkQueryKey = (artworkId: string) =>
   ['artworks', artworkId] as const
@@ -64,6 +64,51 @@ export function useUpdateArtwork(artistId: string, artworkId: string) {
       await queryClient.invalidateQueries({
         queryKey: ['artists', artistId, 'artworks'],
       })
+    },
+  })
+}
+
+type ArtworkImageRequest = {
+  body: FormData
+  signal?: AbortSignal
+}
+
+export function useUploadArtworkImage(artistId: string, artworkId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ body, signal }: ArtworkImageRequest) =>
+      apiFetch<ArtworkImage>(
+        `/artworks/${encodeURIComponent(artworkId)}/images`,
+        { method: 'POST', body, signal },
+      ),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: artworkQueryKey(artworkId) }),
+        queryClient.invalidateQueries({
+          queryKey: ['artists', artistId, 'artworks'],
+        }),
+      ])
+    },
+  })
+}
+
+export function useDeleteArtworkImage(artistId: string, artworkId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (imageId: string) =>
+      apiFetch<void>(
+        `/artworks/${encodeURIComponent(artworkId)}/images/${encodeURIComponent(imageId)}`,
+        { method: 'DELETE' },
+      ),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: artworkQueryKey(artworkId) }),
+        queryClient.invalidateQueries({
+          queryKey: ['artists', artistId, 'artworks'],
+        }),
+      ])
     },
   })
 }
