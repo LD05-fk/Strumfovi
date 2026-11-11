@@ -49,7 +49,7 @@ class ArtistPublicProfileIntegrationTest extends IntegrationTestBase {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
 
-        for (String hiddenStatus : new String[] {"BLOCKED", "DELETED", "ONBOARDING", "INVITED"}) {
+        for (String hiddenStatus : new String[] {"DELETED", "ONBOARDING", "INVITED"}) {
             UUID artistId = loginAs("ARTIST");
             jdbc.update("UPDATE users SET status = ? WHERE id = ?", hiddenStatus, artistId);
             mockMvc.perform(get(PATH + artistId).with(anonymous()))

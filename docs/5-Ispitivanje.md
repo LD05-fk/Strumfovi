@@ -362,6 +362,34 @@ redom zbog zajedničkog dev korisnika; svaki priprema vlastite podatke.
 | AUTH-02-T3 | `novi@artconnect.test` na `/onboarding`.          | Odabere „Umjetnik” i potvrdi.                                                            | Dolazi na `/profile`, izbornik prikazuje oznaku „Umjetnik”, a ponovni posjet `/onboarding` preusmjerava na `/profile`. | Prošlo |
 | AUTH-02-T4 | Google račun za testiranje                        | Prijavi se Googleom, odabere ulogu i potvrdi, odjavi se i ponovno prijavi istim računom. | Nakon prve prijave je na `/onboarding`, nakon potvrde na `/profile`, a nakon ponovne prijave na `/`.                   | Prošlo |
 
+### PORT-05 — Javni portfolio i matrica vidljivosti
+
+Integracijski izvor je [PortfolioVisibilityIT](../backend/src/test/java/hr/fer/artconnect/portfolio/it/PortfolioVisibilityIT.java)
+za redoslijed polja i blokirani profil. Provjere privatnih/skrivenih djela i
+blokiranog umjetnika na rutama djela nalaze se u
+[ArtworkReadIntegrationTest](../backend/src/test/java/hr/fer/artconnect/artwork/ArtworkReadIntegrationTest.java),
+a provjere slika u
+[FileDownloadIntegrationTest](../backend/src/test/java/hr/fer/artconnect/file/web/FileDownloadIntegrationTest.java).
+Ostali javni statusi profila ostaju pokriveni u
+[ArtistPublicProfileIntegrationTest](../backend/src/test/java/hr/fer/artconnect/artist/ArtistPublicProfileIntegrationTest.java).
+E2E izvor je [test_portfolio.py](../tests/selenium/test_portfolio.py) s page
+objektom [PublicPortfolioPage](../tests/selenium/page_objects/public_portfolio_page.py).
+
+| ID | Zadano (Given) | Kada (When) | Tada (Then) | Ishod |
+| --- | --- | --- | --- | --- |
+| PORT-05-IT-01 | Umjetnik s tri područja različitih kataloških pozicija i dvije poveznice. | Spremi profil obrnutim redoslijedom područja uz stvarnu sesiju i CSRF token pa anonimno dohvati `GET /api/v1/artists/{id}`. | Profil vraća područja prema kataloškoj poziciji (ne redoslijedu slanja), poveznice redom kojim su spremljene, a `participations` je prazan. | Prošlo |
+| PORT-05-IT-02 | Umjetnik ima javno, privatno i administrativno skriveno djelo. | Posjetitelj čita popis i detalj; vlasnik i administrator čitaju privatno djelo. | Popis sadrži samo javno djelo; detalj privatnog i skrivenog djela je 404; vlasnik i administrator dobivaju 200 za privatno djelo, a vlasnik vidi `hiddenByAdmin=true`. | Prošlo |
+| PORT-05-IT-03 | Privatno i skriveno djelo imaju slike. | Posjetitelj, vlasnik i administrator čitaju datoteke slika. | Posjetitelju su privatna i skrivena slika 404; vlasnik i administrator dobivaju 200. | Prošlo |
+| PORT-05-IT-04 | Umjetnik je blokiran, a ima profil, javno djelo i sliku. | Posjetitelj otvara profil, popis djela, detalj djela i sliku. | Sve četiri javne rute vraćaju 404. | Prošlo |
+| PORT-05-E2E-01 | Dev umjetnik; jedinstvena prethodna izložba, jedno javno i jedno privatno djelo stvoreni preko API-ja. | Neprijavljeni posjetitelj otvara `/artists/{artistId}`, klikne javno djelo i pritisne Esc. | Profil i izložba su vidljivi, prikazano je samo javno djelo, sudjelovanja se ne prikazuju, a lightbox se otvara i zatvara. | Prošlo |
+| PORT-05-E2E-02 | Neprijavljeni posjetitelj. | Otvara `/artists/{nepostojeći UUID}`. | Prikazuje se „Umjetnik nije pronađen”. | Prošlo |
+
+Integracijski testovi koriste PostgreSQL iz Testcontainersa i `PortfolioFixtures`;
+slike za provjeru preuzimanja spremaju se pod privremeni `@TempDir`. E2E prijava
+umjetnika preko `POST /api/v1/dev/login-as` služi samo postavljanju testnih
+podataka; preglednik ostaje neprijavljen. Fixture briše samo vlastite zapise,
+pa su testovi neovisni o postojećim seed podacima i redoslijedu.
+
 ## 5.3 Provedena ispitivanja i rezultati
 
 AUTH-01-TEST - 3.11.2026. - revizija `7125d91` (grana `feature/AUTH-01-TEST`), lokalno docker-compose okruženje s profilom dev, Selenium (headless Chrome); svih 9 ispitnih slučajeva prošlo.
@@ -406,6 +434,18 @@ Failsafea i sprema `backend-test-reports`, a [E2E workflow](../.github/workflows
 izvodi cijelu Selenium mapu i sprema `e2e-report`, uključujući PNG/HTML dokaze pada.
 [Upute za testove](../tests/Readme.md#djela-u-portfoliju-port-03-test) navode naredbe
 za ponavljanje provjere.
+
+### PORT-05 — lokalno izvođenje 9. 11. 2026.
+
+Ispitana je radna kopija grane `test/PORT-05-TEST`, temeljena na reviziji
+`510fe20`. Integracija je koristila Javu 25.0.4.1, Maven wrapper i PostgreSQL 16
+iz Testcontainersa. E2E je koristio Python 3.14.7, pytest 9.2.0, Selenium
+4.52.0, Chrome 157 headless i zasebni PostgreSQL 17 bez trajnog volumena; backend
+je radio s profilom `dev`, a frontend na lokalnim testnim portovima.
+
+- Iz `backend/`, `.\mvnw.cmd -B '-Dtest=PortfolioVisibilityIT,ArtworkReadIntegrationTest,ArtistPublicProfileIntegrationTest,FileDownloadIntegrationTest' test` završio je s `BUILD SUCCESS`: **16 provjera prošlo**, bez grešaka i preskakanja. Surefire XML/TXT izvještaji nalaze se u `backend/target/surefire-reports/`.
+- `python -m pytest tests/selenium/test_portfolio.py --html=report.html --self-contained-html --junitxml=test-results/pytest.xml` uz `BASE_URL` izoliranog frontenda završio je s **6 testova prošlo**, bez grešaka i preskakanja. HTML i JUnit XML izvještaji nastali su; testni E2E zapisi i sesije uklonjeni su nakon izvođenja.
+- Backend CI preko `mvn verify` pokreće `PortfolioVisibilityIT` preko Failsafea i postojeće Surefire provjere; E2E workflow pokreće cijelu mapu Selenium testova. Za ovu radnu kopiju još nema novog GitHub Actions izvođenja; CI rezultat zabilježiti nakon pokretanja workflowa na PR-u.
 
 ### PORT-02 — lokalno izvođenje 4. 11. 2026.
 

@@ -89,7 +89,7 @@ pytest tests/selenium/test_portfolio.py -k past_exhibition --html=report.html --
 `past_exhibition_artist` prijavljuje dev umjetnika i priprema jedinstven naslov.
 Ako test padne prije brisanja, preko API-ja briše samo tu testnu izložbu.
 Postojeće izložbe ostaju netaknute. Prijava i odjava koriste postojeći `login_as`.
-Za svih sedam E2E testova profila, izložbi i djela pokrenite gornju naredbu bez `-k` filtra.
+Za sve E2E testove portfolija, profila, izložbi i djela pokrenite gornju naredbu bez `-k` filtra.
 
 Postojeći backend i E2E workflowi automatski uključuju ove scenarije i spremaju
 izvještaje te PNG/HTML dokaze pada opisane iznad.
@@ -124,3 +124,24 @@ pytest tests/selenium/test_portfolio.py tests/selenium/test_auth.py -k 'test_art
 
 Postojeći CI izvodi novu `IT` klasu preko Failsafea i Selenium testove kroz
 E2E posao. Izvještaji i dokazi pada spremaju se kao artefakti opisani iznad.
+
+## Javni portfolio (PORT-05)
+
+`PublicPortfolioPage` i `test_portfolio.py` provjeravaju javni profil, prethodnu
+izložbu, skrivanje privatnog djela, odsutnost praznog odjeljka sudjelovanja,
+otvaranje/zatvaranje lightboxa i stranicu za nepostojećeg umjetnika. Fixture se
+prijavljuje kroz `POST /api/v1/dev/login-as` samo radi stvaranja izložbe i
+javnog/privatnog djela preko API-ja; preglednik ostaje neprijavljen. Nakon testa
+brišu se samo zapisi stvoreni za taj test.
+
+```bash
+pytest tests/selenium/test_portfolio.py -k 'visitor or unknown_artist' --html=report.html --self-contained-html --junitxml=test-results/pytest.xml
+```
+
+Integracijski `PortfolioVisibilityIT` provjerava redoslijed područja prema
+kataloškoj poziciji (zahtjev ih šalje obrnutim redoslijedom), redoslijed
+poveznica javnog profila te nedostupnost profila blokiranog umjetnika. Matrica
+privatnih i skrivenih djela/slika te blokiranog umjetnika dodatno je pokrivena
+u `ArtworkReadIntegrationTest` i `FileDownloadIntegrationTest`; pohrana slika
+u potonjem koristi privremeni `@TempDir`. Ciljane integracijske provjere izvode
+se preko Maven Surefire/Failsafe ciljeva, a u CI-ju ih pokreće `mvn verify`.

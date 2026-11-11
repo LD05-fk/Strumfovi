@@ -1,5 +1,6 @@
 import json
 from urllib.parse import urlparse
+from uuid import uuid4
 
 from selenium.webdriver.common.by import By
 
@@ -30,7 +31,7 @@ def test_artwork_made_private_disappears_from_public_portfolio(
     # Brisanjem kolačića preglednik postaje posjetitelj; API fixture zadržava sesiju.
     driver.delete_all_cookies()
     public_page.open_artist(artwork["artistId"])
-    assert public_page.wait_for_artwork(artwork["title"]).is_displayed()
+    assert public_page.wait_for_artwork(artwork["title"], artwork["year"]).is_displayed()
 
     login_as("umjetnik@artconnect.test")
     ArtworkFormPage(driver, base_url).open_artwork(artwork["id"]).make_private_and_save()
@@ -50,7 +51,7 @@ def test_artwork_deleted_with_confirmation_disappears_from_both_portfolios(
     public_page = PublicPortfolioPage(driver, base_url)
     driver.delete_all_cookies()
     public_page.open_artist(artwork["artistId"])
-    assert public_page.wait_for_artwork(artwork["title"]).is_displayed()
+    assert public_page.wait_for_artwork(artwork["title"], artwork["year"]).is_displayed()
 
     login_as("umjetnik@artconnect.test")
     page = MyPortfolioPage(driver, base_url).open()
@@ -149,3 +150,32 @@ def test_organizer_sees_own_profile_without_artist_options(driver, base_url, log
     assert menu.find_element(By.CSS_SELECTOR, 'a[href="/profile"]').text == "Profil"
     assert menu.find_elements(By.CSS_SELECTOR, 'a[href="/portfolio"]') == []
     assert menu.find_elements(By.XPATH, ".//a[normalize-space()='Moj profil']") == []
+
+
+def test_visitor_sees_only_public_portfolio_and_can_open_lightbox(
+    driver, base_url, public_portfolio_data
+):
+    data = public_portfolio_data
+    public_artwork = data["artworks"]["PUBLIC"]
+    private_artwork = data["artworks"]["PRIVATE"]
+    page = PublicPortfolioPage(driver, base_url).open_artist(data["artist_id"])
+
+    assert page.wait_for_artist().text
+    assert data["exhibition_title"] in page.wait_visible(page.PAST_EXHIBITIONS).text
+    assert page.wait_for_artwork(public_artwork["title"], 2024)
+    assert driver.find_elements(
+        By.XPATH, f"//h3[normalize-space()='{private_artwork['title']}']"
+    ) == []
+    assert driver.find_elements(*page.PARTICIPATIONS) == []
+
+    lightbox = page.open_artwork(public_artwork["title"], 2024)
+    assert public_artwork["title"] in lightbox.text
+    page.close_lightbox_with_escape()
+
+
+def test_unknown_artist_shows_not_found_page(driver, base_url):
+    page = PublicPortfolioPage(driver, base_url).open_artist(uuid4())
+
+    assert page.wait_visible(
+        (By.XPATH, "//h1[normalize-space()='Umjetnik nije pronađen']")
+    ).is_displayed()

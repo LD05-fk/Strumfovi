@@ -40,8 +40,8 @@ public class PortfolioFixtures {
         UUID id = UUID.randomUUID();
         jdbc.update("""
                 INSERT INTO art_fields (id, code, name, active, position)
-                VALUES (?, ?, ?, true, 99)
-                """, id, "pt-" + id, "Testno područje " + id);
+                VALUES (?, ?, ?, true, ?)
+                """, id, "pt-" + id, "Testno područje " + id, 99 + artFields.size());
         artFields.add(id);
         return id;
     }
