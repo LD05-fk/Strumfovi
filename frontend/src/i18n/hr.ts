@@ -326,9 +326,13 @@ export const hr = {
       hiddenByAdmin: 'Skriveno od strane administratora',
       ownerActions: {
         edit: 'Uredi',
+        publish: 'Objavi',
         closeApplications: 'Zatvori prijave',
+        reopenApplications: 'Ponovno otvori prijave',
+        startSelection: 'Započni odabir',
         archive: 'Arhiviraj',
         delete: 'Obriši',
+        menu: 'Radnje',
       },
       description: 'Opis',
       criteria: 'Kriteriji',
@@ -338,6 +342,23 @@ export const hr = {
       preparationPrivate: 'U pripremi – vidljivo samo vama',
       resultsPlaceholder: 'Ovdje će se prikazati rezultati prilike.',
       results: 'Rezultati',
+      deadlinePassed: 'Rok je istekao – produljite rok u uređivanju.',
+      statusChanged: 'Status prilike je promijenjen.',
+      archivedSuccessfully: 'Prilika je arhivirana.',
+      deletedSuccessfully: 'Prilika je obrisana.',
+      deleteHasApplicationsTitle: 'Prilika se ne može obrisati',
+      deleteHasApplicationsDescription: (title: string) =>
+        `Prilika „${title}” ima prijave pa je nije moguće obrisati. Želite li je arhivirati?`,
+      deleteHasApplicationsHint: 'Priliku s prijavama nije moguće obrisati.',
+      confirmStatusTitle: (action: string) => `${action} priliku?`,
+      confirmStatusDescription: (action: string, title: string) =>
+        `Želite li ${action.toLocaleLowerCase('hr-HR')} priliku „${title}”?`,
+      confirmArchiveTitle: 'Arhivirati priliku?',
+      confirmArchiveDescription: (title: string) =>
+        `Prilika „${title}” bit će arhivirana.`,
+      confirmDeleteTitle: 'Obrisati priliku?',
+      confirmDeleteDescription: (title: string) =>
+        `Prilika „${title}” bit će trajno obrisana.`,
     },
     form: {
       title: 'Naslov',

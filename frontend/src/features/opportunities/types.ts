@@ -282,3 +282,25 @@ export type OpportunitySummaryPage = {
     total: number
   }
 }
+
+export type MyOpportunitySummary = OpportunitySummary & {
+  archived: boolean
+  hiddenByAdmin: boolean
+  applicationCounts: {
+    total: number
+    submitted: number
+    underReview: number
+    needsInfo: number
+    accepted: number
+    rejected: number
+  }
+}
+
+export type MyOpportunityPage = {
+  data: MyOpportunitySummary[]
+  meta: {
+    page: number
+    pageSize: number
+    total: number
+  }
+}
