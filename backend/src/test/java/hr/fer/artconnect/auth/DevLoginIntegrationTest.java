@@ -90,6 +90,10 @@ class DevLoginIntegrationTest extends IntegrationTestBase {
     @Test
     void resetUserVracaDevKorisnikaUOnboarding() throws Exception {
         UUID userId = addUser("novi@artconnect.test", "ARTIST", "ACTIVE");
+        jdbcTemplate.update(
+                "INSERT INTO organizer_profiles (user_id, organization_name, updated_at) "
+                        + "VALUES (?, ?, CURRENT_TIMESTAMP)",
+                userId, "Privremeni naziv");
 
         mockMvc.perform(post("/api/v1/dev/reset-user"))
                 .andExpect(status().isOk())
@@ -106,6 +110,10 @@ class DevLoginIntegrationTest extends IntegrationTestBase {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT organizer_approval FROM users WHERE id = ?", String.class, userId))
                 .isNull();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM organizer_profiles WHERE user_id = ?",
+                Long.class, userId))
+                .isZero();
     }
 
     @Test
