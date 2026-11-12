@@ -97,6 +97,25 @@ def onboarding_user(reset_dev_user, login_as):
 
 
 @pytest.fixture
+def organizer_profile(login_as, base_url):
+    session = login_as("organizator@artconnect.test")
+    path = f"{base_url}/api/v1/me/organizer-profile"
+    response = session.get(path, timeout=10)
+    response.raise_for_status()
+    original_profile = response.json()
+    original_update = {
+        "organizationName": original_profile["organizationName"],
+    }
+    response = session.put(path, json=original_update, timeout=10)
+    response.raise_for_status()
+    try:
+        yield session
+    finally:
+        restored = session.put(path, json=original_update, timeout=10)
+        restored.raise_for_status()
+
+
+@pytest.fixture
 def portfolio_artist(login_as, base_url):
     """Svaki test počinje praznim obrascem, a zatim vraća izvorni dev profil."""
     session = login_as("umjetnik@artconnect.test")
