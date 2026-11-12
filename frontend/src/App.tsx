@@ -18,6 +18,7 @@ import { RequireRole } from './features/auth/routing/RequireRole'
 import { useCurrentUser } from './features/auth/useCurrentUser'
 import { ArtistProfilePage } from './features/artist-profile/ArtistProfilePage'
 import { HomePage } from './features/auth/pages/HomePage'
+import { OpportunitySearchPage} from './features/opportunities/pages/OpportunitySearchPage'
 import { hr } from './i18n/hr'
 import { OrganizerProfilePage } from './features/organizer-profile/OrganizerProfilePage'
 import { PublicPortfolioPage } from './features/public-portfolio/PublicPortfolioPage'
@@ -79,7 +80,7 @@ const router = createBrowserRouter(
     createRoutesFromElements(
         <Route element={<AppRouteLayout />}>
             <Route index element={<HomePage />} />
-            <Route path="opportunities/*" element={<Page title="Prilike" />} />
+            <Route path="opportunities" element={<OpportunitySearchPage />} />
             <Route
                 path="my-opportunities"
                 element={

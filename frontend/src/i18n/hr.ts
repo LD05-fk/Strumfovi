@@ -89,6 +89,11 @@ export const hr = {
     FINISHED: 'Završena',
   },
 
+  opportunityLocationType: {
+    PHYSICAL: 'Fizička',
+    ONLINE: 'Online',
+  },
+
   applicationStatus: {
     SUBMITTED: 'Poslana',
     UNDER_REVIEW: 'U razmatranju',
@@ -311,6 +316,7 @@ export const hr = {
   },
 
   opportunities: {
+    pageTitle: 'Prilike',
     detail: {
       defaultTitle: 'Prilika',
       notFound: 'Prilika ne postoji ili nije dostupna.',
@@ -379,6 +385,8 @@ export const hr = {
       addressMax: 'Adresa smije imati najviše 200 znakova.',
       cityRequired: 'Grad je obavezan za fizičku lokaciju.',
       cityMax: 'Grad smije imati najviše 100 znakova.',
+      queryMax: 'Ključna riječ smije imati najviše 100 znakova.',
+      deadlineRange: 'Rok "od" ne može biti nakon roka "do".',
       postalCodeMax: 'Poštanski broj smije imati najviše 10 znakova.',
       locationMarkerRequired: 'Postavite oznaku na karti.',
       onlineUrlMax: 'Poveznica smije imati najviše 1024 znaka.',
@@ -402,6 +410,61 @@ export const hr = {
       unavailable:
         'Usluga karte trenutno nije dostupna - postavite oznaku ručno.',
       onlineUrl: 'Poveznica na online lokaciju',
+    },
+    search: {
+      emptyTitle: 'Nema prilika za odabrane filtre',
+      emptyDescription: 'Pokušajte s drugim filtrima.',
+      clearFilters: 'Očisti filtre',
+      resultsCount: (count: number) => `Pronađenih prilika: ${count}`,
+      emptyPageTitle: 'Na ovoj stranici nema prilika',
+      firstPage: 'Prva stranica',
+      pagination: 'Stranice rezultata',
+      view: {
+        label: 'Prikaz',
+        options: {
+          list: 'Popis',
+          map: 'Karta',
+        },
+      },
+      sort: {
+        label: 'Sortiraj',
+        options: {
+          deadline: 'Najbliži rok',
+          '-deadline': 'Najdalji rok',
+          '-publishedAt': 'Najnovije objavljeno',
+          publishedAt: 'Najstarije objavljeno',
+        },
+      },
+      filters: {
+        title: 'Filtri',
+        apply: (count: number) => `Prikaži rezultate (${count})`,
+        applyPending: 'Prikaži rezultate',
+        q: 'Ključna riječ',
+        qPlaceholder: 'Pretraži prilike',
+        artFields: 'Područje',
+        anyArtField: 'Sva područja',
+        types: 'Vrsta',
+        anyType: 'Sve vrste',
+        city: 'Grad',
+        anyCity: 'Svi gradovi',
+        locationType: 'Lokacija',
+        anyLocationType: 'Sve',
+        statuses: 'Status',
+        deadline: 'Rok prijave',
+        deadlineFrom: 'Rok od',
+        deadlineTo: 'Rok do',
+        anyDeadline: 'Bilo kada',
+      },
+      map: {
+        ariaLabel: 'Karta prilika',
+        truncated: (count: number) => `Na karti je prikazano prvih ${count} rezultata.`,
+        missingLocation: (count: number) => `Prilike bez lokacije: ${count}.`,
+      },
+      card: {
+        details: 'Detalji',
+        detailsAriaLabel: (title: string) => `Detalji prilike ${title}`,
+        deadlineLabel: 'Rok prijave:',
+      },
     },
   },
 
