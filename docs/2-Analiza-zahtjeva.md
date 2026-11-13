@@ -84,7 +84,7 @@ Otvorena pitanja iz početka projekta (C-02, C-03, C-05–C-07, AS-01) potvrđen
 | C-04 | Ograničenje | Rokovi predaje su 20. 11. 2026. i 22. 1. 2027.; rad svih članova mora biti vidljiv na GitHubu (Issues, commitovi, PR-ovi). | Pravila kolegija | Podjela zahtjeva po ciklusima (§2.1); rad kroz Issue i PR. |
 | C-05 | Ograničenje | Datum rođenja umjetnika ne prikuplja se. | Odluka tima, potvrđeno s asistenticom | Dobni kriteriji prilike samo su informativni tekst, bez automatske provjere. |
 | C-06 | Ograničenje | Brisanje računa anonimizira osobne podatke, a prijave i rezultati ostaju sačuvani. | Odluka tima, potvrđeno s asistenticom | FR-01, NF-02. |
-| C-07 | Ograničenje | Google aplikacija radi u testnom načinu: prijavu i Google Calendar mogu koristiti samo dodani testni korisnici. | Odluka tima, potvrđeno s asistenticom | Tim dodaje račune za testiranje i demonstraciju u Google Cloud. |
+| C-07 | Ograničenje | Google aplikacija je u testnom načinu. Prijava radi s bilo kojim Google računom, ali Google Calendar (2. ciklus) mogu koristiti samo dodani testni korisnici. | Odluka tima, potvrđeno s asistenticom | Za demonstraciju kalendara tim dodaje račune u Google Cloud. |
 | AS-01 | Pretpostavka | Obavijesti unutar aplikacije nisu nužne; status prijave vidi se na stranici prijave. | Odluka tima, potvrđeno s asistenticom | FR-10 je opcionalan (Nizak prioritet). |
 | AS-02 | Pretpostavka | Besplatni OpenStreetMap i Nominatim dovoljni su za opterećenje projekta. | Procjena tima | Test geokodiranja; ručni unos položaja ako usluga ne radi (NF-10). |
 | AS-03 | Pretpostavka | Korisnici koriste aktualne inačice preglednika Chrome, Firefox ili Edge. | Procjena tima | Ručna provjera glavnih tokova (NF-04). |
