@@ -110,8 +110,8 @@ const router = createBrowserRouter(
                     </RequireRole>
                 }
             />
-            <Route 
-                path="artists/:artistId" 
+            <Route
+                path="artists/:artistId"
                 element={<PublicPortfolioPage />}
             />
             <Route
