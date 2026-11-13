@@ -145,3 +145,45 @@ privatnih i skrivenih djela/slika te blokiranog umjetnika dodatno je pokrivena
 u `ArtworkReadIntegrationTest` i `FileDownloadIntegrationTest`; pohrana slika
 u potonjem koristi privremeni `@TempDir`. Ciljane integracijske provjere izvode
 se preko Maven Surefire/Failsafe ciljeva, a u CI-ju ih pokreće `mvn verify`.
+
+## Slike djela i datoteke (PORT-04-TEST)
+
+`ArtworkLifecycleIT` dodatno učitava tri slike, provjerava odbijanje četvrte
+(409 `IMAGE_LIMIT_REACHED`), briše jednu i uspješno dodaje zamjenu. Brisanje
+djela s tri slike mora ukloniti djelo, slike, metapodatke i datoteke s diska;
+stare adrese datoteka tada vraćaju 404. Provjeravaju se i PDF, tekst preimenovan
+u PNG (415), JPG od točno 5 MiB + 1 B (413) te zabrane učitavanja i brisanja
+za drugog umjetnika, organizatora i korisnika `ONBOARDING`.
+
+`FileAccessIT` učitava JPG i PNG te provjerava njihov izvorni sadržaj, tip,
+veličinu i cache zaglavlje bez prijave. Nakon promjene djela u privatno,
+slike ostaju dostupne vlasniku i administratoru, a drugima daju 404.
+Obje klase koriste stvarne sesije, CSRF i `PortfolioFixtures`. Svaka ima
+vlastiti `@TempDir` korijen pohrane, a podaci i sesije čiste se i nakon pada.
+
+Ciljano pokretanje iz `backend/` uz Javu 25 i Docker:
+
+```bash
+./mvnw '-Dtest=ArtworkLifecycleIT,FileAccessIT' test
+```
+
+Za provjere nevaljanih datoteka Selenium koristi `public_artwork` za pripremu
+i brisanje djela kroz API. Glavni scenarij stvara javno djelo kroz obrazac kako
+bi provjerio i preusmjeravanje na njegovo uređivanje. `artwork_image_artist`
+priprema prijavu i jedinstveni naslov te kroz API briše to djelo i nakon pada.
+`ArtworkFormPage` dodaje sliku, čeka brojač i stvarno učitane sličice te
+briše sliku uz potvrdu. Jedan test prolazi učitavanje JPG-a i PNG-a,
+osvježavanje, granicu od tri slike, brisanje i ponovno dodavanje.
+Dva povezana slučaja provjeravaju poruke za PDF i prevelik JPG.
+Male datoteke su u `tests/selenium/fixtures/`; `artwork_image_files`
+stvara `big.jpg` veličine 5 MiB + 1 B u pytest privremenoj mapi.
+
+```bash
+pytest tests/selenium/test_portfolio.py -k artwork_images --html=report.html --self-contained-html --junitxml=test-results/pytest.xml
+```
+
+Frontend iz [PORT-04-FE #109](https://github.com/LD05-fk/Strumfovi/issues/109)
+uključen je u `master`. Prema zahtjevu #110, na granici gumb za dodavanje
+ostaje vidljiv i onemogućen; nakon uklanjanja slike ponovno je dostupan.
+Postojeći CI automatski izvodi obje `IT` klase preko Failsafea i nove
+Selenium testove te sprema Surefire/Failsafe, pytest i PNG/HTML dokaze pada.

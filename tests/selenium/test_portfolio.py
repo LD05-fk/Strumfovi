@@ -1,4 +1,5 @@
 import json
+import pytest
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -8,6 +9,48 @@ from page_objects.profile_page import ProfilePage
 from page_objects.artwork_form_page import ArtworkFormPage
 from page_objects.my_portfolio_page import MyPortfolioPage
 from page_objects.public_portfolio_page import PublicPortfolioPage
+
+
+def test_artwork_images_upload_limit_and_removal(
+    driver, base_url, artwork_image_artist, artwork_image_files
+):
+    """JPG i PNG se prikazuju, treća slika zatvara dodavanje, brisanje ga otvara."""
+    page = ArtworkFormPage(driver, base_url)
+    artwork_id = page.create_public(artwork_image_artist)
+    page.upload_image(artwork_image_files["art.jpg"])
+    page.wait_for_images(1)
+    page.upload_image(artwork_image_files["art.png"])
+    assert len(page.wait_for_images(2)) == 2
+    page.wait_for_path(f"/portfolio/artworks/{artwork_id}")
+
+    # Osvježavanje provjerava da sličice dolaze iz pohrane, a ne samo iz lokalnog pregleda.
+    driver.refresh()
+    page.wait_for_images(2)
+    page.upload_image(artwork_image_files["art.jpg"])
+    page.wait_for_images(3)
+    assert not page.wait_visible(page.ADD_IMAGE).is_enabled()
+
+    page.remove_first_image()
+    page.wait_for_images(2)
+    assert page.wait_visible(page.ADD_IMAGE).is_enabled()
+    page.upload_image(artwork_image_files["art.png"])
+    page.wait_for_images(3)
+    # Fixture na kraju briše djelo i sve njegove datoteke, čak i kod pada testa.
+
+
+@pytest.mark.parametrize("name,message", [
+    ("document.pdf", "Dopuštene su samo JPG i PNG slike"),
+    ("big.jpg", "Slika je veća od 5 MB"),
+])
+def test_artwork_images_reject_invalid_files(
+    driver, base_url, public_artwork, artwork_image_files, name, message
+):
+    """Pogrešan tip i prekoračenje veličine daju jasnu poruku bez dodavanja slike."""
+    page = ArtworkFormPage(driver, base_url).open_artwork(public_artwork["id"])
+    page.upload_image(artwork_image_files[name])
+    assert message in page.wait_for_image_error(message)
+    page.wait_visible((By.XPATH, "//*[normalize-space()='0/3 slike']"))
+    assert driver.find_elements(*page.THUMBNAILS) == []
 
 
 def test_artwork_empty_form_shows_three_required_errors(driver, base_url, login_as):
