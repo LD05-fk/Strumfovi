@@ -20,8 +20,8 @@ Detaljni dijagrami po skupinama obrazaca:
 | UC-01 | Prijaviti se i upravljati računom | Posjetitelj, prijavljeni korisnik, Google OAuth 2.0 |
 | UC-02 | Urediti profil i portfolio | Umjetnik, organizator |
 | UC-03 | Pregledati javne profile i portfolije | Posjetitelj |
-| UC-04 | Upravljati prilikama | Organizator, OpenStreetMap/Nominatim, Planer (automatsko zatvaranje) |
-| UC-05 | Pregledati prilike | Posjetitelj, umjetnik, OpenStreetMap/Nominatim |
+| UC-04 | Upravljati prilikama | Organizator, OpenStreetMap / Nominatim, Planer (automatsko zatvaranje) |
+| UC-05 | Pregledati prilike | Posjetitelj, umjetnik, OpenStreetMap / Nominatim |
 | UC-06 | Postaviti uvjete i prijaviti se na priliku | Organizator, umjetnik |
 | UC-07 | Odlučivati o prijavama | Organizator, umjetnik |
 | UC-08 | Objaviti rezultate i dodati u kalendar | Organizator, umjetnik, Google Calendar |
@@ -30,7 +30,9 @@ Detaljni dijagrami po skupinama obrazaca:
 | UC-11 | Pregledati obavijesti **(opcionalno)** | Prijavljeni korisnik |
 | UC-12 | Pregledati dnevnik administratorskih radnji **(opcionalno)** | Administrator |
 
-Veze između obrazaca i zahtjeva bit će u [matrici sljedivosti](2-Analiza-zahtjeva.md#26-sljedivost-zahtjeva) kad ona bude ispunjena.
+Veze obrazaca sa zahtjevima su u §3.3 i u [sljedivosti zahtjeva](2-Analiza-zahtjeva.md#26-sljedivost-zahtjeva).
+
+Obrasci UC-06 do UC-10 isporučuju se u 2. ciklusu. Opisani su sažeto, kao dogovoreno ponašanje; detalji će se dopuniti uz implementaciju.
 
 ## 3.2 Specifikacije obrazaca uporabe
 
@@ -44,9 +46,21 @@ Veze između obrazaca i zahtjeva bit će u [matrici sljedivosti](2-Analiza-zahtj
 | **Preduvjeti** | Korisnik ima Google račun. |
 | **Glavni uspješni tok** | 1. Posjetitelj se prijavi Google računom.<br>2. Sustav stvara ili prepoznaje korisnika i uspostavlja sesiju.<br>3. Novi korisnik odabire ulogu umjetnika ili organizatora (`POST /api/v1/me/role`).<br>4. Sustav aktivira račun i preusmjerava korisnika na profil. |
 | **Alternativni tokovi** | **3a — Uloga je već odabrana:** sustav vraća `409 ROLE_ALREADY_CHOSEN`.<br>**3b — Prije odabira uloge:** ostale rute vraćaju `403 ONBOARDING_REQUIRED`.<br>**3c — Pozvani korisnik:** unaprijed dodijeljena uloga aktivira se prijavom, a odabir se preskače. |
-| **Rezultat** | Korisnik ima ulogu i aktivan račun. Brisanje računa planirano je u zadatku AUTH-04. |
+| **Rezultat** | Korisnik ima ulogu i aktivan račun. |
 
 Detalji su u [API dokumentaciji prijave](api/auth.md).
+
+#### Brisanje vlastitog računa (2. ciklus)
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Prijavljeni korisnik |
+| **Povezani zahtjevi** | FR-01; AUTH-04 |
+| **Preduvjeti** | Korisnik je prijavljen. |
+| **Glavni uspješni tok** | 1. Korisnik odabire „Obriši račun” i potvrđuje radnju upisom riječi „OBRISI”.<br>2. Sustav (`DELETE /api/v1/me`) anonimizira osobne podatke: ime postaje „Obrisani korisnik”, a e-adresa i Google identitet brišu se.<br>3. Sustav poništava sesiju i vraća korisnika na početnu stranicu. |
+| **Alternativni tokovi** | **1a — Korisnik odustane:** račun ostaje nepromijenjen.<br>**2a — Organizator ima otvorene prilike:** prilike se zatvaraju, ali ostaju vidljive uz autora „Obrisani korisnik”.<br>**2b — Umjetnik ima prijave:** prijave i rezultati ostaju, ali bez osobnih podataka i priloga. |
+| **Rezultat** | Račun je anonimiziran; podaci drugih korisnika (prijave, rezultati) ostaju sačuvani. |
+
 
 ### UC-02 Urediti profil i portfolio
 
@@ -77,7 +91,7 @@ Detalji su u [API dokumentaciji umjetnika](api/artists.md) i [djela](api/artwork
 | Element specifikacije | Opis |
 | :--- | :--- |
 | **Primarni akter** | Organizator (vlasnik prilike) |
-| **Vanjski akter** | OpenStreetMap/Nominatim (geokodiranje adrese), Planer (automatsko zatvaranje prijava nakon roka) |
+| **Vanjski akter** | OpenStreetMap / Nominatim (geokodiranje adrese), Planer (automatsko zatvaranje prijava nakon roka) |
 | **Povezani zahtjevi** | FR-03, FR-04 |
 | **Preduvjeti** | Organizator ima aktivan račun s ulogom `ORGANIZER` i prijavljenu sesiju. |
 | **Glavni uspješni tok** | 1. Organizator unosi naslov, opis, vrstu, područja umjetnosti, rok i lokaciju (fizička s koordinatama ili online s poveznicom); sustav sprema nacrt u statusu `PREPARATION`.<br>2. Organizator uređuje priliku (`PUT /api/v1/opportunities/{id}`); status ostaje isti.<br>3. Organizator otvara „Moje prilike” na `/my-opportunities`; sustav dohvaća njegove prilike (`GET /api/v1/me/opportunities`) i omogućuje filtriranje po statusu i odabir aktivnih ili arhiviranih prilika.<br>4. Organizator mijenja status prilike (`POST /api/v1/opportunities/{id}/status`): `PREPARATION` → `OPEN`, `OPEN` → `CLOSED` ili `CLOSED` → `SELECTION`.<br>5. Organizator briše priliku ili je arhivira. |
@@ -115,7 +129,7 @@ Detalji su u [API dokumentaciji prilika](api/opportunities.md), za [pregled orga
 | Element specifikacije | Opis |
 | :--- | :--- |
 | **Primarni akter** | Organizator (vlasnik prilike) |
-| **Povezani zahtjevi** | FR-03; OPP-03 |
+| **Povezani zahtjevi** | FR-04; OPP-03 |
 | **Preduvjeti** | Organizator je prijavljen s ulogom `ORGANIZER`, a prilika pripada njegovu računu. Stranici „Moje prilike” pristupa na `/my-opportunities`; za promjenu statusa prilika može biti otvorena i iz popisa ili iz vlastitog detalja. |
 | **Glavni uspješni tok** | 1. Sustav dohvaća organizatorove prilike (`GET /api/v1/me/opportunities`) i prikazuje kartice „Aktivne” i „Arhivirane”, filtar statusa te straničenje.<br>2. Organizator odabire dopuštenu statusnu radnju u traci radnji. Za `PREPARATION` nudi se „Objavi” (`OPEN`), za `OPEN` „Zatvori prijave” (`CLOSED`), a za `CLOSED` „Započni odabir” (`SELECTION`). „Ponovno otvori prijave” (`OPEN`) nudi se za `CLOSED` samo dok je rok u budućnosti. Za `SELECTION` i `FINISHED` ne nude se statusne radnje. Arhivirana prilika nema statusnih radnji.<br>3. Sustav traži potvrdu radnje. Organizator je potvrđuje, a sustav šalje `POST /api/v1/opportunities/{id}/status` s ciljnim statusom.<br>4. Sustav sprema promjenu, osvježava popis i detalj prilike te prikazuje potvrdu uspjeha. |
 | **Alternativni tokovi** | **1a — Nema prilika:** sustav prikazuje prazno stanje i poveznicu za stvaranje nove prilike (`/organizer/opportunities/new`).<br>**1b — Dohvat traje ili ne uspije:** sustav prikazuje stanje učitavanja odnosno grešku s mogućnošću ponovnog pokušaja.<br>**2a — Rok je istekao:** ponovno otvaranje nije ponuđeno; ako je rok istekao prije slanja zahtjeva, API vraća `409 DEADLINE_PASSED` i sustav upućuje organizatora da produlji rok uređivanjem prilike.<br>**3a — Organizator odustane:** dijalog se zatvara bez slanja zahtjeva i prilika ostaje nepromijenjena.<br>**4a — Prijelaz više nije dopušten ili je prilika arhivirana:** API vraća `409 INVALID_STATUS_TRANSITION`; sustav prikazuje poruku i osvježava podatke.<br>**4b — Organizator nema odobrenje za objavu:** kada se provjera odobrenja aktivira u ADM-02-BE, API vraća `403 ORGANIZER_NOT_APPROVED`, a sustav prikazuje poruku poslužitelja.<br>**4c — Ostala greška poslužitelja:** sustav prikazuje obavijest o grešci, a podaci se ponovno dohvaćaju prema potrebi. |
@@ -126,7 +140,7 @@ Detalji su u [API dokumentaciji prilika](api/opportunities.md), za [pregled orga
 | Element specifikacije | Opis |
 | :--- | :--- |
 | **Primarni akter** | Organizator (vlasnik prilike) |
-| **Povezani zahtjevi** | FR-03; OPP-03 |
+| **Povezani zahtjevi** | FR-04; OPP-03 |
 | **Preduvjeti** | Organizator je prijavljen s ulogom `ORGANIZER`, a prilika pripada njegovu računu. Radnja je dostupna iz trake radnji na popisu „Moje prilike” (`/my-opportunities`) ili na detalju prilike. |
 | **Glavni uspješni tok** | 1. Organizator odabire „Obriši”.<br>2. Sustav prikazuje dijalog za potvrdu brisanja i upozorava da se radnja ne može poništiti.<br>3. Organizator potvrđuje brisanje; sustav šalje `DELETE /api/v1/opportunities/{id}`.<br>4. API potvrđuje brisanje (`204 No Content`), sustav osvježava popis i uklanja priliku iz prikaza. Ako je radnja pokrenuta s detalja, sustav vodi organizatora na `/my-opportunities`. |
 | **Alternativni tokovi** | **1a — Prilika je već arhivirana:** „Obriši” ostaje dostupno, ali se ne nude statusne radnje ni dodatna radnja „Arhiviraj”.<br>**2a — Organizator odustane:** dijalog se zatvara, bez slanja zahtjeva i promjene prilike.<br>**3a — Prilika ima prijave:** API vraća `409 HAS_APPLICATIONS`; sustav ne briše priliku i u dijalogu nudi arhiviranje. Ako organizator odabere „Arhiviraj”, sustav šalje `POST /api/v1/opportunities/{id}/archive`.<br>**3b — Brisanje ili arhiviranje ne uspije:** sustav prikazuje obavijest o grešci i zadržava priliku u prikazu.<br>**3c — Prilika ne postoji ili ne pripada organizatoru:** API vraća `404 NOT_FOUND` odnosno `403 FORBIDDEN`; sustav prikazuje odgovarajuću poruku i osvježava prikaz. |
@@ -137,7 +151,7 @@ Detalji su u [API dokumentaciji prilika](api/opportunities.md), za [pregled orga
 | Element specifikacije | Opis |
 | :--- | :--- |
 | **Primarni akter** | Posjetitelj, umjetnik |
-| **Vanjski akter** | OpenStreetMap/Nominatim (karta i pretraga lokacija) |
+| **Vanjski akter** | OpenStreetMap / Nominatim (karta i pretraga lokacija) |
 | **Povezani zahtjevi** | FR-04 |
 | **Preduvjeti** | Nema; pregled ne traži prijavu. |
 | **Glavni uspješni tok** | 1. Korisnik otvara `/opportunities`; prikazuju se otvorene prilike (zadani status `OPEN`), poredane po najbližem roku, 20 po stranici.<br>2. Sužava pretragu filtrima: ključna riječ, područja umjetnosti, vrste prilike, grad, vrsta lokacije, status i raspon roka prijave. Ključna riječ i grad šalju se tek kad korisnik prestane tipkati, a svaka promjena filtra vraća pretragu na prvu stranicu.<br>3. Mijenja redoslijed (rok prijave ili vrijeme objave) i prelazi među stranicama rezultata.<br>4. Po potrebi prebacuje prikaz s popisa na kartu, koja prikazuje do 100 rezultata s koordinatama.<br>5. Otvara pojedinu priliku s kartice ili iz skočnog opisa na karti.<br>6. Adresu pretrage može podijeliti ili spremiti: filtri, sortiranje, stranica i prikaz zapisani su u URL upitu, pa i gumbi natrag i naprijed vraćaju prethodne pretrage. |
@@ -162,24 +176,59 @@ Detalji su u [API dokumentaciji prilika](api/opportunities.md), za [pregled orga
 | :--- | :--- |
 | **Primarni akter** | Organizator (uvjeti), umjetnik (prijava) |
 | **Povezani zahtjevi** | FR-05 |
-| **Preduvjeti** | Prilika postoji i organizator je njezin vlasnik; za prijavu prijave su otvorene. |
-| **Glavni uspješni tok** | 1. Organizator postavlja uvjete prijave (zadaci APP-01, APP-05).<br>2. Umjetnik pregledava uvjete i predaje prijavu (APP-02).<br>3. Umjetnik može prijavu povući ili dopuniti dok su prijave otvorene. |
-| **Alternativni tokovi** | **2a — Prijave zatvorene:** predaja i dopuna nisu moguće. |
-| **Rezultat** | Uvjeti su spremljeni; prijava je predana i vidljiva umjetniku. |
+| **Preduvjeti** | Prilika postoji; za predaju prijave prilika je u statusu `OPEN`. |
+| **Glavni uspješni tok** | 1. Organizator određuje što prijava mora sadržavati.<br>2. Umjetnik predaje prijavu prema tim uvjetima.<br>3. Umjetnik prati prijavu, dopunjuje je ili povlači. |
+| **Alternativni tokovi** | **2a — Prilika nije otvorena:** predaja nije moguća. |
+| **Rezultat** | Uvjeti su spremljeni, a prijava predana i vidljiva umjetniku i organizatoru. |
 
-Detalji rute i odgovora bit će u API dokumentaciji prijava.
+**Stanja prijave:** „Predana” (`SUBMITTED`), „U pregledu” (`UNDER_REVIEW`), „Potrebna dopuna” (`NEEDS_INFO`), „Prihvaćena” (`ACCEPTED`), „Odbijena” (`REJECTED`) i „Povučena” (`WITHDRAWN`). Prve tri su neodlučene, a zadnje tri završne.
+
+#### Postavljanje uvjeta prijave
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Organizator (vlasnik prilike) |
+| **Povezani zahtjevi** | FR-05; APP-01, APP-05 |
+| **Preduvjeti** | Organizator je prijavljen i prilika mu pripada. |
+| **Glavni uspješni tok** | 1. Organizator otvara uvjete prijave svoje prilike.<br>2. Dodaje stavke: naziv, vrstu (tekst, poveznica, slike, PDF ili djela iz portfolija), je li obavezna i najveći broj priloga.<br>3. Sprema uvjete (`PUT /api/v1/opportunities/{id}/requirements`). |
+| **Alternativni tokovi** | **2a — Previše datoteka:** zbroj datotečnih stavki veći od 10 odbija se (`400 VALIDATION_ERROR`).<br>**3a — Izmjena nakon prvih prijava:** uvjeti se smiju mijenjati; neodlučene prijave koje ih više ne zadovoljavaju automatski prelaze u „Potrebna dopuna” s porukom što nedostaje. Prihvaćene i odbijene prijave ne mijenjaju se. |
+| **Rezultat** | Uvjeti su spremljeni i prikazuju se na detalju prilike. |
+
+#### Predaja prijave
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Umjetnik |
+| **Povezani zahtjevi** | FR-05; APP-02 |
+| **Preduvjeti** | Umjetnik je prijavljen, a prilika je u statusu `OPEN`. |
+| **Glavni uspješni tok** | 1. Umjetnik na detalju prilike odabire „Prijavi se”.<br>2. Popunjava stavke: tekst, poveznice, datoteke ili vlastita djela (i privatna, koja tada vidi samo organizator te prilike).<br>3. Predaje prijavu (`POST /api/v1/opportunities/{id}/applications`); status je „Predana”.<br>4. Prijava se prikazuje u „Mojim prijavama”. |
+| **Alternativni tokovi** | **2a — Nedostaje obavezna stavka ili je priloga previše:** `400 VALIDATION_ERROR`, greška se prikazuje uz stavku.<br>**2b — Djelo je sakrio administrator:** ne može se priložiti.<br>**3a — Prilika nije otvorena ili je rok prošao:** `409 OPPORTUNITY_NOT_OPEN` odnosno `409 DEADLINE_PASSED`.<br>**3b — Umjetnik već ima aktivnu prijavu na tu priliku:** `409 ALREADY_APPLIED`. |
+| **Rezultat** | Prijava je predana i organizator je vidi. |
+
+#### Dopuna ili povlačenje prijave
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Umjetnik |
+| **Povezani zahtjevi** | FR-05; APP-03 |
+| **Preduvjeti** | Umjetnik ima neodlučenu prijavu. |
+| **Glavni uspješni tok** | 1. Umjetnik otvara prijavu i vidi status, povijest i poruku organizatora.<br>2. Ako je status „Potrebna dopuna”, dopunjuje stavke i ponovno predaje (`PUT /api/v1/applications/{id}`); status je opet „Predana”.<br>3. Umjesto toga može povući prijavu uz potvrdu (`POST /api/v1/applications/{id}/withdraw`); status je „Povučena”. |
+| **Alternativni tokovi** | **2a — Prijava nije u statusu „Potrebna dopuna”:** dopuna nije ponuđena (`409 INVALID_STATUS_TRANSITION`).<br>**2b — Dopuna ne zadovoljava trenutne uvjete:** `400 VALIDATION_ERROR`.<br>**3a — Prijava je već odlučena ili povučena:** povlačenje nije moguće (`409 INVALID_STATUS_TRANSITION`).<br>**3b — Nova prijava nakon povlačenja:** dopuštena dok je prilika otvorena; stara ostaje kao „Povučena”. |
+| **Rezultat** | Prijava je dopunjena i ponovno predana ili povučena. |
+
+Detalji ruta i odgovora bit će u API dokumentaciji prijava.
 
 ### UC-07 Odlučivati o prijavama
 
 | Element specifikacije | Opis |
 | :--- | :--- |
-| **Primarni akter** | Organizator |
+| **Primarni akter** | Organizator (vlasnik prilike) |
 | **Sudionik** | Umjetnik (prati odluku) |
-| **Povezani zahtjevi** | FR-06 |
-| **Preduvjeti** | Umjetnik je predao prijavu na priliku organizatora. |
-| **Glavni uspješni tok** | 1. Organizator otvara popis prijava na svoju priliku (APP-04).<br>2. Pregledava prijavu i prihvaća je ili odbija.<br>3. Sustav sprema odluku.<br>4. Umjetnik vidi odluku među svojim prijavama (APP-03). |
-| **Alternativni tokovi** | **2a — Prijava nije pronađena ili pripada drugom organizatoru:** odluka se ne sprema. |
-| **Rezultat** | Prijava je prihvaćena ili odbijena, a umjetnik vidi odluku. |
+| **Povezani zahtjevi** | FR-06; APP-04 |
+| **Preduvjeti** | Na priliku organizatora predana je barem jedna prijava. |
+| **Glavni uspješni tok** | 1. Organizator otvara popis prijava na svoju priliku (`GET /api/v1/opportunities/{id}/applications`) i po želji filtrira po statusu.<br>2. Otvara prijavu i pregledava priloge.<br>3. Mijenja status (`POST /api/v1/applications/{id}/status`) u „U pregledu”, „Potrebna dopuna” (uz poruku), „Prihvaćena” ili „Odbijena” (uz razlog). Status smije mijenjati i dok je prilika otvorena.<br>4. Sustav bilježi promjenu u povijesti prijave, a umjetnik vidi novi status i poruku. |
+| **Alternativni tokovi** | **1a — Nema prijava:** prikazuje se prazno stanje.<br>**3a — Nedostaje poruka ili razlog:** za „Potrebna dopuna” i „Odbijena” promjena se ne sprema (`400 VALIDATION_ERROR`).<br>**3b — Nedopušten prijelaz** (npr. prijava je već odlučena ili povučena): `409 INVALID_STATUS_TRANSITION`.<br>**3c — Tuđa prilika:** `403 FORBIDDEN`. |
+| **Rezultat** | Prijava ima novi status, a umjetnik vidi odluku. |
 
 ### UC-08 Objaviti rezultate i dodati u kalendar
 
@@ -188,10 +237,33 @@ Detalji rute i odgovora bit će u API dokumentaciji prijava.
 | **Primarni akter** | Organizator (objava), umjetnik (pregled i kalendar) |
 | **Vanjski akter** | Google Calendar |
 | **Povezani zahtjevi** | FR-07 |
-| **Preduvjeti** | Organizator ima prihvaćene prijave na priliku. |
-| **Glavni uspješni tok** | 1. Organizator objavljuje rezultate prilike (RES-01).<br>2. Sustav prikazuje rezultate sudionicima i dodaje sudjelovanje na javni portfolio umjetnika (RES-02).<br>3. Umjetnik odabire dodavanje prihvaćenog događanja u Google kalendar (CAL-01). |
-| **Alternativni tokovi** | **1a — Ispravak rezultata:** mijenja prikaz i na portfoliju (RES-03).<br>**3a — Prijava nije prihvaćena:** događanje se ne može dodati.<br>**3b — Izravno umetanje API-jem:** opcionalno (CAL-02). |
-| **Rezultat** | Rezultati su vidljivi, a umjetnik može otvoriti kalendar s podacima događanja. |
+| **Preduvjeti** | Prilika je u statusu `SELECTION` i ima prihvaćene prijave. |
+| **Glavni uspješni tok** | 1. Organizator objavljuje rezultate.<br>2. Sustav prikazuje rezultate i dodaje sudjelovanje na portfolio umjetnika.<br>3. Prihvaćeni umjetnik dodaje događanje u svoj Google kalendar. |
+| **Alternativni tokovi** | **1a — Ispravak rezultata:** promjena se vidi i na portfoliju. |
+| **Rezultat** | Rezultati su vidljivi, a umjetnik može dodati događanje u kalendar. |
+
+#### Objava rezultata
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Organizator (vlasnik prilike) |
+| **Povezani zahtjevi** | FR-07; RES-01, RES-02, RES-03 |
+| **Preduvjeti** | Prilika je u statusu `SELECTION`. |
+| **Glavni uspješni tok** | 1. Organizator odabire „Objavi rezultate”.<br>2. Upisuje tekst objave i odabire sudionike među umjetnicima s prihvaćenom prijavom; plasman (1.–3. mjesto) je opcionalan.<br>3. Potvrđuje objavu (`PUT /api/v1/opportunities/{id}/results`).<br>4. Sustav sprema rezultate, prebacuje priliku u `FINISHED` i dodaje sudjelovanje na portfolio svakog sudionika. |
+| **Alternativni tokovi** | **2a — Odabran umjetnik bez prihvaćene prijave:** `409 PARTICIPANT_NOT_ACCEPTED`.<br>**3a — Prilika nije u `SELECTION`:** `409 INVALID_STATUS_TRANSITION`.<br>**4a — Ispravak:** organizator kasnije mijenja rezultate istim obrascem, a promjena se prikazuje i na portfoliju. |
+| **Rezultat** | Rezultati su objavljeni na detalju prilike, a prilika je završena. |
+
+#### Dodavanje događanja u Google kalendar
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Umjetnik |
+| **Vanjski akter** | Google Calendar |
+| **Povezani zahtjevi** | FR-07; CAL-01, CAL-02 |
+| **Preduvjeti** | Umjetnikova prijava je prihvaćena, a prilika ima datum početka događanja. |
+| **Glavni uspješni tok** | 1. Umjetnik na prihvaćenoj prijavi odabire „Dodaj u Google kalendar”.<br>2. Sustav otvara Google kalendar s popunjenim naslovom, datumom i lokacijom.<br>3. Umjetnik sprema događaj u svoj kalendar. |
+| **Alternativni tokovi** | **1a — Prilika nema datum početka:** gumb se ne prikazuje.<br>**2a — Nema datuma završetka:** događaj traje jedan sat.<br>**2b — Izravno umetanje (opcionalno):** uz odobrenje korisnika sustav sam dodaje događaj putem Google Calendar API-ja. |
+| **Rezultat** | Događanje je u umjetnikovu kalendaru. |
 
 ### UC-09 Pregledati statistiku i izvještaje
 
@@ -199,10 +271,10 @@ Detalji rute i odgovora bit će u API dokumentaciji prijava.
 | :--- | :--- |
 | **Primarni akter** | Organizator (statistika), administrator (izvještaji) |
 | **Vanjski akter** | Planer (mjesečni izvještaj) |
-| **Povezani zahtjevi** | FR-08 |
-| **Preduvjeti** | Organizator ima prilike; administrator je prijavljen s ulogom `ADMIN`. |
-| **Glavni uspješni tok** | 1. Organizator otvara statistiku svojih prilika (STAT-01).<br>2. Planer jednom mjesečno generira izvještaj o korištenju platforme (REP-01).<br>3. Administrator pregledava izvještaje (REP-02). |
-| **Alternativni tokovi** | **1a — Grafikoni:** opcionalni (STAT-02).<br>**3a — Povijest i ručno generiranje:** opcionalni. |
+| **Povezani zahtjevi** | FR-08; STAT-01, REP-01, REP-02 |
+| **Preduvjeti** | Korisnik je prijavljen s ulogom `ORGANIZER` ili `ADMIN`. |
+| **Glavni uspješni tok** | 1. Organizator otvara „Statistika” (`GET /api/v1/me/statistics`) i vidi broj prijava po prilici i po području umjetnosti te broj prihvaćenih umjetnika.<br>2. Planer jednom mjesečno izrađuje izvještaj o korištenju: umjetnici, objavljene prilike i predane prijave, za svaku brojku novi u mjesecu i ukupno.<br>3. Administrator pregledava izvještaje (`GET /api/v1/admin/reports`). |
+| **Alternativni tokovi** | **1a — Organizator nema prilika ni prijava:** prikazuju se nule.<br>**3a — Izvještaj još ne postoji:** prikazuje se prazno stanje.<br>**3b — Grafikoni, povijest i ručno generiranje izvještaja:** opcionalni. |
 | **Rezultat** | Organizator vidi statistiku svojih prilika, a administrator mjesečne izvještaje. |
 
 ### UC-10 Upravljati platformom
@@ -211,12 +283,56 @@ Detalji rute i odgovora bit će u API dokumentaciji prijava.
 | :--- | :--- |
 | **Primarni akter** | Administrator |
 | **Povezani zahtjevi** | FR-09 |
-| **Preduvjeti** | Administrator je prijavljen s ulogom `ADMIN`; za promjene je potreban CSRF token. |
-| **Glavni uspješni tok** | 1. Administrator pregledava korisnike (`GET /api/v1/admin/users`) i filtrira ih po ulozi, statusu i odobrenju organizatora.<br>2. Mijenja uloge korisnika i odobrava organizatore (ADM-01, ADM-02).<br>3. Sakriva neprimjereni sadržaj (ADM-03).<br>4. Uređuje šifrarnike i postavke (ADM-04). |
-| **Alternativni tokovi** | **2a — Neispravni parametri:** `400 VALIDATION_ERROR`.<br>**4a — Stavka se koristi:** brisanje vraća `409 IN_USE`; administrator je može deaktivirati.<br>**4b — Duplikat šifre ili naziva:** `409 DUPLICATE_CODE`. |
-| **Rezultat** | Korisnici, odobrenja, sadržaj i šifrarnici su ažurirani. |
+| **Preduvjeti** | Administrator je prijavljen s ulogom `ADMIN`. |
+| **Glavni uspješni tok** | 1. Administrator pregledava korisnike (`GET /api/v1/admin/users`) i filtrira ih po ulozi, statusu i odobrenju organizatora.<br>2. Odobrava organizatore i mijenja uloge.<br>3. Blokira i odblokira korisnike.<br>4. Sakriva i vraća neprimjeren sadržaj.<br>5. Uređuje šifrarnike i postavke. |
+| **Alternativni tokovi** | **1a — Neispravni parametri filtra:** `400 VALIDATION_ERROR`. |
+| **Rezultat** | Korisnici, sadržaj, šifrarnici i postavke su ažurirani. |
 
 Detalji su u [API dokumentaciji administracije](api/admin.md).
+
+#### Odobravanje organizatora i promjena uloge
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Administrator |
+| **Povezani zahtjevi** | FR-09; ADM-01, ADM-02 |
+| **Preduvjeti** | Administrator je prijavljen; korisnik postoji. |
+| **Glavni uspješni tok** | 1. Administrator filtrira organizatore koji čekaju odobrenje.<br>2. Odobrava organizatora (`POST /api/v1/admin/users/{id}/approve-organizer`); organizator od tada smije objavljivati prilike.<br>3. Po potrebi mijenja ulogu korisnika (`POST /api/v1/admin/users/{id}/role`). |
+| **Alternativni tokovi** | **2a — Korisnik ne čeka odobrenje:** `409 NOT_PENDING_ORGANIZER`.<br>**3a — Korisnik već ima tu ulogu:** `409 SAME_ROLE`.<br>**3b — Umjetnik postaje organizator:** njegove neodlučene prijave automatski se povlače; prihvaćene i odbijene ostaju. |
+| **Rezultat** | Organizator je odobren ili korisnik ima novu ulogu. |
+
+#### Blokiranje korisnika
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Administrator |
+| **Povezani zahtjevi** | FR-09; ADM-01 |
+| **Preduvjeti** | Administrator je prijavljen; korisnik je aktivan. |
+| **Glavni uspješni tok** | 1. Administrator odabire „Blokiraj” uz potvrdu (`POST /api/v1/admin/users/{id}/block`).<br>2. Sustav prekida sesije korisnika i odbija njegovu prijavu, skriva njegov portfolio i prilike iz javnih prikaza, a otvorene prilike zatvara.<br>3. „Odblokiraj” (`POST /api/v1/admin/users/{id}/unblock`) vraća vidljivost; zatvorene prilike ostaju zatvorene. |
+| **Alternativni tokovi** | **1a — Administrator pokuša blokirati sebe:** `409 CANNOT_BLOCK_SELF`.<br>**1b — Korisnik je već blokiran ili obrisan:** `409 INVALID_STATUS_TRANSITION`. |
+| **Rezultat** | Korisnik je blokiran ili ponovno aktivan. |
+
+#### Skrivanje i vraćanje sadržaja
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Administrator |
+| **Povezani zahtjevi** | FR-09; ADM-03 |
+| **Preduvjeti** | Administrator je prijavljen; prilika ili djelo postoji. |
+| **Glavni uspješni tok** | 1. Administrator na prilici ili djelu odabire „Sakrij” (`POST /api/v1/admin/opportunities/{id}/hide`, odnosno `/artworks/{id}/hide`).<br>2. Sadržaj nestaje iz javnih prikaza; vlasnik ga i dalje vidi s oznakom da je skriven.<br>3. Na popisu skrivenog sadržaja (`GET /api/v1/admin/hidden-content`) administrator ga može vratiti (`.../restore`). |
+| **Alternativni tokovi** | **1a — Sadržaj je već skriven:** radnja „Sakrij” nije ponuđena, nudi se „Vrati”.<br>**2a — Skriveno djelo:** ne može se priložiti novoj prijavi. |
+| **Rezultat** | Sadržaj je skriven ili vraćen u javni prikaz. |
+
+#### Uređivanje šifrarnika i postavki
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Administrator |
+| **Povezani zahtjevi** | FR-09; ADM-04 |
+| **Preduvjeti** | Administrator je prijavljen. |
+| **Glavni uspješni tok** | 1. Administrator otvara područja umjetnosti ili vrste prilika.<br>2. Dodaje, preimenuje, deaktivira ili briše stavku.<br>3. U postavkama mijenja ograničenja učitavanja datoteka (najveća veličina i broj) (`PUT /api/v1/admin/settings`). |
+| **Alternativni tokovi** | **2a — Stavka se koristi:** brisanje vraća `409 IN_USE`; stavku je moguće deaktivirati.<br>**2b — Šifra ili naziv već postoji:** `409 DUPLICATE_CODE`.<br>**3a — Nevaljana vrijednost postavke:** `400 VALIDATION_ERROR`. |
+| **Rezultat** | Šifrarnici i postavke su ažurirani; deaktivirane stavke više se ne nude u obrascima. |
 
 ### UC-11 Pregledati obavijesti (opcionalno)
 
@@ -243,9 +359,31 @@ Detalji su u [API dokumentaciji administracije](api/admin.md).
 
 ## 3.3 Provjera dosljednosti obrazaca uporabe
 
-| Provjera | Pitanje za tim |
+**Obrasci i zahtjevi.** Svaki obrazac povezan je s barem jednim zahtjevom, a svaki zahtjev visokog prioriteta (FR-01–FR-06, FR-09) ima obrazac.
+
+| Obrazac uporabe | Funkcijski zahtjevi | Ciklus |
+| --- | --- | --- |
+| UC-01 Prijaviti se i upravljati računom | FR-01 | 1.; brisanje računa u 2. |
+| UC-02 Urediti profil i portfolio | FR-02 | 1. |
+| UC-03 Pregledati javne profile i portfolije | FR-02, FR-07 | 1.; sudjelovanja u 2. |
+| UC-04 Upravljati prilikama | FR-03, FR-04 | 1.; automatsko zatvaranje u 2. |
+| UC-05 Pregledati prilike | FR-04 | 1. |
+| UC-06 Postaviti uvjete i prijaviti se na priliku | FR-05 | 2. |
+| UC-07 Odlučivati o prijavama | FR-06 | 2. |
+| UC-08 Objaviti rezultate i dodati u kalendar | FR-07 | 2. |
+| UC-09 Pregledati statistiku i izvještaje | FR-08 | 2. |
+| UC-10 Upravljati platformom | FR-09 | 2. |
+| UC-11 Pregledati obavijesti (opcionalno) | FR-10 | 2. |
+| UC-12 Pregledati dnevnik administratorskih radnji (opcionalno) | FR-09 | 2. |
+
+**Akteri i nazivi.** Akteri i nazivi obrazaca u tablici §3.1, na dijagramima i u specifikacijama su isti, a odgovaraju akterima iz [§2.3](2-Analiza-zahtjeva.md#23-dionici-i-akteri).
+
+**Pronađene nedosljednosti i ispravci:**
+
+| Nedosljednost | Ispravak |
 | --- | --- |
-| Dijagram i tablica | Imaju li svi obrasci na dijagramu ID u tablici u 3.1 i odjeljak u 3.2? |
-| Zahtjevi | Je li svaki obrazac povezan s odobrenim funkcijskim zahtjevom? Veze će biti u matrici sljedivosti (§2.6) kad bude ispunjena. |
-| Akteri | Odgovaraju li akteri ulogama koje će biti opisane u §2.3 i dopuštenim radnjama? |
-| Aplikacija | Može li tim demonstrirati glavni tok i važnu alternativu? |
+| Promjena statusa i brisanje ili arhiviranje prilike bili su vezani uz FR-03, a upravljanje statusima pripada FR-04. | Podobrasci su povezani s FR-04. |
+| Naziv vanjskog aktera bio je „OpenStreetMap/Nominatim” u tablicama, a „OpenStreetMap / Nominatim” na dijagramima. | Svugdje je „OpenStreetMap / Nominatim”. |
+| UC-08 je kao preduvjet imao samo prihvaćene prijave, a rezultati se objavljuju tek u statusu prilike `SELECTION`. | Preduvjet uključuje status `SELECTION`. |
+| UC-07 nije spominjao „Potrebna dopuna” ni obaveznu poruku ili razlog. | Dodani su svi statusi i pravilo o poruci. |
+| Brisanje računa (FR-01) nije imalo opis toka. | Dodan je podobrazac „Brisanje vlastitog računa”. |
