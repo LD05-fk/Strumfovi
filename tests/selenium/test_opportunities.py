@@ -1,13 +1,17 @@
+from datetime import datetime, timedelta, timezone
 import re
 from uuid import uuid4
 
 import pytest
+import requests
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
+from page_objects.my_opportunities_page import MyOpportunitiesPage
 from page_objects.opportunity_detail_page import OpportunityDetailPage
 from page_objects.opportunity_form_page import OpportunityFormPage
+from page_objects.opportunity_search_page import OpportunitySearchPage
 
 
 ORGANIZER = "organizator@artconnect.test"
@@ -122,3 +126,131 @@ def test_opp_01_external_nominatim_search_finds_unska_3(
             ".leaflet-marker-icon[title='Pomična oznaka lokacije']",
         )
     )
+
+
+# OPP-03: upravljanje vlastitim prilikama na stranici „Moje prilike”.
+PUBLIC_STATUSES = ("OPEN", "CLOSED", "SELECTION", "FINISHED")
+
+
+@pytest.fixture
+def managed_opportunity(base_url, login_as):
+    """Priprema jednu priliku organizatora kroz API i nakon testa briše samo nju."""
+    session = login_as(ORGANIZER)
+    created = []
+
+    def _create(status="PREPARATION"):
+        types = session.get(f"{base_url}/api/v1/opportunity-types", timeout=10)
+        types.raise_for_status()
+        fields = session.get(f"{base_url}/api/v1/art-fields?pageSize=100", timeout=10)
+        fields.raise_for_status()
+        # Jedna riječ bez crtica, da je javna punotekstna pretraga pronađe kao cjelinu.
+        token = uuid4().hex
+        deadline = datetime.now(timezone.utc) + timedelta(days=30)
+        response = session.post(
+            f"{base_url}/api/v1/opportunities",
+            json={
+                "title": f"E2E upravljanje {token}",
+                "description": "Prilika za E2E test upravljanja statusom.",
+                "typeId": _first(types.json())["id"],
+                "artFieldIds": [_first(fields.json())["id"]],
+                "deadline": deadline.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "location": {"type": "ONLINE", "onlineUrl": "https://example.org/e2e"},
+            },
+            timeout=10,
+        )
+        response.raise_for_status()
+        opportunity = response.json()
+        created.append(opportunity["id"])
+        if status == "OPEN":
+            published = session.post(
+                f"{base_url}/api/v1/opportunities/{opportunity['id']}/status",
+                json={"status": "OPEN"},
+                timeout=10,
+            )
+            published.raise_for_status()
+        return {"id": opportunity["id"], "title": opportunity["title"], "token": token}
+
+    yield _create
+    for opportunity_id in created:
+        deleted = session.delete(
+            f"{base_url}/api/v1/opportunities/{opportunity_id}", timeout=10
+        )
+        # Test brisanja već je uklonio svoju priliku.
+        if deleted.status_code != 404:
+            deleted.raise_for_status()
+
+
+def _first(payload):
+    items = payload["data"] if isinstance(payload, dict) else payload
+    return next(item for item in items if item.get("active", True))
+
+
+def _public_search_ids(base_url, token):
+    response = requests.get(
+        f"{base_url}/api/v1/opportunities",
+        params={"q": token, "statuses": PUBLIC_STATUSES},
+        timeout=10,
+    )
+    response.raise_for_status()
+    return [item["id"] for item in response.json()["data"]]
+
+
+def test_opp_03_publish_makes_opportunity_visible_to_anonymous_visitor(
+    driver, base_url, managed_opportunity
+):
+    opportunity = managed_opportunity()
+    page = MyOpportunitiesPage(driver, base_url).open()
+    assert page.status_of(opportunity["title"]) == "U pripremi"
+
+    page.run_action(opportunity["title"], "Objavi")
+    page.wait_for_status(opportunity["title"], "Otvorena")
+
+    # Anonimni posjetitelj: isti preglednik bez kolačića sesije.
+    driver.delete_all_cookies()
+    search = OpportunitySearchPage(driver, base_url).search(opportunity["token"])
+    assert search.wait_for_result(opportunity["title"]).is_displayed()
+
+
+def test_opp_03_close_and_reopen_applications(
+    driver, base_url, managed_opportunity
+):
+    opportunity = managed_opportunity(status="OPEN")
+    page = MyOpportunitiesPage(driver, base_url).open()
+    assert page.status_of(opportunity["title"]) == "Otvorena"
+
+    page.run_action(opportunity["title"], "Zatvori prijave")
+    page.wait_for_status(opportunity["title"], "Zatvorena")
+
+    page.run_action(opportunity["title"], "Ponovno otvori prijave")
+    page.wait_for_status(opportunity["title"], "Otvorena")
+
+
+def test_opp_03_delete_opportunity_without_applications(
+    driver, base_url, managed_opportunity
+):
+    opportunity = managed_opportunity()
+    page = MyOpportunitiesPage(driver, base_url).open()
+    page.wait_for_opportunity(opportunity["title"])
+
+    page.run_action(opportunity["title"], "Obriši")
+    page.wait_for_opportunity_removed(opportunity["title"])
+
+    detail = OpportunityDetailPage(driver, base_url).open_path(
+        f"/opportunities/{opportunity['id']}"
+    )
+    assert detail.wait_for_not_found().is_displayed()
+
+
+def test_opp_03_archive_moves_opportunity_to_archived_tab(
+    driver, base_url, managed_opportunity
+):
+    opportunity = managed_opportunity(status="OPEN")
+    assert _public_search_ids(base_url, opportunity["token"]) == [opportunity["id"]]
+    page = MyOpportunitiesPage(driver, base_url).open()
+
+    page.run_action(opportunity["title"], "Arhiviraj")
+    page.wait_for_opportunity_removed(opportunity["title"])
+
+    page.open_archived_tab()
+    page.wait_for_status(opportunity["title"], "Zatvorena")
+    assert _public_search_ids(base_url, opportunity["token"]) == []
