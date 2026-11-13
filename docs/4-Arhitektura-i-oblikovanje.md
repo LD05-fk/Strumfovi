@@ -22,25 +22,18 @@ Za svaki UML dijagram čuvajte čitljivu sliku i PlantUML izvor, kako je opisano
 
 **Cilj:** Objasniti nekoliko arhitekturnih odluka koje najviše utječu na rješenje i navesti njihove projektno specifične razloge.
 
+ArtConnect je web-aplikacija klijent–poslužitelj: React aplikacija u pregledniku poziva REST API jedne Spring Boot aplikacije, a podaci su u PostgreSQL-u. Sve se izvodi na jednom poslužitelju u Dockeru.
+
 | Odluka | Razmatrana alternativa | Projektno specifično obrazloženje i kompromis |
 | --- | --- | --- |
-| Geokodiranje preko backenda (ADR-03) | Nominatim poziv izravno iz preglednika | Backend centralno provodi ograničenje korištenja i skriva vanjsku integraciju od klijenta; zahtjevi se mogu odbiti ako slobodan termin nije dostupan unutar dvije sekunde. |
-
-Objasnite glavne arhitekturne odluke bez ponavljanja popisa tehnologija. Ako važna odluka ima ADR, dovoljno je u tablici navesti njegov ID.
-
-<details>
-<summary><strong>Objašnjenje odabira</strong></summary>
-
-**Primjer — CrisisMap:**
-
-| Odluka                                           | Razmatrana alternativa                           | Projektno specifično obrazloženje i kompromis                                                                                                                                                                                |
-| ------------------------------------------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Klijent u pregledniku i jedan poslužiteljski API | Više zasebno postavljenih poslužiteljskih usluga | Klijent prikazuje kartu, dok poslužiteljski sustav provjerava i pohranjuje prijave. Jedan poslužiteljski sustav upravljiv je za ovaj opseg; njegov kvar može privremeno prekinuti rad s prijavama. Obrazloženje je u ADR-01. |
-| Relacijska pohrana prijava                       | Dokumentno orijentirana pohrana                  | Prijave imaju prepoznatljive veze s korisnicima i lokacijama. Relacijska shema te veze čini eksplicitnima, ali zahtijeva migracije kada se shema promijeni.                                                                  |
-
-**Analiza primjera:** Obje odluke navode razlog vezan uz aplikaciju za prijavljivanje kriznih događaja i priznaju kompromis. Odluka o poslužiteljskom sustavu upućuje na ADR-01 umjesto ponavljanja cijele usporedbe. Moduli unutar jedne aplikacije koja se postavlja kao cjelina nisu zasebne mikrousluge. U vlastitoj tablici navedite alternative koje je tim doista razmatrao.
-
-</details>
+| Jedna poslužiteljska aplikacija podijeljena u module (`auth`, `opportunity`, `application`…) | Zasebne usluge (mikroservisi) | Sedmeročlani tim u jednom semestru lakše gradi, testira i postavlja jednu aplikaciju. Moduli imaju jasne odgovornosti, ali kvar aplikacije zaustavlja cijeli sustav. |
+| Klijent i API na istoj adresi; Caddy poslužuje React aplikaciju i prosljeđuje `/api` backendu | Klijent i API na različitim domenama | Kolačić sesije radi bez CORS-a i dodatnih postavki. Klijent i poslužitelj ipak se uvijek isporučuju zajedno. |
+| Poslužiteljska sesija u bazi ([ADR-01](#adr-01-poslužiteljska-sesija-umjesto-jwt-a)) | JWT tokeni | Sesiju je lako poništiti (odjava, blokiranje, promjena uloge). Za zahtjeve koji mijenjaju podatke potrebna je CSRF zaštita. |
+| Relacijska baza PostgreSQL, shema se mijenja samo migracijama (Liquibase) | Dokumentna baza | Podaci su jako povezani (korisnik, prilika, prijava, rezultat), a migracije čuvaju povijest sheme. Svaka promjena sheme traži novu migraciju. |
+| OpenStreetMap i Leaflet ([ADR-02](#adr-02-openstreetmap--leaflet-umjesto-google-mapsa)) | Google Maps | Nema API ključa ni računa za naplatu. Javna usluga nema jamstvo dostupnosti. |
+| Geokodiranje preko backenda ([ADR-03](#adr-03-geokodiranje-preko-backenda-nominatim)) | Nominatim poziv izravno iz preglednika | Backend centralno poštuje ograničenje od jednog zahtjeva u sekundi. Kad usluga ne odgovori, organizator ručno postavlja lokaciju. |
+| Datoteke na Docker volumenu, a podaci o njima u bazi ([ADR-04](#adr-04-pohrana-datoteka-na-docker-volumenu)) | Datoteke u bazi ili u vanjskoj pohrani | Baza ostaje mala, a datoteke prežive zamjenu kontejnera. Volumen treba zasebnu sigurnosnu kopiju. |
+| Jedan poslužitelj AWS EC2 koji se pali po potrebi | Stalno upaljen poslužitelj ili upravljana platforma | Štedi ograničeni AWS kredit. Aplikacija nije uvijek dostupna (NF-09) i nema zasebnog testnog okruženja. |
 
 ## 4.2 Gradivni blokovi i UML dijagram komponenata
 
@@ -445,79 +438,54 @@ ADR pišite samo za odluku čije će obrazloženje ostati važno i nakon promjen
 
 ## 4.6 Koncepti koji prožimaju sustav
 
-Paket `hr.fer.artconnect.common` sadrži zajedničke klase za greške, provjeru podataka i straničenje (#8).
+Ovdje su pravila koja vrijede u cijelom sustavu. Zajednički kod backenda je u paketu `hr.fer.artconnect.common`, a detalji pojedinih ruta u [API dokumentaciji](api/).
+
+### Prijava, sesija i ovlasti
+
+- Korisnik se prijavljuje Google računom. Backend zatim otvara sesiju koja se čuva u bazi i istječe nakon 8 sati neaktivnosti ([ADR-01](#adr-01-poslužiteljska-sesija-umjesto-jwt-a)). Kolačić sesije nije dostupan JavaScriptu (`HttpOnly`, `SameSite=Lax`, u produkciji i `Secure`).
+- Uloge su `ARTIST`, `ORGANIZER` i `ADMIN` i međusobno su odvojene: administrator ne dobiva automatski prava umjetnika ili organizatora. Korisnik koji još nije odabrao ulogu dobiva `403 ONBOARDING_REQUIRED` na svim rutama osim onih potrebnih za odabir uloge ([API](api/auth.md)).
+- Pravo na radnju provjerava se na backendu u dva koraka: uloga (`@PreAuthorize`) i vlasništvo (npr. organizator smije mijenjati samo svoju priliku). Frontend dodatno skriva stranice i radnje koje uloga ne smije koristiti, ali to nije zaštita.
+- Zahtjevi koji mijenjaju podatke (POST, PUT, DELETE) moraju imati CSRF token u zaglavlju `X-XSRF-TOKEN`; klijent ga dobiva preko `GET /api/v1/auth/csrf`.
+
+Provjera da sesija preživi ponovno pokretanje backenda opisana je u [poglavlju 5](5-Ispitivanje.md#provjera-fnd-04--18-10-2026).
 
 ### Vidljivost prilika
 
-`OpportunityVisibilityPolicy` središnje određuje može li pozivatelj vidjeti
-priliku. Vlasnik i administrator vide priliku neovisno o statusu, arhiviranosti
-i skrivenosti. Ostali pozivatelji, uključujući anonimne, vide samo nearhivirane
-i neskrivene prilike u statusima `OPEN`, `CLOSED`, `SELECTION` ili `FINISHED`
-čiji organizator nije blokiran. Odbijeni dohvat detalja vraća `404 NOT_FOUND`
-kao i nepostojeća prilika; pravilo je izdvojeno kako bi ga mogli koristiti i
-drugi dijelovi sustava.
+Jedno pravilo (`OpportunityVisibilityPolicy`) određuje tko vidi priliku. Vlasnik i administrator vide je uvijek. Ostali, uključujući neprijavljene, vide samo objavljene prilike (`OPEN`, `CLOSED`, `SELECTION`, `FINISHED`) koje nisu arhivirane ni skrivene i čiji organizator nije blokiran. Za priliku koju korisnik ne smije vidjeti API vraća `404`, isto kao za nepostojeću.
 
-### Sesija i sigurnost
+### Greške
 
-`SecurityConfig` dopušta anonimne GET zahtjeve na prilike, umjetnike, djela, datoteke, šifrarnike, javne postavke, `/api/v1/auth/csrf` i `/actuator/health`. Ostali zahtjevi traže prijavu. `@EnableMethodSecurity` uključuje provjere `@PreAuthorize`; privatnost pojedinog djela ili datoteke mora dodatno provjeriti odgovarajuća metoda.
+Sve greške imaju isti JSON oblik, a poruke su na hrvatskom:
 
-`ArtConnectPrincipal` je principal prijavljenog korisnika. Nastaje nakon Google prijave u `ArtConnectOidcUserService`, a nakon promjene uloge ili statusa gradi ga `SessionAuthenticationUpdater` iz reda `users`. Implementira `OidcUser` i `Serializable`, jer ga Spring Session JDBC serijalizira u sesiju zajedno sa `SecurityContextom`. `getName()` vraća `users.id`, pa se sesije mogu dohvatiti i poništiti po korisniku. Ovlasti su `ROLE_<role>` iz baze; korisnik u statusu `ONBOARDING` još nema ulogu ni ovlasti. Kontroler prima `@AuthenticationPrincipal ArtConnectPrincipal principal`. Servis poziva `currentUserProvider.getCurrentUser()`, koji vraća entitet `User` iz baze za ID iz principala. Bez valjanog principala ili ako korisnik više ne postoji u bazi, provider javlja 401 `UNAUTHENTICATED`.
+```json
+{ "error": { "code": "VALIDATION_ERROR", "message": "Neki podaci nisu ispravni.", "details": [ { "field": "year", "issue": "Godina ne smije biti u budućnosti." } ] } }
+```
 
-`RoleHierarchy` je spojen na provjere `@PreAuthorize`. Prema dogovoru, uloge ostaju odvojene: `ADMIN` ne nasljeđuje automatski prava `ARTIST` i `ORGANIZER`. `OnboardingEnforcementFilter` je uključen u sigurnosni lanac prije odluke o pristupu. Čita status iz baze i korisniku u statusu `ONBOARDING` vraća `403 ONBOARDING_REQUIRED` osim za dopuštene metode i putanje opisane u [API dokumentaciji](api/auth.md#ograničenje-tijekom-odabira-uloge). Anonimni posjetitelji zadržavaju pristup javnim rutama. Provjera `USER_BLOCKED` pripada EPIC-08.
-
-Spring Session JDBC sprema sesije u postojeće tablice PostgreSQL-a. Sesija istječe nakon 8 sati neaktivnosti. Kolačić `SESSION` ima `HttpOnly` i `SameSite=Lax`, a u profilu `prod` i `Secure`. Springov `FindByIndexNameSessionRepository` dostupan je za kasnije poništavanje sesija korisnika.
-
-Frontend prvo poziva `GET /api/v1/auth/csrf`. Odgovor sadrži `headerName` i `token` te postavlja JavaScriptu čitljiv kolačić `XSRF-TOKEN`. Pri POST, PUT, PATCH i DELETE zahtjevima klijent šalje njegovu vrijednost u `X-XSRF-TOKEN`. Nakon buduće prijave ili odjave klijent treba ponovno dohvatiti token. CSRF izuzetak vrijedi samo za `/api/v1/dev/**` u profilu `dev`, bez aktivnog profila `prod`; ne ukida zahtjev za prijavom.
-
-`SecurityErrorHandler` obrađuje greške u filtrima. Zajedno s `GlobalExceptionHandlerom` koristi istu JSON omotnicu i hrvatske poruke: anonimnom korisniku bez pristupa vraća 401 `UNAUTHENTICATED`, a prijavljenom bez ovlasti 403 `FORBIDDEN`. Izostavljen ili nevaljan CSRF token uvijek vraća 403 `FORBIDDEN`.
-
-Frontend dohvaća trenutnog korisnika preko `GET /api/v1/me` i predmemorira odgovor pod ključem `['me']`; 401 se tumači kao neprijavljena sesija, dok mrežna greška ostaje vidljiva i može se ponoviti. `RequireAuth`, `RequireRole` i `OnboardingOnly` štite klijentske rute prema statusu i ulozi korisnika. Javni su početna stranica, prilike i javni profili umjetnika; profil je dostupan umjetnicima i organizatorima, a portfolio i prijave umjetnicima, organizatorske rute organizatorima te administracija administratorima. Status `ONBOARDING` preusmjerava korisnika na `/onboarding`; odbijeni klijentski API poziv s 403 `ONBOARDING_REQUIRED` također ga preusmjerava, a 401 na zaštićenoj ruti osvježava predmemoriju `['me']`.
-
-Testovi u paketu `auth` uključuju sigurnosne filtre i provjeravaju tok CSRF kolačića i zaglavlja, odvojene uloge, razvojni izuzetak te dohvat principala u kontroleru i servisu. `SessionIntegrationTest` uz Testcontainers PostgreSQL provjerava učitavanje `ArtConnectPrincipal` principala iz baze, dohvat sesija po ID-u korisnika, postavljeno trajanje od 8 sati, odbijanje istekle sesije i produkcijske kolačiće. `GoogleLoginSessionIntegrationTest` simulira prijavu s `oidcLogin()`. Zatim provjerava da `SessionAuthenticationUpdater` sprema `ArtConnectPrincipal` u `spring_session`, da `findByPrincipalName(users.id)` pronalazi tu sesiju i da sljedeći zahtjev sa samim kolačićem dobiva istog korisnika preko `CurrentUserProvider`. Dodatna lokalna provjera 18. 10. 2026. potvrdila je da isti kolačić sesije vrijedi nakon gašenja i ponovnog pokretanja procesa backenda uz istu bazu. Postupak i rezultati zapisani su u [poglavlju o ispitivanju](5-Ispitivanje.md#provjera-fnd-04--18-10-2026).
-
-### Greške i provjera podataka
-
-Servis javlja očekivanu grešku ovako: `throw new ApiException(ErrorCode.NOT_FOUND, "Prilika nije pronađena.");` Po potrebi dodaje popis `FieldIssue(field, issue)`. `ErrorCode` sadrži svih 30 API kodova i njihove HTTP statuse.
-
-`GlobalExceptionHandler` vraća `{ "error": { "code": "...", "message": "...", "details": [...] } }`. Prazan `details` izostavlja se. Neispravni podaci vraćaju 400 `VALIDATION_ERROR`, prevelika datoteka 413 `FILE_TOO_LARGE`, a zabrana pristupa 401 za anonimnog korisnika ili 403 za prijavljenog bez ovlasti. Neočekivana greška vraća 500 `INTERNAL_ERROR` s općom porukom; detalji iznimke ostaju samo u logu.
-
-Springove HTTP greške zadržavaju izvorni status i zaglavlja: nepostojeća putanja vraća 404 `NOT_FOUND`, pogrešna metoda 405 `VALIDATION_ERROR`, a nepodržani `Content-Type` 415 `UNSUPPORTED_FILE_TYPE`. Iznimka `ResponseStatusException` također zadržava zadani status, uz sigurnu hrvatsku poruku. Klijentske greške ne zapisuju se kao greške poslužitelja; iznimke sa statusom 5xx zapisuju se u log.
-
-DTO-i koriste Jakarta Validation i `@Valid`. Hrvatski jezik postavlja `CommonWebConfiguration`, a poruke su u `messages_hr.properties`. Kod neispravnog JSON-a polje u detaljima je `body`. Sigurnosne greške koje nastanu prije kontrolera obrađuje `SecurityErrorHandler`; `GlobalExceptionHandler` obrađuje iznimke koje stignu do MVC-a.
+Neispravan unos vraća `400` s popisom polja u `details`, neprijavljeni korisnik `401`, a korisnik bez prava `403`. Neočekivana greška vraća `500` s općom porukom, a detalji ostaju samo u zapisima poslužitelja. Frontend sve pozive šalje kroz `apiFetch` (`frontend/src/api/client.ts`), pa su CSRF i obrada grešaka na jednom mjestu.
 
 ### Straničenje i sortiranje
 
-Kontroler prima `@Valid @ModelAttribute PageRequestParams params` i opcionalni `sort`. Zadano je `page=1`, `pageSize=20`. Stranica mora biti najmanje 1, a veličina između 1 i 100; inače se vraća 400. Primjer korištenja:
+Popisi su uvijek straničeni: `page` počinje od 1, `pageSize` je zadano 20, a najviše 100. Sortira se parametrom `sort` (`deadline` uzlazno, `-deadline` silazno), a svaka ruta određuje dopuštena polja. Odgovor ima oblik `{ "data": [...], "meta": { "page": 1, "pageSize": 20, "total": 134 } }`.
 
-```java
-Sort order = SortParser.parse(sort, Set.of("deadline"));
-Pageable pageable = params.toPageable(order);
-return PageResponse.from(service.find(pageable));
-```
+### Datumi i vremenska zona
 
-`deadline` znači uzlazno, `-deadline` silazno. Svaki endpoint predaje svoja dopuštena polja. Bez parametra parser vraća `Sort.unsorted()`; zadani redoslijed bira endpoint. `toPageable` pretvara broj stranice iz API-ja u Springov broj od 0. `PageResponse.from` prima straničeni `Page` s DTO-ima i vraća `{ "data": [...], "meta": { "page": 1, "pageSize": 20, "total": 134 } }`.
+API šalje datume i vremena u obliku ISO-8601 s vremenskim pomakom (npr. `2026-11-20T23:59:00+01:00`). Sučelje ih prikazuje u zoni `Europe/Zagreb`, koja vrijedi i za pravila poput „godina ne smije biti u budućnosti”.
 
-### Postavke i testovi
+### Jezik
 
-DTO-i s vremenom koriste `OffsetDateTime`. Postavke Jacksona 3 u `application.yml` osiguravaju ISO-8601 tekst i čuvanje vremenskog pomaka. Multipart dopušta 50 MB po datoteci i 51 MB po zahtjevu, prema zadatku [PORT-04-BE1 #104](https://github.com/LD05-fk/Strumfovi/issues/104). Stvarne limite prema namjeni provjeravat će servis iz `system_settings`.
+Sučelje je samo na hrvatskom. Tekstovi sučelja su u `frontend/src/i18n/hr.ts`, a poruke grešaka backenda u `messages_hr.properties`.
 
-Testovi u `backend/src/test/java/hr/fer/artconnect/common` provjeravaju greške kroz MockMvc, hrvatske poruke, datume, straničenje i sortiranje. Test uploada provjerava obradu iznimke; stvarni upload pripada zadatku za datoteke. Iz `backend` pokrenuti `./mvnw -B verify` uz Javu 25 i Docker. Samo ovi testovi mogu se pokrenuti bez Dockera: `./mvnw -B '-Dtest=hr.fer.artconnect.common.*Test' verify`.
+### Datoteke
+
+Slike i ostale datoteke spremaju se na Docker volumen ([ADR-04](#adr-04-pohrana-datoteka-na-docker-volumenu)). Vrsta datoteke provjerava se po sadržaju, a ne po nazivu ili zaglavlju koje šalje preglednik. Ograničenja veličine i broja datoteka čitaju se iz postavki sustava koje uređuje administrator.
+
+### Zapisi i nadzor
+
+Zapisi svih kontejnera dostupni su timu u pregledniku na `/logs` (Dozzle, iza lozinke). Ispravnost backenda provjerava se na `/actuator/health`. Greške poslužitelja (5xx) bilježe se u zapise, a greške klijenta ne.
 
 ### Korisničko sučelje i pristupačnost
 
-Vizualni jezik definira zadatak FND-06-DES (#11). Dizajn je isporučen kao dokumentacija u repozitoriju. Nacrt je u [`design-system/`](design-system/): [`tokens.md`](design-system/tokens.md) (tablice tokena), [`theme.ts`](design-system/theme.ts) (MUI tema, polazište za frontend) i [`preview.html`](design-system/preview.html) (pregled komponenata i wireframeova, otvara se u pregledniku).
-
-Sučelje se gradi na MUI-ju, a svi ekrani koriste iste tokene:
-
-- **Boje:** primarna `#4338CA`, sekundarna `#BE185D`, pozadina `#FAFAF9`, površina `#FFFFFF`, tekst `#1C1917` / `#57534E`, greška `#B91C1C`, upozorenje `#B45309`, uspjeh `#15803D`. Kontrast teksta je svugdje najmanje 4.5:1.
-- **Tipografija:** Inter (podržava hrvatske dijakritike), naslovi h1–h6 od 36 do 16 px, osnovni tekst 16/24 px, gumbi bez velikih slova.
-- **Razmaci i oblici:** MUI `spacing` 8 px; radijusi 8 px (gumbi, polja), 12 px (kartice), 16 px (chip, dijalog).
-- **Prijelomne točke:** xs < 600, sm 600–899, md ≥ 900 px.
-- **Statusi:** prilike (`PREPARATION`…`FINISHED`) i prijave (`SUBMITTED`…`WITHDRAWN`) prikazuju se chipom s hrvatskim tekstom i bojom; status se nikad ne prenosi samo bojom.
-- **Početna stranica i navigacija:** početna stranica prikazuje naslov i opis ArtConnecta te akcije „Prijava s Googleom” i „Pregledaj prilike”. Posjetitelj na md+ vidi „Prilike” i punu oznaku prijave; na xs/sm navigacija je u draweru, a na xs gumb prijave prikazuje samo Google oznaku. Umjetnik vidi „Portfolio” i „Moje prijave”; organizator „Moje prilike” i „Statistika”; administrator „Administracija”; prijavljeni korisnik ima izbornik „Profil” / „Odjava”. Drawer se zatvara tipkom Esc.
-- **Izgled:** zaglavlje, glavni sadržaj i podnožje protežu se punom širinom viewporta; rubni razmak je 16 px na xs i 24 px na sm/md.
-
-Pristupačnost: sučelje je na hrvatskom (`<html lang="hr">`), postoji poveznica „Preskoči na sadržaj”, a interaktivni elementi dostupni su tipkovnicom s vidljivim fokusom (prsten 3 px u primarnoj boji). Dizajnerski cilj za dodirne površine je najmanje 44 × 44 px; kompaktni gumb prijave u zaglavlju trenutačno je manji. Polja obrasca trebaju imati oznaku i poruku greške povezanu s poljem.
+Sučelje je izrađeno u MUI-ju i koristi zajedničke dizajnerske tokene (boje, tipografija, razmaci, prijelomne točke) opisane u [`design-system/tokens.md`](design-system/tokens.md). Svaka stranica ima poveznicu „Preskoči na sadržaj” i može se koristiti tipkovnicom uz vidljiv fokus. Statusi se prikazuju tekstom, a ne samo bojom (NF-04, NF-05).
 
 ## 4.7 Arhitekturni rizici i tehnički dug
 
