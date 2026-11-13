@@ -279,6 +279,36 @@ E2E koristi dev seed: prije testa sprema izvorni sadržaj profila i priprema
 prazan obrazac, a nakon testa vraća sadržaj i odjavljuje sesiju, uključujući
 slučaj pada testa. Testovi istog dev umjetnika izvode se redom.
 
+### OPP-01 — Objava i uređivanje prilike
+
+API integracijski slučajevi su u
+[OpportunityApiIT](../backend/src/test/java/hr/fer/artconnect/opportunity/OpportunityApiIT.java).
+Geokodiranje se pokriva postojećim
+[GeocodingIntegrationTest](../backend/src/test/java/hr/fer/artconnect/opportunity/web/GeocodingIntegrationTest.java):
+umjetnik dobiva `403`, a organizator `200` s rezultatima lažnog Nominatima.
+E2E slučajevi su u
+[test_opportunities.py](../tests/selenium/test_opportunities.py), uz page
+objekte [OpportunityFormPage](../tests/selenium/page_objects/opportunity_form_page.py)
+i [OpportunityDetailPage](../tests/selenium/page_objects/opportunity_detail_page.py).
+
+| ID | Zadano (Given) | Kada (When) | Tada (Then) | Ishod |
+| --- | --- | --- | --- | --- |
+| OPP-01-IT-01 | Prilika u `PREPARATION` vlasnika O1; prijavljen je drugi organizator O2. | O2 pošalje `PUT /api/v1/opportunities/{id}`. | 403 `FORBIDDEN`; naslov, opis i vlasnik u bazi ostaju nepromijenjeni. | Prošlo |
+| OPP-01-IT-02 | Prilika u `PREPARATION`; prijavljen je njezin vlasnik O1. | O1 ažurira naslov i opis preko `PUT /api/v1/opportunities/{id}`. | 200; odgovor i baza sadrže nove vrijednosti, status i vlasnik ostaju nepromijenjeni. | Prošlo |
+| OPP-01-IT-03 | Prijavljen umjetnik A1; geokodiranje koristi lažni Nominatim. | A1 pozove `GET /api/v1/geocoding/search`. | 403 `FORBIDDEN`; postojeći slučaj u `GeocodingIntegrationTest.umjetnikDobiva403`. | Prošlo (postojeći test) |
+| OPP-01-IT-04 | Prijavljen organizator O1; lažni Nominatim vraća jedan rezultat. | O1 pozove `GET /api/v1/geocoding/search`. | 200 s rezultatom lažnog Nominatima; postojeći slučaj u `GeocodingIntegrationTest.organizatorNaCekanjuDobivaGeokodiraneRezultateIzLaznogNominatima`. | Prošlo (postojeći test) |
+| OPP-01-E2E-01 | Prijavljen dev organizator; katalogi su dostupni. | Ispuni fizičku priliku, klikne kartu za ručno postavljanje oznake i spremi. | Otvara se detalj; status je „U pripremi – vidljivo samo vama”, a karta prikazuje oznaku. | Prošlo |
+| OPP-01-E2E-02 | Prijavljen dev organizator na obrascu nove prilike. | Ispuni online priliku bez poveznice i pokuša spremiti. | Uz polje poveznice se prikaže greška; POST zahtjev za spremanje nije poslan. | Prošlo |
+| OPP-01-E2E-03 | Prijavljen dev umjetnik. | Otvori `/organizer/opportunities/new`. | Prikazana je stranica 403. | Prošlo |
+| OPP-01-E2E-04 (`external`) | Prijavljen dev organizator; ručna provjera prije predaje. | Unese „Unska 3” i „Zagreb” te jednom klikne „Pronađi na karti”. | Prikazuje se barem jedan kandidat i oznaka je postavljena. Test se ne pokreće u CI-ju. | Prošlo (ručno) |
+
+Integracijski testovi nasljeđuju čišćenje baze iz `IntegrationTestBase` i
+postavljaju O1/O2 te priliku za svaki test. Geokodiranje koristi postojeći
+lokalni lažni HTTP poslužitelj — automatizirani testovi ne pozivaju stvarni
+Nominatim. E2E fixture stvara jedinstven naslov i nakon testa briše samo
+priliku tog naslova. CI izvodi E2E testove s `-m "not external"`; vanjski test
+treba ručno pokrenuti jednom i rezultat zabilježiti u §5.3.
+
 ### OPP-02 — Javna pretraga prilika
 
 Izvori su [OpportunitySearchIntegrationTest](../backend/src/test/java/hr/fer/artconnect/opportunity/OpportunitySearchIntegrationTest.java)
@@ -397,6 +427,17 @@ AUTH-01-TEST - 3.11.2026. - revizija `7125d91` (grana `feature/AUTH-01-TEST`), l
 AUTH-02-TEST - 8.11.2026. - lokalno docker-compose okruženje s profilom dev, Selenium (headless Chrome); sva tri ispitna slučaja prošla. Ručni slučaj AUTH-02-T4 (prijava stvarnim Google računom) izveden na produkciji, prošao.
 
 **Cilj:** Navesti reviziju aplikacije, okruženje i dokaze potrebne za tumačenje stvarnih rezultata u tablici ispitnih slučajeva. Dodajte kratak zapis izvođenja kada te podatke nije moguće jasno prenijeti poveznicom na kod ispitivanja ili CI izvođenje.
+
+### OPP-01-TEST — lokalno izvođenje 12. 11. 2026.
+
+Radna kopija testirana je na Windowsu, s Python 3.12.6, pytest 9.2.0,
+Selenium 4.52.0 i headless Chrome 157.0.8103.51. Za E2E je korištena
+izolirana privremena PostgreSQL 17 baza, backend na portu 8080 i frontend na
+portu 15173. Integracijski testovi koristili su PostgreSQL iz Testcontainersa.
+
+- Iz `backend/`, `.\mvnw.cmd -B '-Dit.test=OpportunityApiIT,GeocodingIntegrationTest' verify` završio je s `BUILD SUCCESS`: **9 testova prošlo**, bez grešaka i preskakanja (2 nova testa za uređivanje i 7 postojećih geokodirnih testova). Failsafe izvještaji nalaze se u `backend/target/failsafe-reports/`.
+- Iz korijena repozitorija, `$env:BASE_URL='http://127.0.0.1:15173'; python -m pytest tests/selenium/test_opportunities.py -m 'not external' --html=report.html --self-contained-html --junitxml=test-results/pytest-opportunities.xml`: **3 testa prošla, 1 vanjski test isključen**, bez grešaka. HTML i JUnit XML izvještaji su generirani.
+- Vanjski slučaj OPP-01-E2E-04 pokrenut je ručno 13. 11. 2026. naredbom `python -m pytest tests/selenium/test_opportunities.py::test_opp_01_external_nominatim_search_finds_unska_3 --html=report.html --self-contained-html --junitxml=test-results/pytest-external.xml`: **1 test prošao za 7,96 sekundi**. Izvještaji su generirani u `report.html` i `test-results/pytest-external.xml`. CI i dalje isključuje vanjski test s `-m "not external"`.
 
 ### PORT-03 — lokalno izvođenje 8. 11. 2026.
 

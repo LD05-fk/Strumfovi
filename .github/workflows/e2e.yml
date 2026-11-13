@@ -76,7 +76,7 @@ jobs:
         run: pip install -r tests/requirements.txt
 
       - name: Pokrenuti E2E testove
-        run: pytest tests/selenium --html=report.html --self-contained-html --junitxml=test-results/pytest.xml
+        run: pytest tests/selenium -m "not external" --html=report.html --self-contained-html --junitxml=test-results/pytest.xml
 
       - name: Spremiti izvještaj
         if: always()
