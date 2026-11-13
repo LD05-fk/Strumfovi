@@ -338,6 +338,39 @@ izraza (druga konfiguracija punotekstne pretrage ili uvjet vidljivosti predan
 kao parametar) indeks učinila neupotrebljivim. Ne dokazuje da ga planer odabire
 na produkcijskoj količini podataka; mjerenje odziva pod opterećenjem je DOC-41.
 
+### OPP-03 — Moje prilike i upravljanje statusom
+
+API integracijski slučajevi su u
+[OpportunityApiIT](../backend/src/test/java/hr/fer/artconnect/opportunity/OpportunityApiIT.java)
+(naziv metode u zagradi). E2E slučajevi su u
+[test_opportunities.py](../tests/selenium/test_opportunities.py) (funkcije
+`test_opp_03_*`), uz page objekte
+[MyOpportunitiesPage](../tests/selenium/page_objects/my_opportunities_page.py),
+[OpportunitySearchPage](../tests/selenium/page_objects/opportunity_search_page.py)
+i [OpportunityDetailPage](../tests/selenium/page_objects/opportunity_detail_page.py).
+
+| ID | Zadano (Given) | Kada (When) | Tada (Then) | Ishod |
+| --- | --- | --- | --- | --- |
+| OPP-03-IT-01 | Prilika u `PREPARATION` organizatora O1, rok u budućnosti. | O1 redom traži `OPEN`, `CLOSED`, `OPEN`, `CLOSED`, `SELECTION` preko `POST /opportunities/{id}/status` (`vlasnikObjavljujeZatvaraPonovnoOtvaraIZapocinjeOdabir`). | Svaki korak vraća 200 s novim statusom; `GET /opportunities?statuses=SELECTION` vraća upravo tu priliku. | Prošlo |
+| OPP-03-IT-02 | Prilika O1 u `CLOSED`, sat pomaknut iza roka. | O1 traži `OPEN` (`zatvorenaPrilikaSIsteklimRokomSeNeMozePonovnoOtvoriti`). | 409 `DEADLINE_PASSED`; status u bazi ostaje `CLOSED`. | Prošlo |
+| OPP-03-IT-03 | Prilika O1 u `SELECTION`. | O1 traži `OPEN`, zatim `CLOSED` (`prilikaUOdabiruNeMozeNatragUOtvorenoIliZatvoreno`). | Oba zahtjeva vraćaju 409 `INVALID_STATUS_TRANSITION`; status ostaje `SELECTION`. | Prošlo |
+| OPP-03-IT-04 | Otvorena prilika O1; prijavljen je drugi organizator O2. | O2 arhivira, briše i mijenja status prilike (`drugiOrganizatorNeMozeArhiviratiObrisatiNiMijenjatiStatusTudePrilike`). | Sva tri zahtjeva vraćaju 403 `FORBIDDEN`; status, oznaka arhiviranja i vlasnik u bazi su nepromijenjeni. | Prošlo |
+| OPP-03-IT-05 | O1 ima otvorenu i jednu neobjavljenu priliku. | O1 arhivira otvorenu priliku i dohvati `GET /me/opportunities?archived=true` i `?archived=false` (`arhiviranaPrilikaJeSamoNaPopisuArhiviranihMojihPrilika`). | Arhiviranje vraća status `CLOSED`; arhivirana prilika jedina je s `archived=true`, a s `archived=false` je samo druga prilika. | Prošlo |
+| OPP-03-IT-06 | Prilika O1 bez prijava. | O1 pošalje `DELETE /opportunities/{id}` (`vlasnikBriseSvojuPrilikuBezPrijava`). | 204; detalj prilike vraća 404 `NOT_FOUND`, a „Moje prilike” su prazne. | Prošlo |
+| OPP-03-E2E-01 | Dev organizator ima priliku „U pripremi”. | Na „Moje prilike” odabere „Objavi” i potvrdi, zatim anonimni posjetitelj pretraži `/opportunities`. | Status postaje „Otvorena”; anonimni posjetitelj vidi priliku u rezultatima pretrage. | Prošlo |
+| OPP-03-E2E-02 | Dev organizator ima otvorenu priliku. | Odabere „Zatvori prijave”, pa „Ponovno otvori prijave”. | Status ide „Zatvorena” (`CLOSED`), pa „Otvorena” (`OPEN`). | Prošlo |
+| OPP-03-E2E-03 | Dev organizator ima priliku bez prijava. | Odabere „Obriši” i potvrdi, zatim otvori URL prilike. | Prilika nestaje s popisa; detalj prikazuje „Prilika ne postoji ili nije dostupna.” | Prošlo |
+| OPP-03-E2E-04 | Dev organizator ima otvorenu, javno vidljivu priliku. | Odabere „Arhiviraj” i potvrdi, zatim otvori karticu „Arhivirane”. | Prilika nestaje s kartice „Aktivne”, na kartici „Arhivirane” ima status „Zatvorena”, a javna pretraga po svim javnim statusima je ne vraća. | Prošlo |
+
+Integracijski testovi nasljeđuju čišćenje baze iz `IntegrationTestBase`, a O1 i
+O2 nastaju kao novi redovi `users` u svakom testu. Vrijeme daje lažni `Clock`,
+pa se istek roka provjerava pomicanjem sata, bez izmjene retka u bazi. E2E
+fixture `managed_opportunity` stvara priliku kroz API (po potrebi je i objavi),
+s jedinstvenom riječi u naslovu, i nakon testa briše samo nju; očekivani 404
+nakon testa brisanja nije greška čišćenja. Sučelje prikazuje statuse kao
+„U pripremi”, „Otvorena” i „Zatvorena”, pa E2E provjerava te natpise umjesto
+izraza „Otvoreno za prijave” i „Prijave zatvorene” iz opisa zadatka.
+
 ### PORT-02 — Prethodne izložbe
 
 Zahtjevi su u [issueu #94](https://github.com/LD05-fk/Strumfovi/issues/94).
@@ -520,6 +553,17 @@ portu 15173. Integracijski testovi koristili su PostgreSQL iz Testcontainersa.
 - Iz `backend/`, `.\mvnw.cmd -B '-Dit.test=OpportunityApiIT,GeocodingIntegrationTest' verify` završio je s `BUILD SUCCESS`: **9 testova prošlo**, bez grešaka i preskakanja (2 nova testa za uređivanje i 7 postojećih geokodirnih testova). Failsafe izvještaji nalaze se u `backend/target/failsafe-reports/`.
 - Iz korijena repozitorija, `$env:BASE_URL='http://127.0.0.1:15173'; python -m pytest tests/selenium/test_opportunities.py -m 'not external' --html=report.html --self-contained-html --junitxml=test-results/pytest-opportunities.xml`: **3 testa prošla, 1 vanjski test isključen**, bez grešaka. HTML i JUnit XML izvještaji su generirani.
 - Vanjski slučaj OPP-01-E2E-04 pokrenut je ručno 13. 11. 2026. naredbom `python -m pytest tests/selenium/test_opportunities.py::test_opp_01_external_nominatim_search_finds_unska_3 --html=report.html --self-contained-html --junitxml=test-results/pytest-external.xml`: **1 test prošao za 7,96 sekundi**. Izvještaji su generirani u `report.html` i `test-results/pytest-external.xml`. CI i dalje isključuje vanjski test s `-m "not external"`.
+
+### OPP-03-TEST — lokalno izvođenje 13. 11. 2026.
+
+Grana `feature/OPP-3-TEST` na temelju `master` (`a20fb4d`), testirano na Linuxu
+s Python 3.14.8, pytest 9.2.0, Selenium 4.52.0 i headless Chrome 157 (driver
+preko Selenium Managera). Za E2E su korišteni PostgreSQL iz `docker compose`,
+backend s profilom `dev` na portu 8080 i frontend na portu 5173.
+Integracijski testovi koristili su PostgreSQL iz Testcontainersa.
+
+- Iz `backend/`, `./mvnw verify -Dit.test=OpportunityApiIT`: **8 testova prošlo** (6 novih OPP-03 i 2 postojeća OPP-01), bez grešaka i preskakanja. Failsafe izvještaj s nazivima scenarija nalazi se u `backend/target/failsafe-reports/`.
+- Iz `tests/selenium/`, `pytest test_opportunities.py -m "not external" --junitxml=...`: **7 testova prošlo** (4 nova OPP-03 i 3 postojeća OPP-01), 1 vanjski test isključen. OPP-03 E2E testovi pokrenuti su još dva puta zaredom i oba puta prošli; nakon izvođenja u bazi nije ostala nijedna prilika s naslovom `E2E…`.
 
 ### PORT-03 — lokalno izvođenje 8. 11. 2026.
 

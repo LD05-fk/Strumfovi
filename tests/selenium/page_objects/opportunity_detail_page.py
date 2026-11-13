@@ -17,6 +17,15 @@ class OpportunityDetailPage(BasePage):
             (By.XPATH, "//*[normalize-space()='U pripremi – vidljivo samo vama']")
         ).is_displayed()
 
+    def wait_for_not_found(self):
+        message = "Prilika ne postoji ili nije dostupna"
+        return self.wait_visible(
+            (
+                By.XPATH,
+                f"//*[contains(normalize-space(text()), '{message}')]",
+            )
+        )
+
     def wait_for_location_marker(self, title):
         WebDriverWait(self.driver, 10).until(
             EC.visibility_of_element_located(

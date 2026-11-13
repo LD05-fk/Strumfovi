@@ -224,3 +224,19 @@ pytest tests/selenium/test_opportunities.py -m external --html=report.html --sel
 
 Zabilježiti njegov stvarni rezultat u §5.3 dokumenta
 [5-Ispitivanje.md](../docs/5-Ispitivanje.md).
+
+## Moje prilike i upravljanje statusom (OPP-03-TEST)
+
+`OpportunityApiIT` pokriva puni životni ciklus prilike (objava, zatvaranje,
+ponovno otvaranje, početak odabira), odbijene prijelaze `DEADLINE_PASSED` i
+`INVALID_STATUS_TRANSITION`, zabranu arhiviranja, brisanja i promjene statusa
+tuđe prilike te popis `GET /me/opportunities?archived=true|false`.
+
+E2E testovi `test_opp_03_*` u `test_opportunities.py` koriste page objekt
+`MyOpportunitiesPage` (radnje kroz izbornik „Radnje” i dijalog potvrde) i
+`OpportunitySearchPage`. Fixture `managed_opportunity` stvara priliku dev
+organizatora kroz API i nakon testa briše samo nju.
+
+```bash
+pytest tests/selenium/test_opportunities.py -k opp_03 --html=report.html --self-contained-html --junitxml=test-results/pytest.xml
+```
