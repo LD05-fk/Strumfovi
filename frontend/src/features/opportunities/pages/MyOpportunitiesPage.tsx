@@ -13,6 +13,7 @@ import {
   Tabs,
   Typography,
 } from '@mui/material'
+import { useEffect } from 'react'
 import { useSearchParams, Link as RouterLink } from 'react-router'
 import { dayjs, OPPORTUNITY_TIME_ZONE } from '../../../app/dayjs'
 import { ApiError } from '../../../api/client'
@@ -74,6 +75,26 @@ export function MyOpportunitiesPage() {
         opportunities.data.meta.total / opportunities.data.meta.pageSize,
       )
     : 0
+  const isFiltered = archived || status !== undefined
+  // stranica je ostala prazna (npr. arhivirana zadnja prilika na njoj): vrati na zadnju postojeću
+  const isPastLastPage =
+    opportunities.isSuccess &&
+    !opportunities.isPlaceholderData &&
+    opportunities.data.data.length === 0 &&
+    page > 1
+
+  useEffect(() => {
+    if (!isPastLastPage) return
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        if (pageCount > 1) next.set('page', String(pageCount))
+        else next.delete('page')
+        return next
+      },
+      { replace: true },
+    )
+  }, [isPastLastPage, pageCount, setSearchParams])
 
   return (
     <Stack spacing={2} sx={{ maxWidth: 1200, mx: 'auto' }}>
@@ -132,7 +153,7 @@ export function MyOpportunitiesPage() {
         </Select>
       </FormControl>
 
-      {opportunities.isPending ? (
+      {opportunities.isPending || isPastLastPage ? (
         <LoadingState lines={5} />
       ) : opportunities.isError ? (
         <ErrorState
@@ -142,6 +163,11 @@ export function MyOpportunitiesPage() {
               : undefined
           }
           onRetry={() => void opportunities.refetch()}
+        />
+      ) : opportunities.data.data.length === 0 && isFiltered ? (
+        <EmptyState
+          title={hr.opportunities.my.emptyFilteredTitle}
+          description={hr.opportunities.my.emptyFilteredDescription}
         />
       ) : opportunities.data.data.length === 0 ? (
         <EmptyState

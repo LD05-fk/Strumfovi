@@ -124,6 +124,7 @@ export function OpportunityDetailPage() {
             status={detail.status}
             archived={detail.archived}
             deadline={detail.deadline}
+            redirectAfterDelete="/my-opportunities"
           />
         </Stack>
       )}

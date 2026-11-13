@@ -178,9 +178,7 @@ describe('OwnerActionsBar', () => {
 
     expect(
       await screen.findByRole('dialog', {
-        name: hr.opportunities.detail.confirmStatusTitle(
-          hr.opportunities.detail.ownerActions.publish,
-        ),
+        name: hr.opportunities.detail.confirmStatus.publish.title,
       }),
     ).toBeInTheDocument()
 
@@ -299,6 +297,80 @@ describe('OwnerActionsBar', () => {
       expect(invalidateQueries).toHaveBeenCalledWith({
         queryKey: ['opportunity', opportunity.opportunityId],
       })
+    })
+  })
+
+  it.each([
+    ['PREPARATION', 'publish'],
+    ['OPEN', 'closeApplications'],
+    ['CLOSED', 'reopenApplications'],
+    ['CLOSED', 'startSelection'],
+  ] as const)(
+    'za status %s i radnju %s prikazuje vlastiti naslov i opis potvrde',
+    async (status, action) => {
+      renderBar({ status })
+      await openActions()
+
+      await userEvent.click(
+        screen.getByRole('menuitem', {
+          name: hr.opportunities.detail.ownerActions[action],
+        }),
+      )
+
+      const texts = hr.opportunities.detail.confirmStatus[action]
+      expect(
+        await screen.findByRole('dialog', { name: texts.title }),
+      ).toHaveTextContent(texts.description(opportunity.title))
+    },
+  )
+
+  it('nakon brisanja na popisu ostaje na istoj adresi', async () => {
+    const { router } = renderWithProviders(
+      <OwnerActionsBar {...opportunity} />,
+      {
+        route: '/my-opportunities?archived=true&page=2',
+      },
+    )
+    await openActions()
+
+    await userEvent.click(
+      screen.getByRole('menuitem', {
+        name: hr.opportunities.detail.ownerActions.delete,
+      }),
+    )
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: hr.opportunities.detail.ownerActions.delete,
+      }),
+    )
+
+    await waitFor(() => {
+      expect(mocks.notify).toHaveBeenCalledWith(
+        hr.opportunities.detail.deletedSuccessfully,
+        'success',
+      )
+    })
+    expect(router.state.location.pathname).toBe('/my-opportunities')
+    expect(router.state.location.search).toBe('?archived=true&page=2')
+  })
+
+  it('nakon brisanja s detalja vodi na zadanu adresu', async () => {
+    const { router } = renderBar({ redirectAfterDelete: '/my-opportunities' })
+    await openActions()
+
+    await userEvent.click(
+      screen.getByRole('menuitem', {
+        name: hr.opportunities.detail.ownerActions.delete,
+      }),
+    )
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: hr.opportunities.detail.ownerActions.delete,
+      }),
+    )
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/my-opportunities')
     })
   })
 

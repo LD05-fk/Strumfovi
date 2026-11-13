@@ -75,6 +75,8 @@ function setSuccessfulQuery(data = makePage()) {
     data,
     isPending: false,
     isError: false,
+    isSuccess: true,
+    isPlaceholderData: false,
     error: null,
     refetch: mocks.refetch,
   })
@@ -209,6 +211,29 @@ describe('MyOpportunitiesPage', () => {
       'href',
       '/organizer/opportunities/new',
     )
+  })
+
+  it.each([
+    '/my-opportunities?archived=true',
+    '/my-opportunities?status=CLOSED',
+  ])('za %s bez rezultata ne tvrdi da organizator nema prilika', (route) => {
+    setSuccessfulQuery(makePage([], 0))
+    renderPage(route)
+
+    expect(screen.getByText(myTexts.emptyFilteredTitle)).toBeInTheDocument()
+    expect(screen.queryByText(myTexts.emptyTitle)).not.toBeInTheDocument()
+  })
+
+  it('s prazne stranice iza zadnje vraća na zadnju postojeću stranicu', async () => {
+    setSuccessfulQuery(makePage([], 21))
+    const { router } = renderPage('/my-opportunities?archived=true&page=3')
+
+    await waitFor(() => {
+      expect(router.state.location.search).toBe('?archived=true&page=2')
+    })
+    expect(
+      screen.queryByText(myTexts.emptyFilteredTitle),
+    ).not.toBeInTheDocument()
   })
 
   it('prikazuje stanje učitavanja', () => {

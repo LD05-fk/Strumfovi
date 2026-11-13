@@ -350,9 +350,28 @@ export const hr = {
       deleteHasApplicationsDescription: (title: string) =>
         `Prilika „${title}” ima prijave pa je nije moguće obrisati. Želite li je arhivirati?`,
       deleteHasApplicationsHint: 'Priliku s prijavama nije moguće obrisati.',
-      confirmStatusTitle: (action: string) => `${action} priliku?`,
-      confirmStatusDescription: (action: string, title: string) =>
-        `Želite li ${action.toLocaleLowerCase('hr-HR')} priliku „${title}”?`,
+      confirmStatus: {
+        publish: {
+          title: 'Objaviti priliku?',
+          description: (title: string) =>
+            `Prilika „${title}” postat će javno vidljiva i umjetnici će se moći prijaviti.`,
+        },
+        closeApplications: {
+          title: 'Zatvoriti prijave?',
+          description: (title: string) =>
+            `Umjetnici se više neće moći prijaviti na priliku „${title}”. Prijave možete ponovno otvoriti prije isteka roka.`,
+        },
+        reopenApplications: {
+          title: 'Ponovno otvoriti prijave?',
+          description: (title: string) =>
+            `Umjetnici će se ponovno moći prijaviti na priliku „${title}” do isteka roka.`,
+        },
+        startSelection: {
+          title: 'Započeti odabir?',
+          description: (title: string) =>
+            `Prijave na priliku „${title}” ostaju zatvorene i počinje odabir umjetnika. Prijave se nakon toga više ne mogu ponovno otvoriti.`,
+        },
+      },
       confirmArchiveTitle: 'Arhivirati priliku?',
       confirmArchiveDescription: (title: string) =>
         `Prilika „${title}” bit će arhivirana.`,
@@ -500,6 +519,8 @@ export const hr = {
       newOpportunity: 'Nova prilika',
       emptyTitle: 'Još nemate prilika',
       emptyDescription: 'Objavite prvu priliku i primajte prijave umjetnika.',
+      emptyFilteredTitle: 'Nema prilika za odabrane filtre',
+      emptyFilteredDescription: 'Promijenite karticu ili filtar statusa.',
       pagination: 'Stranice mojih prilika',
       resultsCount: (count: number) => `${count} prilika`,
     },

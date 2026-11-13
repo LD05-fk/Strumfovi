@@ -31,7 +31,12 @@ type OwnerActionsBarProps = {
   status: OpportunityStatus
   archived: boolean
   deadline: string
+  // detalj prilike nakon brisanja vodi na popis; na popisu se ostaje na istoj kartici i stranici
+  redirectAfterDelete?: string
 }
+
+type StatusAction = Extract<OwnerAction, { kind: 'status' }>
+type StatusActionKey = keyof typeof hr.opportunities.detail.confirmStatus
 
 export function OwnerActionsBar({
   opportunityId,
@@ -39,6 +44,7 @@ export function OwnerActionsBar({
   status,
   archived,
   deadline,
+  redirectAfterDelete,
 }: OwnerActionsBarProps) {
   const navigate = useNavigate()
   const notify = useNotify()
@@ -61,21 +67,19 @@ export function OwnerActionsBar({
     setHasApplications(false)
   }
 
+  function statusActionKey(action: StatusAction): StatusActionKey {
+    if (action.status === 'OPEN') {
+      return status === 'PREPARATION' ? 'publish' : 'reopenApplications'
+    }
+    return action.status === 'CLOSED' ? 'closeApplications' : 'startSelection'
+  }
+
   function labelFor(action: OwnerAction): string {
     if (action.kind === 'archive')
       return hr.opportunities.detail.ownerActions.archive
     if (action.kind === 'delete')
       return hr.opportunities.detail.ownerActions.delete
-
-    if (action.status === 'OPEN') {
-      return status === 'PREPARATION'
-        ? hr.opportunities.detail.ownerActions.publish
-        : hr.opportunities.detail.ownerActions.reopenApplications
-    }
-
-    return action.status === 'CLOSED'
-      ? hr.opportunities.detail.ownerActions.closeApplications
-      : hr.opportunities.detail.ownerActions.startSelection
+    return hr.opportunities.detail.ownerActions[statusActionKey(action)]
   }
 
   async function handleError(error: unknown, action: OwnerAction) {
@@ -143,7 +147,7 @@ export function OwnerActionsBar({
         await deleteOpportunity.mutateAsync(opportunityId)
         notify(hr.opportunities.detail.deletedSuccessfully, 'success')
         setConfirmation(null)
-        await navigate('/my-opportunities')
+        if (redirectAfterDelete) await navigate(redirectAfterDelete)
         return
       }
 
@@ -156,7 +160,8 @@ export function OwnerActionsBar({
   const confirmationTitle = hasApplications
     ? hr.opportunities.detail.deleteHasApplicationsTitle
     : confirmation?.kind === 'status'
-      ? hr.opportunities.detail.confirmStatusTitle(labelFor(confirmation))
+      ? hr.opportunities.detail.confirmStatus[statusActionKey(confirmation)]
+          .title
       : confirmation?.kind === 'archive'
         ? hr.opportunities.detail.confirmArchiveTitle
         : hr.opportunities.detail.confirmDeleteTitle
@@ -164,10 +169,9 @@ export function OwnerActionsBar({
   const confirmationDescription = hasApplications
     ? hr.opportunities.detail.deleteHasApplicationsDescription(title)
     : confirmation?.kind === 'status'
-      ? hr.opportunities.detail.confirmStatusDescription(
-          labelFor(confirmation),
-          title,
-        )
+      ? hr.opportunities.detail.confirmStatus[
+          statusActionKey(confirmation)
+        ].description(title)
       : confirmation?.kind === 'archive'
         ? hr.opportunities.detail.confirmArchiveDescription(title)
         : hr.opportunities.detail.confirmDeleteDescription(title)
