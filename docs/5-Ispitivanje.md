@@ -383,6 +383,34 @@ korisnici, djela i sesije. E2E fixture `public_artwork` kroz API priprema i
 briše samo svoje djelo, uključujući čišćenje nakon pada. Testovi se izvode
 redom zbog zajedničkog dev korisnika; svaki priprema vlastite podatke.
 [Upute za testove](../tests/Readme.md#djela-u-portfoliju-port-03-test) navode ciljane naredbe.
+### PORT-04 — Slike djela i datoteke
+
+Zahtjevi su u [issueu #110](https://github.com/LD05-fk/Strumfovi/issues/110).
+Scenariji koriste postojeći [ArtworkLifecycleIT](../backend/src/test/java/hr/fer/artconnect/portfolio/it/ArtworkLifecycleIT.java),
+novi [FileAccessIT](../backend/src/test/java/hr/fer/artconnect/portfolio/it/FileAccessIT.java)
+i [test_portfolio.py](../tests/selenium/test_portfolio.py).
+
+| ID | Zadano (Given) | Kada (When) | Tada (Then) | Ishod |
+| --- | --- | --- | --- | --- |
+| PORT-04-IT-01 | Vlasnik djela sa stvarnom sesijom i CSRF tokenom. | Učita tri slike, pokuša četvrtu, obriše jednu i učita zamjenu. | 201 za prve tri, 409 `IMAGE_LIMIT_REACHED` za četvrtu, 204 za brisanje i 201 za zamjenu. Obrisana datoteka i njezini metapodaci nestaju. | Prošlo |
+| PORT-04-IT-02 | Djelo s tri slike učitane kroz API. | Vlasnik obriše djelo. | 204; nema djela, redova `artwork_images` i `stored_files` ni datoteka na disku. Stari URL-ovi slika daju 404. | Prošlo |
+| PORT-04-IT-03 | Vlasnik djela bez slika. | Učita PDF, tekst preimenovan u `.png` i JPG od 5 MiB + 1 B. | 415 `UNSUPPORTED_FILE_TYPE`, 415 `UNSUPPORTED_FILE_TYPE`, 413 `FILE_TOO_LARGE`; baza i disk ostaju bez slika. | Prošlo |
+| PORT-04-IT-04 | Postojeća slika i stvarna sesija drugog umjetnika, organizatora ili korisnika `ONBOARDING`. | Pokuša učitati i obrisati sliku. | Drugi umjetnik dobiva 404 `NOT_FOUND`, organizator 403 `FORBIDDEN`, a `ONBOARDING` 403 `ONBOARDING_REQUIRED`. Vlasnikova slika ostaje. | Prošlo |
+| PORT-04-IT-05 | Javno djelo sa stvarno učitanim JPG-om i PNG-om. | Posjetitelj dohvati datoteke; zatim vlasnik promijeni djelo u privatno. | Javne slike vraćaju 200, izvorne bajtove, ispravan tip i javni cache. Privatne slike vide samo vlasnik i administrator uz `private, no-store`; posjetitelj i drugi umjetnik dobivaju 404. | Prošlo |
+| PORT-04-E2E-01 | Prijavljeni umjetnik na obrascu novog djela. | Stvori javno djelo, učita `art.jpg` i `art.png`, osvježi stranicu i doda treću sliku. | Nakon stvaranja dolazi na `/portfolio/artworks/:id`, vidi dvije učitane sličice i „2/3 slike”; s trećom slikom gumb ostaje vidljiv i onemogućen. | Prošlo |
+| PORT-04-E2E-02 | Djelo s tri slike. | Umjetnik ukloni jednu uz potvrdu i doda novu. | Brojač pada na 2/3, dodavanje je ponovno omogućeno, a nova slika vraća broj na 3/3. | Prošlo |
+| PORT-04-E2E-03 | Umjetnik u obrascu djela bez slika. | Odabere `document.pdf` ili `big.jpg`. | Vidi „Dopuštene su samo JPG i PNG slike” ili „Slika je veća od 5 MB”; nema dodanih sličica. | Prošlo |
+
+Granica od „5 MB” u poruci znači 5 × 1024 × 1024 bajtova, kao u postavkama
+aplikacije. Mali JPG i PNG su stvarne slike iz repozitorija; veliki JPG stvara
+fixture. JUnit automatski briše privremeni korijen pohrane, a E2E fixture briše
+samo svoje djelo, uključujući njegove slike i datoteke. Testovi ne ovise o
+redoslijedu; zbog zajedničkog dev korisnika Selenium se izvodi bez paralelizacije.
+Uspješni E2E scenarij stvara djelo kroz sučelje radi provjere preusmjeravanja;
+fixture ga poslije pronalazi po jedinstvenom naslovu i briše kroz API. Za
+nevaljane datoteke djelo se priprema kroz API, kako navodi #110.
+Naredbe i izvještaji opisani su u [uputama za testove](../tests/Readme.md#slike-djela-i-datoteke-port-04-test).
+
 ### AUTH-02-TEST — Odabir uloge pri prvoj prijavi
 
 | ID         | Zadano                                            | Kada                                                                                     | Tada                                                                                                                   | Ishod  |
@@ -391,6 +419,14 @@ redom zbog zajedničkog dev korisnika; svaki priprema vlastite podatke.
 | AUTH-02-T2 | `novi@artconnect.test` na `/onboarding`.          | Ne odabere ulogu.                                                                        | Gumb „Potvrdi” je onemogućen.                                                                                          | Prošlo |
 | AUTH-02-T3 | `novi@artconnect.test` na `/onboarding`.          | Odabere „Umjetnik” i potvrdi.                                                            | Dolazi na `/profile`, izbornik prikazuje oznaku „Umjetnik”, a ponovni posjet `/onboarding` preusmjerava na `/profile`. | Prošlo |
 | AUTH-02-T4 | Google račun za testiranje                        | Prijavi se Googleom, odabere ulogu i potvrdi, odjavi se i ponovno prijavi istim računom. | Nakon prve prijave je na `/onboarding`, nakon potvrde na `/profile`, a nakon ponovne prijave na `/`.                   | Prošlo |
+
+### AUTH-03-TEST — Profil organizatora
+
+| ID | Zadano | Kada | Tada | Ishod |
+| --- | --- | --- | --- | --- |
+| AUTH-03-T1 | `novi@artconnect.test` (svježe stanje) | Odabere „Organizator”. | Na `/profile` vidi profil organizatora s oznakom „Odobren”. | Prošlo. |
+| AUTH-03-T2 | Prijavljen `organizator@artconnect.test`.| Promijeni naziv u „Galerija E2E”, spremi i osvježi stranicu. | Polje prikazuje „Galerija E2E”. |Prošlo.|
+| AUTH-03-T3 | Prijavljen `organizator@artconnect.test`. | Upiše 201 znak. | Vidi validacijsku grešku i spremanje se ne šalje. | Prošlo |
 
 ### PORT-05 — Javni portfolio i matrica vidljivosti
 
@@ -422,9 +458,55 @@ pa su testovi neovisni o postojećim seed podacima i redoslijedu.
 
 ## 5.3 Provedena ispitivanja i rezultati
 
+### PORT-04 — lokalno izvođenje 13. 11. 2026.
+
+Ispitana je radna promjena za [issue #110](https://github.com/LD05-fk/Strumfovi/issues/110)
+na grani `test/PORT-04-TEST`, temeljena na reviziji `c140f11`. Ona uključuje
+frontend iz [PR-a #374](https://github.com/LD05-fk/Strumfovi/pull/374).
+Okruženje: Windows, Maven u Dockeru s Javom 25.0.4.1 i Spring Bootom 4.1.1,
+PostgreSQL 16 kroz Testcontainers. E2E koristi zasebni PostgreSQL 17,
+backend s profilom `dev` na portu 18080, Vite na 15173, Python 3.12.6,
+pytest 9.2.0 i Chrome headless (`BASE_URL=http://127.0.0.1:15173`).
+
+- `mvn -B '-Dtest=ArtworkLifecycleIT,FileAccessIT,PortfolioVisibilityIT' test`:
+  **13 testova prošlo, bez grešaka i preskakanja; BUILD SUCCESS**.
+  `ArtworkLifecycleIT` ima deset provjera, `FileAccessIT` jednu, a povezani
+  `PortfolioVisibilityIT` dvije. Pokriveni su svi integracijski scenariji
+  PORT-04 iz §5.2 i povezana pravila vidljivosti portfolija.
+- Selenium: `pytest tests/selenium/test_portfolio.py -k 'artwork_images or artwork_empty or artwork_made_private or artwork_deleted'`:
+  **6 testova prošlo za 92,86 s**, bez grešaka i preskakanja. Tri nova testa
+  pokrivaju slike, a tri postojeća obavezna polja, privatnost i brisanje djela.
+  Glavni tok uključuje stvaranje javnog djela u obrascu, preusmjeravanje,
+  JPG i PNG, osvježavanje, granicu od tri slike, brisanje i ponovno dodavanje.
+- Vitest za `ArtworkImageUploader.test.tsx`: **14 testova prošlo**.
+  Prošli su i `npm run typecheck` te `npm run lint`; lint javlja četiri
+  postojeća upozorenja u drugim dijelovima frontenda i obrascu djela.
+- Privremeni test namjerno je pao nakon stvaranja djela i učitavanja slike:
+  **jedan očekivani pad, bez grešaka čišćenja**. Spremljeni su PNG, HTML
+  stranice i samostalni pytest HTML/XML izvještaj. Privremeni test nije dio
+  repozitorija. Provjera potvrđuje čišćenje i dokaze pada, a ne grešku aplikacije.
+- SQL provjera nakon testova potvrdila je **nula testnih djela, datoteka i sesija**
+  u zasebnoj E2E bazi. Korijeni pohrane integracijskih testova koriste `@TempDir`;
+  E2E djela i njihove slike brišu se kroz API i nakon pada testa.
+
+Prema #110, na granici dodavanja gumb ostaje vidljiv i onemogućen. Frontend
+iz #109 ga je skrivao; ova promjena usklađuje prikaz sa zahtjevom i postojećim
+pravilima učitavanja. [Snimka stanja s tri slike](images/port04-image-limit.png).
+
+Lokalni izvještaji nastali su u `backend/target/surefire-reports/` i
+`test-results/port04-final/`. [Backend CI](../.github/workflows/ci.yml)
+automatski pokreće `IT` klase preko Failsafea i sprema `backend-test-reports`.
+[E2E workflow](../.github/workflows/e2e.yml) pokreće Selenium i sprema
+`e2e-report`, uključujući PNG/HTML dokaze pada. Navedeni brojevi odnose se na
+lokalno izvođenje; rezultat pojedinog CI izvođenja dostupan je na PR-u.
+Nije ponovno pokrenut puni lokalni `mvn verify`; provjere su ciljane na
+promijenjeno ponašanje i povezana pravila.
+
 AUTH-01-TEST - 3.11.2026. - revizija `7125d91` (grana `feature/AUTH-01-TEST`), lokalno docker-compose okruženje s profilom dev, Selenium (headless Chrome); svih 9 ispitnih slučajeva prošlo.
 
 AUTH-02-TEST - 8.11.2026. - lokalno docker-compose okruženje s profilom dev, Selenium (headless Chrome); sva tri ispitna slučaja prošla. Ručni slučaj AUTH-02-T4 (prijava stvarnim Google računom) izveden na produkciji, prošao.
+
+AUTH-03-TEST - 12.11.2026. - lokalno docker-compose okruženje s profilom dev, Selenium (headless Chrome); sva tri ispitna slučaja prošla.
 
 **Cilj:** Navesti reviziju aplikacije, okruženje i dokaze potrebne za tumačenje stvarnih rezultata u tablici ispitnih slučajeva. Dodajte kratak zapis izvođenja kada te podatke nije moguće jasno prenijeti poveznicom na kod ispitivanja ili CI izvođenje.
 

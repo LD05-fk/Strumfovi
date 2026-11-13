@@ -97,6 +97,25 @@ def onboarding_user(reset_dev_user, login_as):
 
 
 @pytest.fixture
+def organizer_profile(login_as, base_url):
+    session = login_as("organizator@artconnect.test")
+    path = f"{base_url}/api/v1/me/organizer-profile"
+    response = session.get(path, timeout=10)
+    response.raise_for_status()
+    original_profile = response.json()
+    original_update = {
+        "organizationName": original_profile["organizationName"],
+    }
+    response = session.put(path, json=original_update, timeout=10)
+    response.raise_for_status()
+    try:
+        yield session
+    finally:
+        restored = session.put(path, json=original_update, timeout=10)
+        restored.raise_for_status()
+
+
+@pytest.fixture
 def portfolio_artist(login_as, base_url):
     """Svaki test počinje praznim obrascem, a zatim vraća izvorni dev profil."""
     session = login_as("umjetnik@artconnect.test")
@@ -272,6 +291,50 @@ def cleanup():
             undo()
         except Exception as error:
             print(f"Čišćenje nije uspjelo: {error}")
+
+
+@pytest.fixture
+def artwork_image_files(tmp_path):
+    """Male datoteke dolaze iz Gita; veliku stvaramo samo za trajanje testa."""
+    fixtures = Path(__file__).parent / "fixtures"
+    large_jpeg = tmp_path / "big.jpg"
+    # Zadržavamo JPEG sadržaj, a veličinu postavljamo točno jedan bajt iznad granice.
+    with large_jpeg.open("wb") as image:
+        image.write((fixtures / "art.jpg").read_bytes())
+        image.truncate(5 * 1024 * 1024 + 1)
+    yield {
+        "art.jpg": fixtures / "art.jpg",
+        "art.png": fixtures / "art.png",
+        "document.pdf": fixtures / "document.pdf",
+        "big.jpg": large_jpeg,
+    }
+    # Uklanjamo veliku datoteku i nakon neuspjelog testa, bez čekanja pytest čišćenja.
+    large_jpeg.unlink()
+
+
+@pytest.fixture
+def artwork_image_artist(login_as, base_url):
+    """Za test stvaranja kroz sučelje priprema prijavu i osigurava čišćenje po naslovu."""
+    session = login_as("umjetnik@artconnect.test")
+    response = session.get(f"{base_url}/api/v1/me", timeout=10)
+    response.raise_for_status()
+    artist_id = response.json()["id"]
+    title = f"E2E slike {uuid4()}"
+    try:
+        yield title
+    finally:
+        # ID možda nije stigao do testa nakon spremanja. Zato svoj novi unos nalazimo
+        # po jedinstvenom naslovu na prvoj stranici, koja vraća najnovija djela.
+        response = session.get(
+            f"{base_url}/api/v1/artists/{artist_id}/artworks?pageSize=100", timeout=10
+        )
+        response.raise_for_status()
+        for artwork in response.json()["data"]:
+            if artwork["title"] == title:
+                deleted = session.delete(
+                    f"{base_url}/api/v1/artworks/{artwork['id']}", timeout=10
+                )
+                deleted.raise_for_status()
 
 
 @pytest.hookimpl(hookwrapper=True)

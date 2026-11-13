@@ -2,6 +2,7 @@ package hr.fer.artconnect.portfolio.it;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import jakarta.servlet.http.Cookie;
@@ -12,6 +13,8 @@ import java.util.UUID;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.mock.web.MockMultipartFile;
 
 /** Testni korisnici, područja, izložbe, djela i stvarne sesije za testove portfolija. */
 public class PortfolioFixtures {
@@ -88,6 +91,16 @@ public class PortfolioFixtures {
         for (UUID id : artFields) {
             jdbc.update("DELETE FROM art_fields WHERE id = ?", id);
         }
+    }
+
+    // Datoteku šaljemo kao preglednik: multipart tijelo, stvarna sesija i CSRF token.
+    // Rezultat vraćamo testu kako bi on provjerio očekivani uspjeh ili grešku.
+    public ResultActions uploadImage(UUID artworkId, UserSession user, String name, byte[] bytes)
+            throws Exception {
+        return mockMvc.perform(multipart("/api/v1/artworks/{id}/images", artworkId)
+                .file(new MockMultipartFile("file", name, "application/octet-stream", bytes))
+                .cookie(user.session(), user.csrf())
+                .header("X-XSRF-TOKEN", user.csrf().getValue()));
     }
 
     public record UserSession(Cookie session, Cookie csrf) {
