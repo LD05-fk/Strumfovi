@@ -110,7 +110,10 @@ const router = createBrowserRouter(
                     </RequireRole>
                 }
             />
-            <Route path="artists/:artistId" element={<PublicPortfolioPage />} />
+            <Route 
+                path="artists/:artistId" 
+                element={<PublicPortfolioPage />}
+            />
             <Route
                 path="onboarding"
                 element={
