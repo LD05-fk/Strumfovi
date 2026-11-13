@@ -61,6 +61,28 @@ Detalji su u [API dokumentaciji prijave](api/auth.md).
 
 Detalji su u [API dokumentaciji umjetnika](api/artists.md) i [djela](api/artworks.md).
 
+#### Uređivanje profila umjetnika i prethodnih izložbi
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Umjetnik |
+| **Povezani zahtjevi** | FR-02; PORT-01, PORT-02 |
+| **Preduvjeti** | Korisnik je prijavljen s ulogom `ARTIST`. |
+| **Glavni uspješni tok** | 1. Umjetnik otvara `/profile`.<br>2. Uređuje biografiju, umjetničku izjavu, područja umjetnosti (najviše 10) i poveznice (najviše 10) te sprema (`PUT /api/v1/me/artist-profile`).<br>3. Dodaje prethodnu izložbu s naslovom, godinom i mjestom (`POST /api/v1/past-exhibitions`).<br>4. Po potrebi uređuje ili uz potvrdu briše postojeću izložbu (`PUT` ili `DELETE /api/v1/past-exhibitions/{id}`).<br>5. Promjene se prikazuju na javnom portfoliju. |
+| **Alternativni tokovi** | **2a — Nevaljan unos** (npr. predug tekst ili poveznica bez `http(s)`): `400 VALIDATION_ERROR`, greška se prikazuje uz polje.<br>**3a — Godina izložbe u budućnosti ili prije 1900.:** `400 VALIDATION_ERROR` uz polje godine.<br>**4a — Tuđa izložba:** `404 NOT_FOUND`, ništa se ne mijenja. |
+| **Rezultat** | Profil i popis prethodnih izložbi su ažurirani i vidljivi na javnom portfoliju. |
+
+#### Uređivanje profila organizatora
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Organizator |
+| **Povezani zahtjevi** | FR-02; AUTH-03 |
+| **Preduvjeti** | Korisnik je prijavljen s ulogom `ORGANIZER`; može i čekati odobrenje. |
+| **Glavni uspješni tok** | 1. Organizator otvara `/profile`.<br>2. Vidi svoje ime s Google računa (samo za čitanje) i status odobrenja („Odobren” ili „Čeka odobrenje”).<br>3. Unosi naziv organizacije i sprema (`PUT /api/v1/me/organizer-profile`). |
+| **Alternativni tokovi** | **3a — Naziv dulji od 200 znakova:** `400 VALIDATION_ERROR`, greška se prikazuje uz polje.<br>**3b — Prazan naziv:** sprema se kao prazan (naziv nije obavezan). |
+| **Rezultat** | Naziv organizacije je spremljen; status odobrenja ne mijenja se. |
+
 ### UC-03 Pregledati javne profile i portfolije
 
 | Element specifikacije | Opis |
