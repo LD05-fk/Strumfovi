@@ -190,7 +190,7 @@ Detalji su u [API dokumentaciji prilika](api/opportunities.md), za [pregled orga
 | **Primarni akter** | Organizator (vlasnik prilike) |
 | **Povezani zahtjevi** | FR-05; APP-01, APP-05 |
 | **Preduvjeti** | Organizator je prijavljen i prilika mu pripada. |
-| **Glavni uspješni tok** | 1. Organizator otvara uvjete prijave svoje prilike.<br>2. Dodaje stavke: naziv, vrstu (tekst, poveznica, datoteka ili djelo iz portfolija), je li obavezna i najveći broj priloga.<br>3. Sprema uvjete (`PUT /api/v1/opportunities/{id}/requirements`). |
+| **Glavni uspješni tok** | 1. Organizator otvara uvjete prijave svoje prilike.<br>2. Dodaje stavke: naziv, vrstu (tekst, poveznica, slike, PDF ili djela iz portfolija), je li obavezna i najveći broj priloga.<br>3. Sprema uvjete (`PUT /api/v1/opportunities/{id}/requirements`). |
 | **Alternativni tokovi** | **2a — Previše datoteka:** zbroj datotečnih stavki veći od 10 odbija se (`400 VALIDATION_ERROR`).<br>**3a — Izmjena nakon prvih prijava:** uvjeti se smiju mijenjati; neodlučene prijave koje ih više ne zadovoljavaju automatski prelaze u „Potrebna dopuna” s porukom što nedostaje. Prihvaćene i odbijene prijave ne mijenjaju se. |
 | **Rezultat** | Uvjeti su spremljeni i prikazuju se na detalju prilike. |
 
@@ -202,7 +202,7 @@ Detalji su u [API dokumentaciji prilika](api/opportunities.md), za [pregled orga
 | **Povezani zahtjevi** | FR-05; APP-02 |
 | **Preduvjeti** | Umjetnik je prijavljen, a prilika je u statusu `OPEN`. |
 | **Glavni uspješni tok** | 1. Umjetnik na detalju prilike odabire „Prijavi se”.<br>2. Popunjava stavke: tekst, poveznice, datoteke ili vlastita djela (i privatna, koja tada vidi samo organizator te prilike).<br>3. Predaje prijavu (`POST /api/v1/opportunities/{id}/applications`); status je „Predana”.<br>4. Prijava se prikazuje u „Mojim prijavama”. |
-| **Alternativni tokovi** | **2a — Nedostaje obavezna stavka ili je priloga previše:** `400 VALIDATION_ERROR`, greška se prikazuje uz stavku.<br>**2b — Djelo je sakrio administrator:** ne može se priložiti.<br>**3a — Prilika u međuvremenu nije otvorena:** predaja je odbijena (`409`). |
+| **Alternativni tokovi** | **2a — Nedostaje obavezna stavka ili je priloga previše:** `400 VALIDATION_ERROR`, greška se prikazuje uz stavku.<br>**2b — Djelo je sakrio administrator:** ne može se priložiti.<br>**3a — Prilika nije otvorena ili je rok prošao:** `409 OPPORTUNITY_NOT_OPEN` odnosno `409 DEADLINE_PASSED`.<br>**3b — Umjetnik već ima aktivnu prijavu na tu priliku:** `409 ALREADY_APPLIED`. |
 | **Rezultat** | Prijava je predana i organizator je vidi. |
 
 #### Dopuna ili povlačenje prijave
@@ -213,7 +213,7 @@ Detalji su u [API dokumentaciji prilika](api/opportunities.md), za [pregled orga
 | **Povezani zahtjevi** | FR-05; APP-03 |
 | **Preduvjeti** | Umjetnik ima neodlučenu prijavu. |
 | **Glavni uspješni tok** | 1. Umjetnik otvara prijavu i vidi status, povijest i poruku organizatora.<br>2. Ako je status „Potrebna dopuna”, dopunjuje stavke i ponovno predaje (`PUT /api/v1/applications/{id}`); status je opet „Predana”.<br>3. Umjesto toga može povući prijavu uz potvrdu (`POST /api/v1/applications/{id}/withdraw`); status je „Povučena”. |
-| **Alternativni tokovi** | **2a — Prijava nije u statusu „Potrebna dopuna”:** dopuna nije ponuđena.<br>**3a — Prijava je već odlučena:** povlačenje nije moguće (`409`).<br>**3b — Nova prijava nakon povlačenja:** dopuštena dok je prilika otvorena; stara ostaje kao „Povučena”. |
+| **Alternativni tokovi** | **2a — Prijava nije u statusu „Potrebna dopuna”:** dopuna nije ponuđena (`409 INVALID_STATUS_TRANSITION`).<br>**2b — Dopuna ne zadovoljava trenutne uvjete:** `400 VALIDATION_ERROR`.<br>**3a — Prijava je već odlučena ili povučena:** povlačenje nije moguće (`409 INVALID_STATUS_TRANSITION`).<br>**3b — Nova prijava nakon povlačenja:** dopuštena dok je prilika otvorena; stara ostaje kao „Povučena”. |
 | **Rezultat** | Prijava je dopunjena i ponovno predana ili povučena. |
 
 Detalji ruta i odgovora bit će u API dokumentaciji prijava.
