@@ -13,12 +13,9 @@ class OpportunityDetailPage(BasePage):
         return self
 
     def has_preparation_private_status(self):
-        return bool(
-            self.driver.find_elements(
-                By.XPATH,
-                "//*[normalize-space()='U pripremi – vidljivo samo vama']",
-            )
-        )
+        return self.wait_visible(
+            (By.XPATH, "//*[normalize-space()='U pripremi – vidljivo samo vama']")
+        ).is_displayed()
 
     def wait_for_location_marker(self, title):
         WebDriverWait(self.driver, 10).until(
