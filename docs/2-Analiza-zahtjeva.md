@@ -44,7 +44,7 @@ Zahtjevi su grupirani u deset povezanih korisničkih ciljeva. Svaki ima stabilan
 | NF-03 | **Ograničenja unosa:** slike su samo JPG ili PNG, najviše 5 MB, do tri po djelu. Unos se uvijek provjerava na poslužitelju, a poruke grešaka su na hrvatskom u jedinstvenom obliku. | Srednji | Odluka tima | Testovi učitavanja datoteka i validacije. |
 | NF-04 | **Responzivnost:** sučelje je upotrebljivo na mobitelu i na računalu u aktualnim inačicama preglednika Chrome, Firefox i Edge. | Srednji | Odluka tima | Ručna provjera glavnih tokova na oba oblika zaslona. |
 | NF-05 | **Pristupačnost:** sve stranice mogu se koristiti tipkovnicom uz vidljiv fokus, postoji poveznica „Preskoči na sadržaj”, slike imaju alternativni tekst, a status se prikazuje i tekstom, ne samo bojom. | Srednji | Odluka tima | Pregled sučelja tipkovnicom. Provjera alatom Lighthouse na glavnim stranicama. |
-| NF-06 | **Odziv:** popisi su uvijek straničeni (zadano 20, najviše 100 po stranici), a pretraga prilika koristi indekse u bazi. Pretraga prilika vraća rezultate u najviše 5 sekundi (početna vrijednost; konačnu brojku treba potvrditi s asistenticom). | Srednji | Odluka tima | Mjerenje vremena odgovora pretrage na demo podacima. |
+| NF-06 | **Odziv:** uz do 100 istodobnih korisnika stranice se učitavaju za manje od 2 sekunde. Popisi su uvijek straničeni (zadano 20, najviše 100 po stranici), a pretraga prilika koristi indekse u bazi. | Srednji | Odluka tima | Test opterećenja u Fazi 5 ([DOC-41](https://github.com/LD05-fk/Strumfovi/issues/299)). |
 | NF-07 | **Održivost:** u `master` ulazi samo promjena sa zelenim CI-jem (provjere Backend i Frontend) i jednim odobrenjem druge osobe. Osnovni testovi pokrivaju poslovna pravila i glavne tokove, shema baze mijenja se samo Liquibase migracijama, a SonarCloud tjedno pregledava kvalitetu koda. | Srednji | Pravila kolegija; odluka tima | Zaštita grane `master`, rezultati GitHub Actionsa, SonarCloud. |
 | NF-08 | **Isporuka i rad:** spajanje u `master` automatski isporučuje novu inačicu na AWS EC2 (Docker). Poslužitelj pri paljenju sam povuče zadnju inačicu. Zapisi su dostupni u pregledniku, a baza se jednom dnevno sigurnosno kopira (čuva se zadnjih 7 kopija). | Srednji | Pravila kolegija; odluka tima | Pokretanja workflowa CD, `/actuator/health`, pregled zapisa na `/logs`. |
 | NF-09 | **Dostupnost:** aplikacija nije stalno upaljena (zbog štednje AWS kredita), nego je dostupna na zahtjev i u terminima ocjenjivanja i demonstracija. | Nizak | Odluka tima | Workflow Server (`status`), varijabla `ALWAYS_ON` u razdobljima ocjenjivanja. |
@@ -54,9 +54,19 @@ Zahtjevi su grupirani u deset povezanih korisničkih ciljeva. Svaki ima stabilan
 
 **Cilj:** Utvrditi uloge koje utječu na zahtjeve i razlikovati dionike od aktera koji komuniciraju s aplikacijom.
 
+Akteri su isti kao na dijagramu obrazaca uporabe ([§3.1](3-Obrasci-uporabe.md#31-dijagram-obrazaca-uporabe)).
+
 | ID uloge ili aktera | Odnos prema sustavu | Relevantni zahtjevi |
 | --- | --- | --- |
-|  |  |  |
+| Posjetitelj | Akter. Neprijavljeni korisnik; pregledava prilike i javne portfolije, može se prijaviti. | FR-01, FR-02, FR-04 |
+| Umjetnik | Akter. Uređuje portfolio, prijavljuje se na prilike i prati ishode. | FR-02, FR-05–FR-07, FR-10 |
+| Organizator | Akter. Objavljuje prilike, odlučuje o prijavama, objavljuje rezultate i vidi statistiku. | FR-02–FR-08, FR-10 |
+| Administrator | Akter. Upravlja korisnicima, odobrenjem organizatora, sadržajem i postavkama; vidi mjesečni izvještaj. | FR-08, FR-09 |
+| Google OAuth 2.0 | Vanjski sustav. Potvrđuje identitet korisnika pri prijavi. | FR-01, NF-01 |
+| OpenStreetMap / Nominatim | Vanjski sustav. Karta i pretvaranje adrese u koordinate. | FR-03, FR-04, NF-10 |
+| Google Calendar | Vanjski sustav. Prima prihvaćeno događanje umjetnika. | FR-07 |
+| Planer | Sistemski akter. Zakazani zadaci: automatsko zatvaranje prijava i mjesečni izvještaj. | FR-04, FR-08 |
+| Nositelj kolegija i asistentica | Dionici. Ne koriste aplikaciju, ali njihova pravila određuju ograničenja (§2.4). | C-01–C-04 |
 
 ---
 
@@ -64,11 +74,20 @@ Zahtjevi su grupirani u deset povezanih korisničkih ciljeva. Svaki ima stabilan
 
 **Cilj:** Zabilježiti projektno specifične granice i pretpostavke koje utječu na zahtjeve ili oblikovanje, zajedno s njihovim izvorom i praktičnom posljedicom. Ovo je njihovo mjerodavno mjesto u dokumentaciji.
 
+Otvorena pitanja iz početka projekta (C-02, C-03, C-05–C-07, AS-01) potvrđena su s asistenticom.
+
 | ID | Tip | Opis ograničenja ili pretpostavke | Izvor | Inženjerska posljedica / Provjera |
-| --- | --- | --- | --- |
-| C-01 | Ograničenje | [Fiksni tehnički ili procesni uvjet] | [Zadatak / Pravila] | [Utjecaj na arhitekturu i oblikovanje] |
-| AS-01 | Pretpostavka | [Očekivani uvjet (npr. o podacima ili okolini)] | [Procjena tima] | [Kako i kada će se provjeriti valjanost] |
-|  |  |  |  |
+| --- | --- | --- | --- | --- |
+| C-01 | Ograničenje | Prijava je samo putem Googlea; aplikacija ne traži ni ne pohranjuje lozinke. | Pravila kolegija | OAuth 2.0 prijava i poslužiteljska sesija (NF-01). |
+| C-02 | Ograničenje | Obavezna vanjska integracija s kartom ostvaruje se OpenStreetMapom umjesto Google Mapsa, jer Google traži obračunski račun. | Odluka tima, potvrđeno s asistenticom | Leaflet i Nominatim ([ADR-02](4-Arhitektura-i-oblikovanje.md#adr-02-openstreetmap--leaflet-umjesto-google-mapsa), [ADR-03](4-Arhitektura-i-oblikovanje.md#adr-03-geokodiranje-preko-backenda-nominatim)); NF-10. |
+| C-03 | Ograničenje | Aplikacija je javno dostupna od prvog ciklusa, na AWS EC2 u Dockeru, uz ograničen AWS kredit. | Pravila kolegija; potvrđeno s asistenticom | Automatska isporuka i rad na zahtjev (NF-08, NF-09). |
+| C-04 | Ograničenje | Rokovi predaje su 20. 11. 2026. i 22. 1. 2027.; rad svih članova mora biti vidljiv na GitHubu (Issues, commitovi, PR-ovi). | Pravila kolegija | Podjela zahtjeva po ciklusima (§2.1); rad kroz Issue i PR. |
+| C-05 | Ograničenje | Datum rođenja umjetnika ne prikuplja se. | Odluka tima, potvrđeno s asistenticom | Dobni kriteriji prilike samo su informativni tekst, bez automatske provjere. |
+| C-06 | Ograničenje | Brisanje računa anonimizira osobne podatke, a prijave i rezultati ostaju sačuvani. | Odluka tima, potvrđeno s asistenticom | FR-01, NF-02. |
+| C-07 | Ograničenje | Google aplikacija radi u testnom načinu: prijavu i Google Calendar mogu koristiti samo dodani testni korisnici. | Odluka tima, potvrđeno s asistenticom | Tim dodaje račune za testiranje i demonstraciju u Google Cloud. |
+| AS-01 | Pretpostavka | Obavijesti unutar aplikacije nisu nužne; status prijave vidi se na stranici prijave. | Odluka tima, potvrđeno s asistenticom | FR-10 je opcionalan (Nizak prioritet). |
+| AS-02 | Pretpostavka | Besplatni OpenStreetMap i Nominatim dovoljni su za opterećenje projekta. | Procjena tima | Test geokodiranja; ručni unos položaja ako usluga ne radi (NF-10). |
+| AS-03 | Pretpostavka | Korisnici koriste aktualne inačice preglednika Chrome, Firefox ili Edge. | Procjena tima | Ručna provjera glavnih tokova (NF-04). |
 
 ---
 
@@ -78,8 +97,7 @@ Zahtjevi su grupirani u deset povezanih korisničkih ciljeva. Svaki ima stabilan
 
 | Datum | ID zahtjeva | Promjena i razlog | Dogovoreno s / dokaz |
 | --- | --- | --- | --- |
-| 31. 10. 2026. | FR-01–FR-10 | Sažeto je 52 detaljna funkcijska zahtjeva u 10 povezanih korisničkih ciljeva; zahtjevi i kriteriji prihvaćanja dodatno su skraćeni na osnovne ishode; MoSCoW je zamijenjen prioritetima Visok/Srednji/Nizak. Povezane zahtjeve za prijavu i upravljanje računom objedinjuje FR-01. Pojedinačni tokovi i rubni slučajevi ostaju u obrascima uporabe, API dokumentaciji i ispitivanju. | Bilješke sa sastanka i dogovor o sažimanju |
-|  |  |  |  |
+| 1. 11. 2026. | FR-01–FR-10 | 52 detaljna funkcijska zahtjeva sažeta su u 10 korisničkih ciljeva s kratkim kriterijima prihvaćanja, a prioriteti MoSCoW zamijenjeni su s Visok/Srednji/Nizak. Razlog: zahtjevi trebaju biti kratki i razumljivi; detalji ostaju u obrascima uporabe, API dokumentaciji i ispitivanju. | Povratna informacija asistentice na vježbi 26. 10. 2026.; [PR #357](https://github.com/LD05-fk/Strumfovi/pull/357) (DOC-10) |
 
 ---
 
@@ -87,9 +105,22 @@ Zahtjevi su grupirani u deset povezanih korisničkih ciljeva. Svaki ima stabilan
 
 **Cilj:** Osigurati dvosmjernu sljedivost — povezati zahtjeve s opisanim ponašanjem, dijelovima sustava koji ih ostvaruju te ispitivanjem ili drugom provjerom. 
 
+Sljedivost se vodi vezama, bez zasebne matrice: zahtjev `FR-xx` → obrazac uporabe `UC-xx` (poglavlje 3) → Issue i PR koji ga ostvaruju → ispitni slučaj (poglavlje 5).
+
+**Primjer:** FR-03 (organizator stvara i uređuje prilike) opisan je u [UC-04](3-Obrasci-uporabe.md#uc-04-upravljati-prilikama). Ostvaren je zadacima OPP-01 (backend modul `opportunity`), a ispitan PR-om [#379](https://github.com/LD05-fk/Strumfovi/pull/379). Ispitni slučaj `OPP-01-IT-02` ([§5.2](5-Ispitivanje.md#opp-01--objava-i-uređivanje-prilike)) potvrđuje da vlasnik može spremiti promjene svoje prilike.
+
 | ID zahtjeva | Obrazac uporabe / modul | Arhitekturna realizacija | Ispitivanje ili provjera |
 | --- | --- | --- | --- |
-|  |  |  |  |
+| FR-01 | UC-01 | `auth`; zadaci AUTH-01, AUTH-02 | [AUTH-01-TEST](5-Ispitivanje.md#auth-01-test---3112026), [AUTH-02-TEST](5-Ispitivanje.md#auth-02-test--odabir-uloge-pri-prvoj-prijavi) |
+| FR-02 | UC-02, UC-03 | `artist`, `artwork`, `file`; zadaci PORT-01–PORT-05, AUTH-03 | [PORT-01](5-Ispitivanje.md#port-01--profil-umjetnika), [PORT-03](5-Ispitivanje.md#port-03--djela-u-portfoliju), [PORT-05](5-Ispitivanje.md#port-05--javni-portfolio-i-matrica-vidljivosti), [AUTH-03-TEST](5-Ispitivanje.md#auth-03-test--profil-organizatora) |
+| FR-03 | UC-04 | `opportunity`, `catalog`; zadaci OPP-01 | [OPP-01](5-Ispitivanje.md#opp-01--objava-i-uređivanje-prilike) |
+| FR-04 | UC-04, UC-05 | `opportunity`; zadaci OPP-02, OPP-03 | [OPP-02](5-Ispitivanje.md#opp-02--javna-pretraga-prilika), [OPP-03](5-Ispitivanje.md#opp-03--moje-prilike-i-upravljanje-statusom) |
+| FR-05 | UC-06 | `application` | Planirano (2. ciklus) |
+| FR-06 | UC-07 | `application` | Planirano (2. ciklus) |
+| FR-07 | UC-08 | `result`, `calendar` | Planirano (2. ciklus) |
+| FR-08 | UC-09 | `statistics`, `report` | Planirano (2. ciklus) |
+| FR-09 | UC-10, UC-12 | `admin` | Planirano (2. ciklus) |
+| FR-10 | UC-11 | `notification` | Planirano (2. ciklus; opcionalno) |
 
 ---
 
@@ -99,9 +130,18 @@ Zahtjevi su grupirani u deset povezanih korisničkih ciljeva. Svaki ima stabilan
 
 | Kontrolna točka | Povratna informacija ili nalaz | Odluka o zahtjevu ili opsegu |
 | --- | --- | --- |
-| Kontrolna točka 1 (7. tjedan) | [Povratna informacija] | [Odluka; vidi odjeljak 2.5] |
-| Demo 2 (11. tjedan) | [Povratna informacija] | [Odluka; vidi odjeljak 2.5] |
-| Kontrolna točka 2 (14. tjedan) | [Povratna informacija] | [Odluka; vidi odjeljak 2.5] |
+| Vježba, 26. 10. 2026. | Funkcijskih zahtjeva ima previše i predetaljni su; nefunkcijske zahtjeve treba pojednostaviti. Sigurnost se ostvaruje Google prijavom bez lozinki. | Zahtjevi sažeti u FR-01–FR-10 i pojednostavljeni NF-01–NF-10; vidi §2.5 (1. 11. 2026.). |
+| Kontrolna točka 1 (7. tjedan) | Još nije održano. | — |
+| Demo 2 (11. tjedan) | Još nije održano. | — |
+| Kontrolna točka 2 (14. tjedan) | Još nije održano. | — |
+
+**Broj funkcijskih zahtjeva po prioritetu i ciklusu:**
+
+| Prioritet | 1. ciklus | 2. ciklus | Ukupno |
+| --- | --- | --- | --- |
+| Visok | 4 (FR-01–FR-04, dijelom) | 3 (FR-05, FR-06, FR-09) | 7 |
+| Srednji | — | 2 (FR-07, FR-08) | 2 |
+| Nizak | — | 1 (FR-10, opcionalno) | 1 |
 
 ---
 
