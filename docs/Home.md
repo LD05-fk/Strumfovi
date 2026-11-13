@@ -9,6 +9,8 @@
 
 ArtConnect je web aplikacija u kojoj mladi umjetnici vode portfolio i prijavljuju se na prilike (natječaje, izložbe, radionice) koje objavljuju organizatori.
 
+**API dokumentacija:** [docs/api](api/README.md) (zajednička pravila i rute po domenama).
+
 ## Članovi tima i uloge
 
 | Ime i prezime        | GitHub korisničko ime | Glavne uloge      | Sporedne uloge        |
