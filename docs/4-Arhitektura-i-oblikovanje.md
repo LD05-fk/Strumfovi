@@ -143,65 +143,27 @@ Svi pozivi backenda idu kroz `apiFetch` iz `api/client.ts`, nikad kroz vlastiti 
 
 ![ER dijagram podataka sustava ArtConnect](assets/diagrams/4-2-artconnect-data-ERD.svg)
 
-**Slika 4.2. ER dijagram postojećih tablica**
+**Slika 4.2. ER dijagram tablica 1. ciklusa**
 
-**Izvor dijagrama:** [`docs/puml/4-2-artconnect-data-ERD.puml`](puml/4-2-artconnect-data-ERD.puml)  
+**Izvor dijagrama:** [`docs/puml/4-2-artconnect-data-ERD.puml`](puml/4-2-artconnect-data-ERD.puml)
 
-**Implementacija:** Liquibase changesetovi `001-spring-session.yaml` – `009-artist-profiles.yaml` i `021-artworks-and-files.yaml` u
-`backend/src/main/resources/db/changelog/changes/`; JPA entiteti `ArtField` i
-`OpportunityType` u `hr.fer.artconnect.catalog.domain`, `SystemSetting` u `hr.fer.artconnect.common.domain`,
-`User` i `OrganizerProfile` u `hr.fer.artconnect.auth.domain`, `ArtistProfile`, `ArtistLink` i
-`PastExhibition` u `hr.fer.artconnect.artist.domain`, `StoredFile` u `hr.fer.artconnect.file.domain` te `Artwork` i `ArtworkImage` u `hr.fer.artconnect.artwork.domain`.
-Tablice Spring Sessiona nemaju entitet - njima Spring Session JDBC pristupa izravno. Stavke šifrarnika se ne brišu nego isključuju (`active = false`).
+Dijagram prikazuje tablice koje postoje nakon 1. ciklusa, s ključevima i najvažnijim stupcima. Svi stupci i ograničenja su u Liquibase changelogovima ([`db/changelog/changes/`](../backend/src/main/resources/db/changelog/changes/)), a tablice za prijave, rezultate, izvještaje i obavijesti dodaju se u 2. ciklusu.
 
-Changeset `021-artworks-and-files.yaml` stvara:
-
-| Tablica | Podaci i ograničenja |
-| --- | --- |
-| `stored_files` | Vlasnik (`users`, cascade), namjena `ARTWORK_IMAGE` ili `APPLICATION_ATTACHMENT`, izvorno ime, tip `image/jpeg`, `image/png` ili `application/pdf`, veličina veća od nule, jedinstveni relativni `storage_key` za volumen `/data/uploads` i vrijeme stvaranja. Datoteka se fizički briše servisom, ne bazom. |
-| `artworks` | Umjetnik (`users`, cascade), naslov, godina uz CHECK `>= 1900`, tehnika, neobavezne dimenzije i opis do 5000 znakova, vidljivost `PUBLIC` ili zadano `PRIVATE`, `hidden_by_admin` i `hidden_at` te vremena stvaranja/ažuriranja. |
-| `artwork_images` | Djelo i povezani redak datoteke (oba cascade), neobavezan alt tekst do 300 znakova (zadano naslov djela) i redoslijed; `file_id` je jedinstven. Najviše tri slike po djelu provodi aplikacija, ne baza. |
-
-Indeksi: `ix_stored_files_owner (owner_id)`, `ix_artworks_artist_visibility (artist_id, visibility) WHERE hidden_by_admin = false`, `ix_artworks_artist_created (artist_id, created_at DESC)` za Moj portfolio i `ix_artwork_images_artwork (artwork_id, position)`. Dev kontekst dodaje testnom umjetniku jedno javno i jedno privatno djelo bez slika. Enum vrijednosti pohranjuju se kao varchar i provjeravaju CHECK ograničenjima.
-
-**Indeksi javne pretrage prilika (`008-opportunities.yaml`).** Javna pretraga
-(`GET /opportunities`) jedini je upit u sustavu pisan kao nativni SQL
-([OpportunitySearchRepository](../backend/src/main/java/hr/fer/artconnect/opportunity/domain/OpportunitySearchRepository.java)),
-jer djelomični i izrazni indeksi traže točan oblik izraza: planer ih koristi samo
-ako se izraz upita slovo po slovo poklapa s izrazom indeksa. Zato uvjeti
-`archived = false AND hidden_by_admin = false` stoje doslovno u upitu, a ne kao
-parametri, i zato punotekstni izraz nije skriven u JPA kriterij.
-
-| Filtar ili poredak | Indeks | Oblik koji indeks traži |
+| Skupina | Tablice | Što pohranjuju |
 | --- | --- | --- |
-| `statuses` + poredak po roku | `ix_opp_public (status, deadline) WHERE archived = false AND hidden_by_admin = false` | oba uvjeta vidljivosti doslovno u `WHERE` |
-| zadana pretraga (`statuses=[OPEN]`) | `ix_opp_open_deadline (deadline) WHERE status = 'OPEN'` | uži djelomični indeks koji planer bira umjesto `ix_opp_public` kad je status samo `OPEN` |
-| `q` | `ix_opp_fts` GIN nad `to_tsvector('simple', title \|\| ' ' \|\| description)` | identičan izraz, uključujući konfiguraciju `simple` i spajanje razmakom |
-| `city` | `ix_opp_city_lower (lower(city))` | `lower(city) = lower(:city)`, ne `ILIKE` |
-| `artFieldIds` | `ix_oaf_art_field (art_field_id)` | `EXISTS` nad `opportunity_art_fields` |
-| `sort=-publishedAt` | `ix_opp_published_at (published_at)` | poredak po `published_at` |
+| Korisnici | `users`, `organizer_profiles` | Korisnički račun s ulogom, statusom i odobrenjem organizatora; naziv organizacije. |
+| Portfolio umjetnika | `artist_profiles`, `artist_links`, `past_exhibitions`, `artist_profile_art_fields`, `artworks`, `artwork_images`, `stored_files` | Profil umjetnika, poveznice, prethodne izložbe, područja umjetnosti, djela i njihove slike. `stored_files` čuva podatke o datoteci, a sama datoteka je na disku. |
+| Prilike | `opportunities`, `opportunity_art_fields` | Prilika s rokom, lokacijom, statusom i područjima umjetnosti. |
+| Šifrarnici i postavke | `art_fields`, `opportunity_types`, `system_settings` | Područja umjetnosti, vrste prilika i postavke koje mijenja administrator (npr. ograničenja datoteka). |
+| Sesije | `spring_session`, `spring_session_attributes` | Prijavljene sesije; njima izravno upravlja Spring Session. |
 
-Područja umjetnosti cijele stranice dohvaćaju se jednim dodatnim upitom
-(`WHERE opportunity_id IN (:ids)`), pa je po zahtjevu točno troje upita —
-`COUNT(*)`, stranica prilika i područja — neovisno o broju prilika na stranici.
-To čuva test `podrucjaUmjetnostiStraniceDohvacaJedanUpit`, a korištenje indeksa
-`upitiPretrageMoguKoristitiPredvideneIndekse` (oba u
-[OpportunitySearchIntegrationTest](../backend/src/test/java/hr/fer/artconnect/opportunity/OpportunitySearchIntegrationTest.java)).
+**Važna pravila:**
 
-<details>
-<summary><strong>Jedna prijava poplave i povezani podaci</strong></summary>
-
-**Primjer — CrisisMap:** Ana putem svojeg korisničkog računa podnosi prijavu poplave `R-104`. Odabire lokaciju na karti i označava razinu ozbiljnosti kao visoku. Građanin može podnijeti više prijava; svaka prijava pripada jednoj kategoriji kriznog događaja, primjerice _Poplava_. Aplikacija pohranjuje prijavu i njezine koordinate. Kartografske pločice dolaze od vanjskog pružatelja i nisu entiteti u modelu podataka aplikacije.
-
-![ER dijagram podataka sustava CrisisMap](https://raw.githubusercontent.com/VladoSruk/Programsko-inzenjerstvo/main/docs/assets/diagrams/4-2-crisismap-data-ERD.svg)
-
-**Slika 4.2. ER dijagram podataka sustava CrisisMap**
-
-**PlantUML izvor:** [izvor](https://github.com/VladoSruk/Programsko-inzenjerstvo/blob/main/docs/puml/4-2-crisismap-data-ERD.puml)
-
-**Analiza primjera:** `R-104` ima jednog autora i jednu kategoriju; Ana i kategorija _Poplava_ mogu biti povezane s više prijava. Dijagram prikazuje veze bez prepisivanja svih stupaca baze podataka ili pisanja drugog tabličnog opisa za svaki entitet. Ako aplikacija prihvaća i **anonimne** prijave, tu mogućnost prikažite u vezi s entitetom `Citizen`. Ako su kategorije fiksne vrijednosti, a ne pohranjeni zapisi, nemojte izmišljati tablicu kategorija. Završni ER dijagram usporedite s modelom trajne pohrane i objasnite samo razlike važne za razumijevanje projekta.
-
-</details>
+- Identifikatori su UUID-ovi. Statusi i druge fiksne vrijednosti spremaju se kao tekst, a baza ih provjerava ograničenjem `CHECK`.
+- Stavke šifrarnika se ne brišu nego isključuju (`active = false`), da postojeće prilike i profili ne izgube vezu.
+- Brisanjem korisnika brišu se i njegovi profili, djela i datoteke. Korisnik koji ima prilike ne može se izbrisati iz baze (račun se anonimizira), a stavka šifrarnika ne može se izbrisati dok je netko koristi.
+- Prilike i djela imaju oznaku `hidden_by_admin`, a prilike i `archived`. Takav se sadržaj ne briše, nego se ne prikazuje javno.
+- Javna pretraga prilika koristi indekse za status i rok, grad, područja umjetnosti i pretragu teksta naslova i opisa, pa ostaje brza i uz više podataka.
 
 ### 4.3.2 Reprezentativni UML dijagram razreda
 
@@ -216,28 +178,7 @@ To čuva test `podrucjaUmjetnostiStraniceDohvacaJedanUpit`, a korištenje indeks
 **PlantUML izvor:** [`docs/puml/4-3-artconnect-opportunity-CD.puml`](puml/4-3-artconnect-opportunity-CD.puml)
 **Referenca na kod:** [`opportunity`](../backend/src/main/java/hr/fer/artconnect/opportunity), [`User`](../backend/src/main/java/hr/fer/artconnect/auth/domain/User.java), [`OpportunityType`](../backend/src/main/java/hr/fer/artconnect/catalog/domain/OpportunityType.java) i [`ArtField`](../backend/src/main/java/hr/fer/artconnect/catalog/domain/ArtField.java).
 
-Dijagram prikazuje priliku, njezinu lokaciju kao sastavni vrijednosni objekt,
-organizatora i šifrarnike te ključne odgovornosti kontrolera, servisa,
-repozitorija i mappera. `Opportunity` sadrži pravila i podatke domene; servis
-koordinira stvaranje i uređivanje, a repozitorij i mapper podržavaju pohranu i
-oblikovanje odgovora. Detalji polja zahtjeva i DTO-ova, podržavajući suradnici
-servisa te vanjska geokoderska integracija namjerno su izostavljeni radi
-čitljivosti i prikazani u API dokumentaciji odnosno sekvencijskom dijagramu.
-
-<details>
-<summary><strong>Oblikovanje odgovornosti prijave i dopuštenih promjena</strong></summary>
-
-**Primjer — CrisisMap:** Prijava sadrži pravila za promjenu vlastitog statusa. Razred tijeka rada koordinira podnošenje i pregled, dok sučelje repozitorija opisuje potrebne operacije trajne pohrane. Dijagram predlaže te odgovornosti prije implementacije.
-
-![Dijagram razreda za obradu prijava kriznih događaja](https://raw.githubusercontent.com/VladoSruk/Programsko-inzenjerstvo/main/docs/assets/diagrams/4-3-crisismap-domain-CD.svg)
-
-**Slika 4.3. Dijagram razreda za obradu prijava kriznih događaja**
-
-**PlantUML izvor:** [izvor](https://github.com/VladoSruk/Programsko-inzenjerstvo/blob/main/docs/puml/4-3-crisismap-domain-CD.puml)
-
-**Analiza primjera:** `DisasterReport` sadrži dopuštena pravila promjene stanja pa tijek rada ne može prešutno odobriti već odbijenu prijavu. `ReportWorkflow` koordinira operaciju bez preuzimanja pravila prijelaza stanja same prijave; `ReportRepository` definira potrebne operacije pohrane. Kompozicija `Location` i odabrani tipovi prikazuju veze korisne za oblikovanje. Dijagram namjerno izostavlja stupce baze podataka i nepovezane razrede: ER model objašnjava pohranjene podatke, dok ovaj dijagram dodjeljuje programske odgovornosti i operacije. Ti su razredi odluka oblikovanja, a ne obavezni slojevi za svaki tim. Završnu implementaciju usporedite s početnim oblikovanjem i ažurirajte dijagram tamo gdje su se odluke promijenile; generiranje dijagrama iz koda tek na kraju ne može zamijeniti ovo početno modeliranje.
-
-</details>
+Dijagram prikazuje modul prilika. `OpportunityController` prima zahtjeve, `OpportunityService` provjerava vlasništvo i koordinira rad, a `OpportunityRepository` sprema podatke. Sama `Opportunity` čuva svoja pravila: lokacija je njezin sastavni dio (`Location`), a dopuštene promjene statusa provjerava `OpportunityStatusMachine`. `OpportunityVisibilityPolicy` određuje tko smije vidjeti priliku. Ulazni i izlazni DTO-ovi i pomoćni razredi izostavljeni su radi čitljivosti.
 
 ## 4.4 Ponašanje tijekom izvođenja
 
