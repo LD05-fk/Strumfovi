@@ -12,7 +12,7 @@ import {
   MenuItem,
 } from '@mui/material'
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link as RouterLink, useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '../../../api/client'
 import { useNotify } from '../../../components/state/useNotify'
@@ -143,7 +143,7 @@ export function OwnerActionsBar({
         await deleteOpportunity.mutateAsync(opportunityId)
         notify(hr.opportunities.detail.deletedSuccessfully, 'success')
         setConfirmation(null)
-        await navigate('/organizer/opportunities')
+        await navigate('/my-opportunities')
         return
       }
 
@@ -197,8 +197,8 @@ export function OwnerActionsBar({
         onClose={() => setMenuAnchor(null)}
       >
         <MenuItem
-          component="a"
-          href={`/organizer/opportunities/${opportunityId}/edit`}
+          component={RouterLink}
+          to={`/organizer/opportunities/${opportunityId}/edit`}
           onClick={() => setMenuAnchor(null)}
         >
           {hr.opportunities.detail.ownerActions.edit}

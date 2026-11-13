@@ -487,6 +487,22 @@ export const hr = {
         deadlineLabel: 'Rok prijave:',
       },
     },
+    my: {
+      title: 'Moje prilike',
+      active: 'Aktivne',
+      archived: 'Arhivirane',
+      statusFilter: 'Status',
+      allStatuses: 'Svi statusi',
+      deadline: 'Rok',
+      type: 'Vrsta',
+      applications: 'Prijave',
+      hiddenByAdmin: 'Skriveno od administratora',
+      newOpportunity: 'Nova prilika',
+      emptyTitle: 'Još nemate prilika',
+      emptyDescription: 'Objavite prvu priliku i primajte prijave umjetnika.',
+      pagination: 'Stranice mojih prilika',
+      resultsCount: (count: number) => `${count} prilika`,
+    },
   },
 
   map: {

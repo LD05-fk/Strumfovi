@@ -20,6 +20,7 @@ import { dayjs, OPPORTUNITY_TIME_ZONE } from '../../../app/dayjs'
 import { statusChip } from '../../../app/theme'
 import { Link as MuiLink } from '@mui/material'
 import MapView from '../components/map/MapView'
+import { OwnerActionsBar } from '../components/ownerActionsBar'
 
 function formatZagrebDateTime(value: string) {
   return dayjs(value).tz(OPPORTUNITY_TIME_ZONE).format('DD.MM.YYYY. HH:mm')
@@ -117,11 +118,13 @@ export function OpportunityDetailPage() {
             <Chip label={hr.opportunities.detail.hiddenByAdmin} />
           )}
           <Box sx={{ flexGrow: 1 }} />
-          {Object.values(hr.opportunities.detail.ownerActions).map((label) => (
-            <Button key={label} variant="outlined" disabled>
-              {label}
-            </Button>
-          ))}
+          <OwnerActionsBar
+            opportunityId={detail.id}
+            title={detail.title}
+            status={detail.status}
+            archived={detail.archived}
+            deadline={detail.deadline}
+          />
         </Stack>
       )}
 

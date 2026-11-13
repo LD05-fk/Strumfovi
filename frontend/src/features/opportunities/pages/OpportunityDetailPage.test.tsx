@@ -9,6 +9,7 @@ import { hr } from '../../../i18n/hr'
 import type { CurrentUser } from '../../auth/types'
 import type { OpportunityDetail } from '../types'
 import { OpportunityDetailPage } from './OpportunityDetailPage'
+import { NotifyProvider } from '../../../components/state/NotifyProvider'
 
 vi.mock('../../../api/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../api/client')>()
@@ -91,12 +92,14 @@ function renderPage() {
   )
 
   return render(
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <RouterProvider router={router} />
-      </ThemeProvider>
-    </QueryClientProvider>,
+    <NotifyProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <RouterProvider router={router} />
+        </ThemeProvider>
+      </QueryClientProvider>
+    </NotifyProvider>,
   )
 }
 
