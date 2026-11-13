@@ -93,7 +93,7 @@ describe('isProtectedRoutePath', () => {
     ['/applications', true],
     ['/applications/123', true],
     ['/opportunities/123/apply', true],
-    ['/organizer/opportunities', true],
+    ['/my-opportunities', true],
     ['/admin', true],
     ['/admin/users', true],
     ['/opportunities', false],

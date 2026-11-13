@@ -18,7 +18,7 @@ import { RequireRole } from './features/auth/routing/RequireRole'
 import { useCurrentUser } from './features/auth/useCurrentUser'
 import { ArtistProfilePage } from './features/artist-profile/ArtistProfilePage'
 import { HomePage } from './features/auth/pages/HomePage'
-import { OpportunitySearchPage} from './features/opportunities/pages/OpportunitySearchPage'
+import { OpportunitySearchPage } from './features/opportunities/pages/OpportunitySearchPage'
 import { hr } from './i18n/hr'
 import { OrganizerProfilePage } from './features/organizer-profile/OrganizerProfilePage'
 import { PublicPortfolioPage } from './features/public-portfolio/PublicPortfolioPage'
@@ -26,6 +26,7 @@ import { OpportunityEditorPage } from './features/opportunities/pages/Opportunit
 import { MyPortfolioPage } from './features/portfolio/MyPortfolioPage'
 import { ArtworkFormPage } from './features/portfolio/ArtworkFormPage'
 import { OpportunityDetailPage } from './features/opportunities/pages/OpportunityDetailPage'
+import { MyOpportunitiesPage } from './features/opportunities/pages/MyOpportunitiesPage'
 
 type PageProps = {
     title: string
@@ -85,7 +86,7 @@ const router = createBrowserRouter(
                 path="my-opportunities"
                 element={
                     <RequireRole roles={['ORGANIZER']}>
-                        <Page title="Moje prilike" />
+                        <MyOpportunitiesPage />
                     </RequireRole>
                 }
             />

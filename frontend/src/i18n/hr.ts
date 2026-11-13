@@ -326,9 +326,13 @@ export const hr = {
       hiddenByAdmin: 'Skriveno od strane administratora',
       ownerActions: {
         edit: 'Uredi',
+        publish: 'Objavi',
         closeApplications: 'Zatvori prijave',
+        reopenApplications: 'Ponovno otvori prijave',
+        startSelection: 'Započni odabir',
         archive: 'Arhiviraj',
         delete: 'Obriši',
+        menu: 'Radnje',
       },
       description: 'Opis',
       criteria: 'Kriteriji',
@@ -338,6 +342,42 @@ export const hr = {
       preparationPrivate: 'U pripremi – vidljivo samo vama',
       resultsPlaceholder: 'Ovdje će se prikazati rezultati prilike.',
       results: 'Rezultati',
+      deadlinePassed: 'Rok je istekao – produljite rok u uređivanju.',
+      statusChanged: 'Status prilike je promijenjen.',
+      archivedSuccessfully: 'Prilika je arhivirana.',
+      deletedSuccessfully: 'Prilika je obrisana.',
+      deleteHasApplicationsTitle: 'Prilika se ne može obrisati',
+      deleteHasApplicationsDescription: (title: string) =>
+        `Prilika „${title}” ima prijave pa je nije moguće obrisati. Želite li je arhivirati?`,
+      deleteHasApplicationsHint: 'Priliku s prijavama nije moguće obrisati.',
+      confirmStatus: {
+        publish: {
+          title: 'Objaviti priliku?',
+          description: (title: string) =>
+            `Prilika „${title}” postat će javno vidljiva i umjetnici će se moći prijaviti.`,
+        },
+        closeApplications: {
+          title: 'Zatvoriti prijave?',
+          description: (title: string) =>
+            `Umjetnici se više neće moći prijaviti na priliku „${title}”. Prijave možete ponovno otvoriti prije isteka roka.`,
+        },
+        reopenApplications: {
+          title: 'Ponovno otvoriti prijave?',
+          description: (title: string) =>
+            `Umjetnici će se ponovno moći prijaviti na priliku „${title}” do isteka roka.`,
+        },
+        startSelection: {
+          title: 'Započeti odabir?',
+          description: (title: string) =>
+            `Prijave na priliku „${title}” ostaju zatvorene i počinje odabir umjetnika. Prijave se nakon toga više ne mogu ponovno otvoriti.`,
+        },
+      },
+      confirmArchiveTitle: 'Arhivirati priliku?',
+      confirmArchiveDescription: (title: string) =>
+        `Prilika „${title}” bit će arhivirana.`,
+      confirmDeleteTitle: 'Obrisati priliku?',
+      confirmDeleteDescription: (title: string) =>
+        `Prilika „${title}” bit će trajno obrisana.`,
     },
     form: {
       title: 'Naslov',
@@ -465,6 +505,24 @@ export const hr = {
         detailsAriaLabel: (title: string) => `Detalji prilike ${title}`,
         deadlineLabel: 'Rok prijave:',
       },
+    },
+    my: {
+      title: 'Moje prilike',
+      active: 'Aktivne',
+      archived: 'Arhivirane',
+      statusFilter: 'Status',
+      allStatuses: 'Svi statusi',
+      deadline: 'Rok',
+      type: 'Vrsta',
+      applications: 'Prijave',
+      hiddenByAdmin: 'Skriveno od administratora',
+      newOpportunity: 'Nova prilika',
+      emptyTitle: 'Još nemate prilika',
+      emptyDescription: 'Objavite prvu priliku i primajte prijave umjetnika.',
+      emptyFilteredTitle: 'Nema prilika za odabrane filtre',
+      emptyFilteredDescription: 'Promijenite karticu ili filtar statusa.',
+      pagination: 'Stranice mojih prilika',
+      resultsCount: (count: number) => `${count} prilika`,
     },
   },
 

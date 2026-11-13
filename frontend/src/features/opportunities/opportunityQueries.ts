@@ -2,14 +2,13 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { apiFetch } from '../../api/client'
 import { toApiQuery } from './opportunitySearchParams'
 import type {
-  OpportunitySearchParams,
-  OpportunitySummaryPage,
-} from './types'
-
-import type {
   CatalogOption,
+  MyOpportunityPage,
   OpportunityDetail,
   OpportunityInput,
+  OpportunitySearchParams,
+  OpportunityStatus,
+  OpportunitySummaryPage,
 } from './types'
 
 type CatalogPage = {
@@ -74,6 +73,96 @@ export function useOpportunity(id: string) {
     queryKey: opportunityQueryKey(id),
     queryFn: () => apiFetch<OpportunityDetail>(`/opportunities/${id}`),
     enabled: id.length > 0,
+  })
+}
+
+export type MyOpportunitiesParams = {
+  archived: boolean
+  status?: OpportunityStatus
+  page: number
+}
+
+export function useMyOpportunities({
+  archived,
+  status,
+  page,
+}: MyOpportunitiesParams) {
+  const params = new URLSearchParams({
+    archived: String(archived),
+    page: String(page),
+    pageSize: '20',
+  })
+
+  if (status) params.set('status', status)
+
+  return useQuery({
+    queryKey: ['my-opportunities', { archived, status, page }],
+    queryFn: () =>
+      apiFetch<MyOpportunityPage>(`/me/opportunities?${params.toString()}`),
+    placeholderData: keepPreviousData,
+  })
+}
+
+type OpportunityStatusTarget = Extract<
+  OpportunityStatus,
+  'OPEN' | 'CLOSED' | 'SELECTION'
+>
+
+async function invalidateOpportunityQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  opportunityId: string,
+) {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['my-opportunities'] }),
+    queryClient.invalidateQueries({
+      queryKey: opportunityQueryKey(opportunityId),
+    }),
+  ])
+}
+
+export function useChangeOpportunityStatus() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      opportunityId,
+      status,
+    }: {
+      opportunityId: string
+      status: OpportunityStatusTarget
+    }) =>
+      apiFetch<OpportunityDetail>(`/opportunities/${opportunityId}/status`, {
+        method: 'POST',
+        json: { status },
+      }),
+    onSuccess: (opportunity) =>
+      invalidateOpportunityQueries(queryClient, opportunity.id),
+  })
+}
+
+export function useArchiveOpportunity() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (opportunityId: string) =>
+      apiFetch<OpportunityDetail>(`/opportunities/${opportunityId}/archive`, {
+        method: 'POST',
+      }),
+    onSuccess: (opportunity) =>
+      invalidateOpportunityQueries(queryClient, opportunity.id),
+  })
+}
+
+export function useDeleteOpportunity() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (opportunityId: string) =>
+      apiFetch<void>(`/opportunities/${opportunityId}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: (_result, opportunityId) =>
+      invalidateOpportunityQueries(queryClient, opportunityId),
   })
 }
 

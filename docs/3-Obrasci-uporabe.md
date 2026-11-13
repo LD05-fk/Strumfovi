@@ -80,11 +80,11 @@ Detalji su u [API dokumentaciji umjetnika](api/artists.md) i [djela](api/artwork
 | **Vanjski akter** | OpenStreetMap/Nominatim (geokodiranje adrese), Planer (automatsko zatvaranje prijava nakon roka) |
 | **Povezani zahtjevi** | FR-03, FR-04 |
 | **Preduvjeti** | Organizator ima aktivan račun s ulogom `ORGANIZER` i prijavljenu sesiju. |
-| **Glavni uspješni tok** | 1. Organizator unosi naslov, opis, vrstu, područja umjetnosti, rok i lokaciju (fizička s koordinatama ili online s poveznicom); sustav sprema nacrt u statusu `PREPARATION`.<br>2. Organizator uređuje priliku (`PUT /api/v1/opportunities/{id}`); status ostaje isti.<br>3. Organizator pregledava svoje prilike (`GET /api/v1/me/opportunities`) i filtrira ih po statusu ili arhiviranosti.<br>4. Organizator mijenja status prilike (`POST /api/v1/opportunities/{id}/status`): `PREPARATION` → `OPEN`, `OPEN` → `CLOSED` ili `CLOSED` → `SELECTION`.<br>5. Organizator briše priliku ili je arhivira. |
+| **Glavni uspješni tok** | 1. Organizator unosi naslov, opis, vrstu, područja umjetnosti, rok i lokaciju (fizička s koordinatama ili online s poveznicom); sustav sprema nacrt u statusu `PREPARATION`.<br>2. Organizator uređuje priliku (`PUT /api/v1/opportunities/{id}`); status ostaje isti.<br>3. Organizator otvara „Moje prilike” na `/my-opportunities`; sustav dohvaća njegove prilike (`GET /api/v1/me/opportunities`) i omogućuje filtriranje po statusu i odabir aktivnih ili arhiviranih prilika.<br>4. Organizator mijenja status prilike (`POST /api/v1/opportunities/{id}/status`): `PREPARATION` → `OPEN`, `OPEN` → `CLOSED` ili `CLOSED` → `SELECTION`.<br>5. Organizator briše priliku ili je arhivira. |
 | **Alternativni tokovi** | **1a — Nevaljani unos ili rok u prošlosti:** sustav odbija spremanje (`400`).<br>**1b — Adresa nije pronađena:** organizator ručno odabire koordinate na karti.<br>**3a — Pregled bez prilika:** prazan popis uz podatke o stranici.<br>**4a — Nedopušten prijelaz** (npr. isti status ili `FINISHED`): `409 INVALID_STATUS_TRANSITION`, a `FINISHED` postiže se samo objavom rezultata (UC-08).<br>**4b — Otvaranje s rokom u prošlosti:** `409 DEADLINE_PASSED`; prijelaz `PREPARATION` → `OPEN` i `CLOSED` → `OPEN` traže rok u budućnosti.<br>**4c — Objava bez odobrenja:** dok ADM-02-BE nije gotov, svi organizatori smatraju se odobrenima; nakon toga prvo otvaranje bez odobrenja vraća `403 ORGANIZER_NOT_APPROVED`.<br>**4d — Arhivirana prilika:** svaka promjena statusa odbijena je s `409 INVALID_STATUS_TRANSITION`.<br>**5a — Prilika ima prijave:** brisanje je odbijeno (`409 HAS_APPLICATIONS`), a organizator može samo arhivirati.<br>**5b — Automatsko zatvaranje:** Planer zatvara prijave kad rok istekne (zadatak OPP-04, 2. ciklus). |
 | **Rezultat** | Prilika je spremljena, uređena, arhivirana ili obrisana. |
 
-Detalji su u [API dokumentaciji prilika](api/opportunities.md), za [pregled](api/opportunities.md#get-apiv1meopportunities) i [promjenu statusa](api/opportunities.md#post-opportunitiesopportunityidstatus).
+Detalji su u [API dokumentaciji prilika](api/opportunities.md), za [pregled organizatorovih prilika](api/opportunities.md#get-apiv1meopportunities), [promjenu statusa](api/opportunities.md#post-opportunitiesopportunityidstatus), [arhiviranje](api/opportunities.md#post-opportunitiesopportunityidarchive) i [brisanje](api/opportunities.md#delete-opportunitiesopportunityid).
 
 #### Objava prilike
 
@@ -109,6 +109,28 @@ Detalji su u [API dokumentaciji prilika](api/opportunities.md), za [pregled](api
 | **Rezultat** | Postojeća prilika ažurirana je; njezin status i vlasnik ostaju nepromijenjeni. |
 
 **Opseg OPP-01-FE2 i OPP-01-FE3:** zajednički obrazac obuhvaća osnovna polja, datume, spremanje i lokaciju. Lokacija podržava fizički ili online odabir, eksplicitno pokretano geokodiranje, izbor rezultata te ručno postavljanje i pomicanje oznake na karti. „Zahtjevi prijave” ostaju mjesto za uključivanje funkcionalnosti APP-01-FE1.
+
+#### Promjena statusa prilike
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Organizator (vlasnik prilike) |
+| **Povezani zahtjevi** | FR-03; OPP-03 |
+| **Preduvjeti** | Organizator je prijavljen s ulogom `ORGANIZER`, a prilika pripada njegovu računu. Stranici „Moje prilike” pristupa na `/my-opportunities`; za promjenu statusa prilika može biti otvorena i iz popisa ili iz vlastitog detalja. |
+| **Glavni uspješni tok** | 1. Sustav dohvaća organizatorove prilike (`GET /api/v1/me/opportunities`) i prikazuje kartice „Aktivne” i „Arhivirane”, filtar statusa te straničenje.<br>2. Organizator odabire dopuštenu statusnu radnju u traci radnji. Za `PREPARATION` nudi se „Objavi” (`OPEN`), za `OPEN` „Zatvori prijave” (`CLOSED`), a za `CLOSED` „Započni odabir” (`SELECTION`). „Ponovno otvori prijave” (`OPEN`) nudi se za `CLOSED` samo dok je rok u budućnosti. Za `SELECTION` i `FINISHED` ne nude se statusne radnje. Arhivirana prilika nema statusnih radnji.<br>3. Sustav traži potvrdu radnje. Organizator je potvrđuje, a sustav šalje `POST /api/v1/opportunities/{id}/status` s ciljnim statusom.<br>4. Sustav sprema promjenu, osvježava popis i detalj prilike te prikazuje potvrdu uspjeha. |
+| **Alternativni tokovi** | **1a — Nema prilika:** sustav prikazuje prazno stanje i poveznicu za stvaranje nove prilike (`/organizer/opportunities/new`).<br>**1b — Dohvat traje ili ne uspije:** sustav prikazuje stanje učitavanja odnosno grešku s mogućnošću ponovnog pokušaja.<br>**2a — Rok je istekao:** ponovno otvaranje nije ponuđeno; ako je rok istekao prije slanja zahtjeva, API vraća `409 DEADLINE_PASSED` i sustav upućuje organizatora da produlji rok uređivanjem prilike.<br>**3a — Organizator odustane:** dijalog se zatvara bez slanja zahtjeva i prilika ostaje nepromijenjena.<br>**4a — Prijelaz više nije dopušten ili je prilika arhivirana:** API vraća `409 INVALID_STATUS_TRANSITION`; sustav prikazuje poruku i osvježava podatke.<br>**4b — Organizator nema odobrenje za objavu:** kada se provjera odobrenja aktivira u ADM-02-BE, API vraća `403 ORGANIZER_NOT_APPROVED`, a sustav prikazuje poruku poslužitelja.<br>**4c — Ostala greška poslužitelja:** sustav prikazuje obavijest o grešci, a podaci se ponovno dohvaćaju prema potrebi. |
+| **Rezultat** | Status prilike promijenjen je dopuštenim prijelazom; vlasnik prilike ostaje isti. |
+
+#### Brisanje ili arhiviranje prilike
+
+| Element specifikacije | Opis |
+| :--- | :--- |
+| **Primarni akter** | Organizator (vlasnik prilike) |
+| **Povezani zahtjevi** | FR-03; OPP-03 |
+| **Preduvjeti** | Organizator je prijavljen s ulogom `ORGANIZER`, a prilika pripada njegovu računu. Radnja je dostupna iz trake radnji na popisu „Moje prilike” (`/my-opportunities`) ili na detalju prilike. |
+| **Glavni uspješni tok** | 1. Organizator odabire „Obriši”.<br>2. Sustav prikazuje dijalog za potvrdu brisanja i upozorava da se radnja ne može poništiti.<br>3. Organizator potvrđuje brisanje; sustav šalje `DELETE /api/v1/opportunities/{id}`.<br>4. API potvrđuje brisanje (`204 No Content`), sustav osvježava popis i uklanja priliku iz prikaza. Ako je radnja pokrenuta s detalja, sustav vodi organizatora na `/my-opportunities`. |
+| **Alternativni tokovi** | **1a — Prilika je već arhivirana:** „Obriši” ostaje dostupno, ali se ne nude statusne radnje ni dodatna radnja „Arhiviraj”.<br>**2a — Organizator odustane:** dijalog se zatvara, bez slanja zahtjeva i promjene prilike.<br>**3a — Prilika ima prijave:** API vraća `409 HAS_APPLICATIONS`; sustav ne briše priliku i u dijalogu nudi arhiviranje. Ako organizator odabere „Arhiviraj”, sustav šalje `POST /api/v1/opportunities/{id}/archive`.<br>**3b — Brisanje ili arhiviranje ne uspije:** sustav prikazuje obavijest o grešci i zadržava priliku u prikazu.<br>**3c — Prilika ne postoji ili ne pripada organizatoru:** API vraća `404 NOT_FOUND` odnosno `403 FORBIDDEN`; sustav prikazuje odgovarajuću poruku i osvježava prikaz. |
+| **Rezultat** | Prilika je obrisana ili arhivirana. Arhiviranje je ne vraća u popis aktivnih prilika; status se ne mijenja osim što se prilika u statusu `OPEN` pri arhiviranju zatvara (`CLOSED`). |
 
 ### UC-05 Pregledati prilike
 
