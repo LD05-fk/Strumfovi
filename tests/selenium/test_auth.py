@@ -2,6 +2,7 @@ import pytest
 from page_objects.choose_role_page import ChooseRolePage
 from page_objects.home_page import HomePage
 from page_objects.layout_page import LayoutPage
+from page_objects.organizer_profile_page import OrganizerProfilePage
 from page_objects.user_menu import UserMenu
 
 
@@ -138,3 +139,45 @@ def test_auth_02_artist_role_redirects_and_is_visible_in_menu(
 
     page.open_path("/onboarding")
     page.wait_for_path("/profile")
+
+
+def test_auth_03_onboarding_user_can_choose_organizer_and_see_approved_profile(
+    driver, base_url, onboarding_user
+):
+    """Zadano novi@artconnect.test, Kada odabere "Organizator", Tada na /profile vidi profil organizatora s oznakom „Odobren”"""
+    page = ChooseRolePage(driver, base_url).open()
+    page.select_role("Organizator")
+    page.confirm()
+    page.wait_for_path("/profile")
+
+    profile = OrganizerProfilePage(driver, base_url)
+    assert profile.approved_badge_is_displayed()
+
+
+def test_auth_03_organizer_can_save_organization_name_and_keep_it_after_refresh(
+    driver, base_url, organizer_profile
+):
+    """Zadano prijavljen organizator@artconnect.test, Kada promijeni naziv organizacije u „Galerija E2E” i spremi te osvježi stranicu, Tada polje prikazuje „Galerija E2E”"""
+    page = OrganizerProfilePage(driver, base_url).open()
+    page.set_organization_name("Galerija E2E")
+    page.save()
+    page.wait_visible(page.SAVED)
+
+    driver.refresh()
+    page.wait_for_organization_name("Galerija E2E")
+
+
+def test_auth_03_organization_name_over_200_characters_is_rejected(
+    driver, base_url, organizer_profile
+):
+    """Zadano organizator@artconnect.test, Kada unese 201 znak, Tada vidi validacijsku grešku i spremanje se ne šalje."""
+    page = OrganizerProfilePage(driver, base_url).open()
+    page.set_organization_name("x" * 201)
+    page.clear_network_log()
+
+    page.save()
+
+    assert page.wait_for_validation_error() == (
+        "Naziv organizacije smije imati najviše 200 znakova."
+    )
+    assert page.organizer_profile_saves_sent() == []

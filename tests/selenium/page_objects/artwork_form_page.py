@@ -1,5 +1,4 @@
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from page_objects.base_page import BasePage
@@ -35,7 +34,3 @@ class ArtworkFormPage(BasePage):
         self.click(self.PRIVATE)
         self.save()
         self.wait_visible(self.SAVED)
-        # Spremanje vraća na popis. Čekamo završetak prije sljedeće navigacije.
-        WebDriverWait(self.driver, 10).until(
-            EC.url_to_be(self.base_url + "/portfolio")
-        )

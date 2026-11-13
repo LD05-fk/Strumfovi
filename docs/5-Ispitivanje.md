@@ -362,6 +362,14 @@ redom zbog zajedničkog dev korisnika; svaki priprema vlastite podatke.
 | AUTH-02-T3 | `novi@artconnect.test` na `/onboarding`.          | Odabere „Umjetnik” i potvrdi.                                                            | Dolazi na `/profile`, izbornik prikazuje oznaku „Umjetnik”, a ponovni posjet `/onboarding` preusmjerava na `/profile`. | Prošlo |
 | AUTH-02-T4 | Google račun za testiranje                        | Prijavi se Googleom, odabere ulogu i potvrdi, odjavi se i ponovno prijavi istim računom. | Nakon prve prijave je na `/onboarding`, nakon potvrde na `/profile`, a nakon ponovne prijave na `/`.                   | Prošlo |
 
+### AUTH-03-TEST — Profil organizatora
+
+| ID | Zadano | Kada | Tada | Ishod |
+| --- | --- | --- | --- | --- |
+| AUTH-03-T1 | `novi@artconnect.test` (svježe stanje) | Odabere „Organizator”. | Na `/profile` vidi profil organizatora s oznakom „Odobren”. | Prošlo. |
+| AUTH-03-T2 | Prijavljen `organizator@artconnect.test`.| Promijeni naziv u „Galerija E2E”, spremi i osvježi stranicu. | Polje prikazuje „Galerija E2E”. |Prošlo.|
+| AUTH-03-T3 | Prijavljen `organizator@artconnect.test`. | Upiše 201 znak. | Vidi validacijsku grešku i spremanje se ne šalje. | Prošlo |
+
 ### PORT-05 — Javni portfolio i matrica vidljivosti
 
 Integracijski izvor je [PortfolioVisibilityIT](../backend/src/test/java/hr/fer/artconnect/portfolio/it/PortfolioVisibilityIT.java)
@@ -395,6 +403,8 @@ pa su testovi neovisni o postojećim seed podacima i redoslijedu.
 AUTH-01-TEST - 3.11.2026. - revizija `7125d91` (grana `feature/AUTH-01-TEST`), lokalno docker-compose okruženje s profilom dev, Selenium (headless Chrome); svih 9 ispitnih slučajeva prošlo.
 
 AUTH-02-TEST - 8.11.2026. - lokalno docker-compose okruženje s profilom dev, Selenium (headless Chrome); sva tri ispitna slučaja prošla. Ručni slučaj AUTH-02-T4 (prijava stvarnim Google računom) izveden na produkciji, prošao.
+
+AUTH-03-TEST - 12.11.2026. - lokalno docker-compose okruženje s profilom dev, Selenium (headless Chrome); sva tri ispitna slučaja prošla.
 
 **Cilj:** Navesti reviziju aplikacije, okruženje i dokaze potrebne za tumačenje stvarnih rezultata u tablici ispitnih slučajeva. Dodajte kratak zapis izvođenja kada te podatke nije moguće jasno prenijeti poveznicom na kod ispitivanja ili CI izvođenje.
 

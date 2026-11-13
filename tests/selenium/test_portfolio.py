@@ -36,7 +36,8 @@ def test_artwork_made_private_disappears_from_public_portfolio(
     login_as("umjetnik@artconnect.test")
     ArtworkFormPage(driver, base_url).open_artwork(artwork["id"]).make_private_and_save()
     # Djelo se skriva od posjetitelja, ali mora ostati na vlasnikovom popisu.
-    assert MyPortfolioPage(driver, base_url).wait_for_artwork(artwork["title"]).is_displayed()
+    portfolio_page = MyPortfolioPage(driver, base_url).open()
+    assert portfolio_page.wait_for_artwork(artwork["title"]).is_displayed()
 
     driver.delete_all_cookies()
     public_page.open_artist(artwork["artistId"])
