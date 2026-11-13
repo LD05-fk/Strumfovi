@@ -225,6 +225,27 @@ pytest tests/selenium/test_opportunities.py -m external --html=report.html --sel
 Zabilježiti njegov stvarni rezultat u §5.3 dokumenta
 [5-Ispitivanje.md](../docs/5-Ispitivanje.md).
 
+## Javna pretraga, karta i detalj prilika (OPP-02-TEST)
+
+`OpportunityApiIT` provjerava vidljivost preko pretrage i detalja (nacrt,
+arhivirana i skrivena prilika, blokirani i obrisani organizator) te filtre
+grada, područja, raspona roka i ključne riječi i straničenje.
+`OpportunitySearchPerformanceIT` na 2000 prilika izvodi `EXPLAIN (ANALYZE)`
+stvarnih upita pretrage i provjerava indekse i trajanje < 200 ms.
+
+```bash
+./mvnw verify -Dit.test=OpportunityApiIT,OpportunitySearchPerformanceIT
+```
+
+E2E testovi `test_opp_02_*` koriste page objekt `OpportunitySearchPage`
+(filtri, prikaz karte, prazno stanje). Fixture `public_search_opportunities`
+kroz zasebnu API sesiju organizatora stvara tri otvorene prilike s jedinstvenom
+riječi u naslovu, pa preglednik ostaje neprijavljen; nakon testa briše samo njih.
+
+```bash
+pytest tests/selenium/test_opportunities.py -k opp_02 --html=report.html --self-contained-html --junitxml=test-results/pytest.xml
+```
+
 ## Moje prilike i upravljanje statusom (OPP-03-TEST)
 
 `OpportunityApiIT` pokriva puni životni ciklus prilike (objava, zatvaranje,
