@@ -398,9 +398,15 @@ export function ArtworkImageUploader({
                       />
                     </Box>
                   ) : (
-                    <Typography color="text.secondary" role="status">
-                      {hr.portfolio.images.limitReachedHint}
-                    </Typography>
+                    <>
+                      {/* Na granici gumb ostaje vidljiv kako bi bilo jasno da dodavanje trenutno nije dostupno. */}
+                      <Button type="button" variant="outlined" disabled>
+                        {hr.portfolio.images.choose}
+                      </Button>
+                      <Typography color="text.secondary" role="status">
+                        {hr.portfolio.images.limitReachedHint}
+                      </Typography>
+                    </>
                   )}
 
                   <Typography variant="body2" color="text.secondary">

@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import hr.fer.artconnect.support.IntegrationTestBase;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -30,7 +31,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import tools.jackson.databind.ObjectMapper;
 
-/** PORT-03: zahtjevi prolaze kroz stvarne sesije, sigurnosne filtre i PostgreSQL. */
+/** PORT-03 i PORT-04: djela i slike kroz stvarne sesije, sigurnosne filtre i PostgreSQL. */
 @ActiveProfiles("dev")
 // Nakon brisanja privremene mape drugi testovi ne smiju preuzeti ovaj Springov kontekst.
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
@@ -57,16 +58,36 @@ class ArtworkLifecycleIT extends IntegrationTestBase {
     ObjectMapper objectMapper;
 
     private PortfolioFixtures fixtures;
+    private String originalMaxBytes;
+    private String originalMaxImages;
 
     @BeforeEach
     void prepareFixtures() {
         fixtures = new PortfolioFixtures(jdbc, mockMvc);
+        // Ovi scenariji ispituju zadane granice, ne postavke prethodnog testa.
+        originalMaxBytes = jdbc.queryForObject(
+                "SELECT value FROM system_settings WHERE key = 'upload.artwork.maxImageBytes'", String.class);
+        originalMaxImages = jdbc.queryForObject(
+                "SELECT value FROM system_settings WHERE key = 'upload.artwork.maxImagesPerArtwork'", String.class);
+        jdbc.update("UPDATE system_settings SET value = '5242880' WHERE key = 'upload.artwork.maxImageBytes'");
+        jdbc.update("UPDATE system_settings SET value = '3' WHERE key = 'upload.artwork.maxImagesPerArtwork'");
     }
 
     @AfterEach
-    void removeFixtures() {
+    void removeFixtures() throws Exception {
         // Izvodi se i nakon pada testa: uklanja njegove korisnike, djela i sesije.
-        fixtures.cleanup();
+        try {
+            fixtures.cleanup();
+        } finally {
+            jdbc.update("UPDATE system_settings SET value = ? WHERE key = 'upload.artwork.maxImageBytes'", originalMaxBytes);
+            jdbc.update("UPDATE system_settings SET value = ? WHERE key = 'upload.artwork.maxImagesPerArtwork'", originalMaxImages);
+            // Baza ne briše datoteke s diska. Čistimo ih i kad test prekine prije DELETE-a.
+            try (var paths = Files.walk(storageRoot)) {
+                for (Path path : paths.filter(Files::isRegularFile).toList()) {
+                    Files.delete(path);
+                }
+            }
+        }
     }
 
     @Test
@@ -111,6 +132,120 @@ class ArtworkLifecycleIT extends IntegrationTestBase {
         mockMvc.perform(get("/api/v1/artists/{id}/artworks", artistId).cookie(user.session()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isEmpty());
+    }
+
+    @Test
+    void triSlikeDosezuLimitBrisanjeGaOslobadaABrisanjeDjelaCistiSveDatoteke() throws Exception {
+        UUID artistId = fixtures.user("ARTIST", "ACTIVE");
+        UUID artworkId = fixtures.artwork(artistId, OffsetDateTime.now());
+        var user = fixtures.login(artistId);
+        byte[] jpeg = Files.readAllBytes(Path.of("src/test/resources/files/small.jpg"));
+        var images = new ArrayList<tools.jackson.databind.JsonNode>();
+
+        // Tri slike prolaze kroz stvarni servis i spremaju se u bazu i @TempDir.
+        for (int i = 0; i < 3; i++) {
+            String response = fixtures.uploadImage(artworkId, user, "art.jpg", jpeg)
+                    .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+            images.add(objectMapper.readTree(response));
+        }
+        fixtures.uploadImage(artworkId, user, "cetvrta.jpg", jpeg)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("IMAGE_LIMIT_REACHED"));
+
+        var first = images.removeFirst();
+        UUID firstFileId = UUID.fromString(first.get("file").get("id").asText());
+        Path firstPath = storageRoot.resolve(jdbc.queryForObject(
+                "SELECT storage_key FROM stored_files WHERE id = ?", String.class, firstFileId));
+        assertThat(firstPath).exists();
+        mockMvc.perform(delete(PATH + "/{id}/images/{imageId}", artworkId, first.get("id").asText())
+                        .cookie(user.session(), user.csrf())
+                        .header("X-XSRF-TOKEN", user.csrf().getValue()))
+                .andExpect(status().isNoContent());
+        assertThat(firstPath).doesNotExist();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM stored_files WHERE id = ?", Long.class, firstFileId)).isZero();
+        mockMvc.perform(get(first.get("file").get("url").asText())).andExpect(status().isNotFound());
+
+        // Nakon brisanja ponovno ima mjesta. Na kraju brišemo djelo s točno tri slike.
+        String replacement = fixtures.uploadImage(artworkId, user, "zamjena.jpg", jpeg)
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        images.add(objectMapper.readTree(replacement));
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM artwork_images WHERE artwork_id = ?", Long.class, artworkId)).isEqualTo(3);
+        List<Path> storedPaths = jdbc.queryForList(
+                "SELECT storage_key FROM stored_files WHERE owner_id = ?", String.class, artistId)
+                .stream().map(storageRoot::resolve).toList();
+        assertThat(storedPaths).hasSize(3).allSatisfy(path -> assertThat(path).exists());
+
+        mockMvc.perform(delete(PATH + "/{id}", artworkId)
+                        .cookie(user.session(), user.csrf())
+                        .header("X-XSRF-TOKEN", user.csrf().getValue()))
+                .andExpect(status().isNoContent());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM artworks WHERE id = ?", Long.class, artworkId)).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM artwork_images WHERE artwork_id = ?", Long.class, artworkId)).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM stored_files WHERE owner_id = ?", Long.class, artistId)).isZero();
+        assertThat(storedPaths).allSatisfy(path -> assertThat(path).doesNotExist());
+        for (var image : images) {
+            mockMvc.perform(get(image.get("file").get("url").asText())).andExpect(status().isNotFound());
+        }
+        try (var paths = Files.walk(storageRoot)) {
+            assertThat(paths.filter(Files::isRegularFile).toList()).isEmpty();
+        }
+    }
+
+    @Test
+    void odbijaPdfLazniPngIJpgJedanBajtIznadPetMiBBezOstataka() throws Exception {
+        UUID artistId = fixtures.user("ARTIST", "ACTIVE");
+        UUID artworkId = fixtures.artwork(artistId, OffsetDateTime.now());
+        var user = fixtures.login(artistId);
+
+        fixtures.uploadImage(artworkId, user, "document.pdf",
+                        Files.readAllBytes(Path.of("src/test/resources/files/small.pdf")))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.error.code").value("UNSUPPORTED_FILE_TYPE"));
+        // Nastavak .png ne smije pretvoriti tekst u dopuštenu sliku.
+        fixtures.uploadImage(artworkId, user, "tekst.png", "Ovo nije slika".getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.error.code").value("UNSUPPORTED_FILE_TYPE"));
+        byte[] largeJpeg = java.util.Arrays.copyOf(
+                Files.readAllBytes(Path.of("src/test/resources/files/small.jpg")), 5 * 1024 * 1024 + 1);
+        fixtures.uploadImage(artworkId, user, "big.jpg", largeJpeg)
+                .andExpect(status().isPayloadTooLarge())
+                .andExpect(jsonPath("$.error.code").value("FILE_TOO_LARGE"));
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM artwork_images WHERE artwork_id = ?", Long.class, artworkId)).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM stored_files WHERE owner_id = ?", Long.class, artistId)).isZero();
+        try (var paths = Files.walk(storageRoot)) {
+            assertThat(paths.filter(Files::isRegularFile).toList()).isEmpty();
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"ARTIST, ACTIVE, 404, NOT_FOUND", "ORGANIZER, ACTIVE, 403, FORBIDDEN",
+            ", ONBOARDING, 403, ONBOARDING_REQUIRED"})
+    void slikeNeMozeDodavatiNiBrisatiKorisnikBezPrava(String role, String userStatus, int statusCode, String errorCode)
+            throws Exception {
+        UUID ownerId = fixtures.user("ARTIST", "ACTIVE");
+        UUID artworkId = fixtures.artwork(ownerId, OffsetDateTime.now());
+        var owner = fixtures.login(ownerId);
+        byte[] jpeg = Files.readAllBytes(Path.of("src/test/resources/files/small.jpg"));
+        String response = fixtures.uploadImage(artworkId, owner, "art.jpg", jpeg)
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String imageId = objectMapper.readTree(response).get("id").asText();
+        var other = fixtures.login(fixtures.user(role, userStatus));
+
+        // Ispravni kolačići i token dokazuju da je razlog odbijanja pravo pristupa.
+        fixtures.uploadImage(artworkId, other, "art.jpg", jpeg)
+                .andExpect(status().is(statusCode))
+                .andExpect(jsonPath("$.error.code").value(errorCode));
+        mockMvc.perform(delete(PATH + "/{id}/images/{imageId}", artworkId, imageId)
+                        .cookie(other.session(), other.csrf())
+                        .header("X-XSRF-TOKEN", other.csrf().getValue()))
+                .andExpect(status().is(statusCode))
+                .andExpect(jsonPath("$.error.code").value(errorCode));
+        mockMvc.perform(get(PATH + "/{id}", artworkId).cookie(owner.session()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.images.length()").value(1))
+                .andExpect(jsonPath("$.images[0].id").value(imageId));
     }
 
     @Test

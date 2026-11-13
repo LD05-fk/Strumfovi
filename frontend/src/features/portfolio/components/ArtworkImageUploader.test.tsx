@@ -175,8 +175,8 @@ describe('ArtworkImageUploader', () => {
       await screen.findByText(/Dosegnut je najveći broj slika/),
     ).toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Odaberi sliku' }),
-    ).not.toBeInTheDocument()
+      screen.getByRole('button', { name: 'Odaberi sliku' }),
+    ).toBeDisabled()
   })
 
   it('submits the prepared alt text and file as multipart form data', async () => {
