@@ -12,6 +12,9 @@ class OpportunityDetailPage(BasePage):
         self.wait_for_path(f"/opportunities/{opportunity_id}")
         return self
 
+    def wait_for_title(self, title):
+        return self.wait_visible((By.XPATH, f"//h1[normalize-space()='{title}']"))
+
     def has_preparation_private_status(self):
         return self.wait_visible(
             (By.XPATH, "//*[normalize-space()='U pripremi – vidljivo samo vama']")

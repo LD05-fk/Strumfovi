@@ -254,3 +254,128 @@ def test_opp_03_archive_moves_opportunity_to_archived_tab(
     page.open_archived_tab()
     page.wait_for_status(opportunity["title"], "Zatvorena")
     assert _public_search_ids(base_url, opportunity["token"]) == []
+
+
+# OPP-02: javna pretraga, karta i detalj za neprijavljenog posjetitelja.
+@pytest.fixture
+def public_search_opportunities(base_url):
+    """Tri otvorene prilike (dvije u Zagrebu, jedna online) s jedinstvenom riječi u naslovu.
+
+    Priprema ide kroz zasebnu API sesiju organizatora, pa preglednik ostaje neprijavljen.
+    Nakon testa brišu se samo ove tri prilike.
+    """
+    session = requests.Session()
+    created = []
+    logged_in = False
+    token = uuid4().hex
+    try:
+        login = session.post(
+            f"{base_url}/api/v1/dev/login-as", json={"email": ORGANIZER}, timeout=10
+        )
+        login.raise_for_status()
+        logged_in = True
+        csrf = session.get(f"{base_url}/api/v1/auth/csrf", timeout=10)
+        csrf.raise_for_status()
+        session.headers["X-XSRF-TOKEN"] = csrf.json()["token"]
+
+        types = session.get(f"{base_url}/api/v1/opportunity-types", timeout=10)
+        types.raise_for_status()
+        fields = session.get(f"{base_url}/api/v1/art-fields?pageSize=100", timeout=10)
+        fields.raise_for_status()
+        deadline = datetime.now(timezone.utc) + timedelta(days=30)
+        zagreb = {"type": "PHYSICAL", "streetAddress": "Ilica 1", "city": "Zagreb", "postalCode": "10000"}
+        locations = {
+            f"E2E pretraga {token} galerija": {**zagreb, "latitude": 45.8131, "longitude": 15.9775},
+            f"E2E pretraga {token} muzej": {**zagreb, "latitude": 45.8150, "longitude": 15.9819},
+            f"E2E pretraga {token} online": {"type": "ONLINE", "onlineUrl": "https://example.org/e2e"},
+        }
+        for title, location in locations.items():
+            response = session.post(
+                f"{base_url}/api/v1/opportunities",
+                json={
+                    "title": title,
+                    "description": "Prilika za E2E test javne pretrage.",
+                    "typeId": _first(types.json())["id"],
+                    "artFieldIds": [_first(fields.json())["id"]],
+                    "deadline": deadline.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "location": location,
+                },
+                timeout=10,
+            )
+            response.raise_for_status()
+            opportunity_id = response.json()["id"]
+            created.append(opportunity_id)
+            published = session.post(
+                f"{base_url}/api/v1/opportunities/{opportunity_id}/status",
+                json={"status": "OPEN"},
+                timeout=10,
+            )
+            published.raise_for_status()
+
+        names = list(locations)
+        yield {
+            "token": token,
+            "zagreb": names[:2],
+            "online": names[2],
+            "ids": dict(zip(names, created)),
+        }
+    finally:
+        try:
+            for opportunity_id in created:
+                deleted = session.delete(
+                    f"{base_url}/api/v1/opportunities/{opportunity_id}", timeout=10
+                )
+                if deleted.status_code != 404:
+                    deleted.raise_for_status()
+        finally:
+            try:
+                if logged_in:
+                    session.post(f"{base_url}/api/v1/auth/logout", timeout=10).raise_for_status()
+            finally:
+                session.close()
+
+
+def test_opp_02_city_filter_is_kept_in_url_after_refresh(
+    driver, base_url, public_search_opportunities
+):
+    data = public_search_opportunities
+    page = OpportunitySearchPage(driver, base_url).search(data["token"])
+    page.wait_for_titles(data["zagreb"] + [data["online"]])
+
+    page.filter_city("Zagreb")
+    page.wait_for_query_param("city", "Zagreb")
+    page.wait_for_titles(data["zagreb"])
+
+    driver.refresh()
+    page.wait_for_titles(data["zagreb"])
+    assert page.city_filter_value() == "Zagreb"
+
+
+def test_opp_02_map_shows_markers_attribution_and_missing_location_notice(
+    driver, base_url, public_search_opportunities
+):
+    data = public_search_opportunities
+    page = OpportunitySearchPage(driver, base_url).search(data["token"])
+    page.wait_for_titles(data["zagreb"] + [data["online"]])
+
+    page.show_map()
+    markers = page.wait_for_markers(data["zagreb"])
+    assert len(markers) == 2
+    assert page.map_attribution().is_displayed()
+    assert page.missing_location_notice(1).is_displayed()
+
+    title = data["zagreb"][0]
+    page.open_marker_details(title)
+    detail = OpportunityDetailPage(driver, base_url).wait_for_detail(data["ids"][title])
+    assert detail.wait_for_title(title).is_displayed()
+
+
+def test_opp_02_empty_search_shows_empty_state_and_clear_restores_results(
+    driver, base_url, public_search_opportunities
+):
+    page = OpportunitySearchPage(driver, base_url).search(f"nepostoji{uuid4().hex}")
+    page.wait_for_empty_state()
+
+    page.clear_filters()
+    WebDriverWait(driver, 10).until(lambda _: len(page.titles()) > 0)
+    assert "q=" not in driver.current_url

@@ -338,6 +338,44 @@ izraza (druga konfiguracija punotekstne pretrage ili uvjet vidljivosti predan
 kao parametar) indeks učinila neupotrebljivim. Ne dokazuje da ga planer odabire
 na produkcijskoj količini podataka; mjerenje odziva pod opterećenjem je DOC-41.
 
+#### OPP-02-TEST — vidljivost, filtri, karta i detalj
+
+Slučajevi zadatka OPP-02-TEST, koji povezuju pretragu i detalj prilike, nalaze
+se u
+[OpportunityApiIT](../backend/src/test/java/hr/fer/artconnect/opportunity/OpportunityApiIT.java)
+i
+[OpportunitySearchPerformanceIT](../backend/src/test/java/hr/fer/artconnect/opportunity/OpportunitySearchPerformanceIT.java)
+(naziv metode u zagradi). E2E slučajevi su u
+[test_opportunities.py](../tests/selenium/test_opportunities.py) (funkcije
+`test_opp_02_*`), uz page objekte
+[OpportunitySearchPage](../tests/selenium/page_objects/opportunity_search_page.py)
+i [OpportunityDetailPage](../tests/selenium/page_objects/opportunity_detail_page.py).
+
+| ID | Zadano (Given) | Kada (When) | Tada (Then) | Ishod |
+| --- | --- | --- | --- | --- |
+| OPP-02-IT-08 | O1 ima priliku u `PREPARATION`, arhiviranu i skrivenu (`hidden_by_admin = true` u bazi). | Anonimni pretražuje sa svim javnim statusima i otvara detalje; zatim detalje otvaraju O1 i administrator (`nejavnePrilikeNisuUAnonimnojPretraziAliIhVlasnikIAdministratorOtvaraju`). | Pretraga je prazna, anonimni dobiva 404 `NOT_FOUND` za sva tri detalja; O1 i administrator dobivaju 200. | Prošlo |
+| OPP-02-IT-09 | Blokirani organizator OB ima `OPEN` priliku. | Anonimni pretražuje i otvara detalj (`prilikaBlokiranogOrganizatoraNijeJavnoVidljiva`). | Prilika nije u rezultatima; detalj vraća 404 `NOT_FOUND`. | Prošlo |
+| OPP-02-IT-10 | Organizator sa statusom `DELETED` ima `OPEN` priliku. | Anonimni otvara detalj i pretražuje (`prilikaObrisanogOrganizatoraJeJavnaSAnonimiziranimImenom`). | 200; u detalju i u rezultatu pretrage `organizer.displayName = "Obrisani korisnik"`. | Prošlo |
+| OPP-02-IT-11 | Prilike u gradovima „Zagreb”, „ZAGREB”, „Split” i jedna online. | `city=zagreb` (`filtarGradaNeRazlikujeVelikaIMalaSlovaIIzostavljaOnlinePrilike`). | Vraćaju se samo dvije zagrebačke, bez obzira na velika i mala slova. | Prošlo |
+| OPP-02-IT-12 | Prilike samo s prvim, samo s drugim, s oba i s trećim područjem. | Dva `artFieldIds` (prvo i drugo) (`dvaPodrucjaVracajuPrilikeSBaremJednimBezDuplikata`). | Točno tri prilike, svaka jednom; prilika s oba područja nije udvostručena. | Prošlo |
+| OPP-02-IT-13 | Rok 31. 12. 2026. u 23:30 po zagrebačkom vremenu i rok 1. 1. 2027. u 00:30. | `deadlineFrom=deadlineTo=2026-12-31` (`istiDatumOdIDoObuhvacaRokKasnoNavecerPoZagrebackomVremenu`). | Vraća se samo prva prilika (rok `2026-12-31T22:30:00Z`). | Prošlo |
+| OPP-02-IT-14 | Naslov „Ljetna izložba keramike”. | `q=keramike`, zatim `q=slikarstvo` (`kljucnaRijecPretrazujeCijeleRijeciNaslova`). | Prvi upit vraća priliku, drugi prazan rezultat. | Prošlo |
+| OPP-02-IT-15 | 25 javnih prilika; parovi dijele rok. | Dvaput `page=2&pageSize=10&sort=-deadline` (`drugaStranicaSilaznoPoRokuJeStabilna`). | `meta.total = 25`, 10 stavki silazno po roku, unutar istog roka po ID-u; oba poziva vraćaju isti poredak. | Prošlo |
+| OPP-02-PERF-01 | 2000 prilika (fiksno sjeme: statusi, rokovi, 40 gradova, online, arhivirane, skrivene, 2 blokirana organizatora) i `ANALYZE`. | Pretraga s `q=keramike`, s `city=Zagreb` i sa zadanim sortiranjem; `EXPLAIN (ANALYZE)` stvarnih SQL upita koje je API izvršio (`upitPretrageKoristiIndeksIBrzJe`). | Brojanje s `q` koristi `ix_opp_fts`, brojanje s `city` koristi `ix_opp_city_lower`, stranica sa zadanim sortiranjem koristi `ix_opp_public`; svaki upit (brojanje i stranica) traje < 200 ms. | Prošlo (3 ulaza) |
+| OPP-02-E2E-01 | Tri otvorene prilike s jedinstvenom riječi u naslovu: dvije u Zagrebu, jedna online. | Anonimni posjetitelj traži tu riječ i u filtar „Grad” upiše „Zagreb”, zatim osvježi stranicu. | Prikazuju se dvije kartice; URL sadrži `city=Zagreb`; nakon osvježavanja ostaju iste dvije kartice i vrijednost filtra. | Prošlo |
+| OPP-02-E2E-02 | Isti rezultati pretrage. | Posjetitelj prebaci na „Karta”, klikne oznaku i „Detalji” u skočnom prozoru. | Na karti su dvije oznake, atribucija „OpenStreetMap” i obavijest „Prilike bez lokacije: 1.”; otvara se detalj te prilike. | Prošlo |
+| OPP-02-E2E-03 | Postoje javne prilike. | Posjetitelj traži nepostojeću ključnu riječ i klikne „Očisti filtre”. | Prikazuje se „Nema prilika za odabrane filtre”; nakon čišćenja URL nema `q`, a popis ima rezultate. | Prošlo |
+
+**Indeksi u OPP-02-PERF-01:** pretraga izvodi dva upita. Brojanje nema
+sortiranja, pa planer filtar po ključnoj riječi ili gradu provodi kroz
+`ix_opp_fts` odnosno `ix_opp_city_lower`. Stranica (`ORDER BY deadline LIMIT 20`)
+na ovoj količini podataka čita `ix_opp_public` već poredan po roku i staje nakon
+20 pogodaka, i kad je zadan filtar; to je za upit s ograničenjem jeftiniji put.
+Test zato provjerava indeks na upitu koji ga stvarno koristi. Za razliku od
+OPP-02-IT-07, planer ovdje sam bira indeks (bez `enable_seqscan = off`). Ishod
+ovisi o količini i razdiobi podataka, pa test ne zamjenjuje mjerenje pod
+opterećenjem (DOC-41).
+
 ### OPP-03 — Moje prilike i upravljanje statusom
 
 API integracijski slučajevi su u
@@ -553,6 +591,17 @@ portu 15173. Integracijski testovi koristili su PostgreSQL iz Testcontainersa.
 - Iz `backend/`, `.\mvnw.cmd -B '-Dit.test=OpportunityApiIT,GeocodingIntegrationTest' verify` završio je s `BUILD SUCCESS`: **9 testova prošlo**, bez grešaka i preskakanja (2 nova testa za uređivanje i 7 postojećih geokodirnih testova). Failsafe izvještaji nalaze se u `backend/target/failsafe-reports/`.
 - Iz korijena repozitorija, `$env:BASE_URL='http://127.0.0.1:15173'; python -m pytest tests/selenium/test_opportunities.py -m 'not external' --html=report.html --self-contained-html --junitxml=test-results/pytest-opportunities.xml`: **3 testa prošla, 1 vanjski test isključen**, bez grešaka. HTML i JUnit XML izvještaji su generirani.
 - Vanjski slučaj OPP-01-E2E-04 pokrenut je ručno 13. 11. 2026. naredbom `python -m pytest tests/selenium/test_opportunities.py::test_opp_01_external_nominatim_search_finds_unska_3 --html=report.html --self-contained-html --junitxml=test-results/pytest-external.xml`: **1 test prošao za 7,96 sekundi**. Izvještaji su generirani u `report.html` i `test-results/pytest-external.xml`. CI i dalje isključuje vanjski test s `-m "not external"`.
+
+### OPP-02-TEST — lokalno izvođenje 13. 11. 2026.
+
+Radna kopija na temelju `master` (`6d0ca59`), testirano na Linuxu s Python
+3.14.8, pytest 9.2.0, Selenium 4.52.0 i headless Chrome 157 (driver preko
+Selenium Managera). Za E2E su korišteni PostgreSQL iz `docker compose`, backend
+s profilom `dev` na portu 8080 i frontend na portu 5173. Integracijski testovi
+koristili su PostgreSQL iz Testcontainersa.
+
+- Iz `backend/`, `./mvnw verify -Dit.test=OpportunityApiIT,OpportunitySearchPerformanceIT`, pokrenuto dvaput: oba puta **19 testova prošlo** (16 u `OpportunityApiIT`, od kojih 8 novih OPP-02, i 3 ulaza u `OpportunitySearchPerformanceIT`). Failsafe izvještaji s nazivima scenarija nalaze se u `backend/target/failsafe-reports/`.
+- Iz `tests/selenium/`, `pytest test_opportunities.py -k opp_02`: **3 testa prošla**. Cijeli Selenium skup (`pytest . -m "not external"`) pokrenut je dvaput zaredom: oba puta **45 testova prošlo**, 1 vanjski isključen; nakon izvođenja u bazi nije ostala nijedna prilika s naslovom `E2E…`.
 
 ### OPP-03-TEST — lokalno izvođenje 13. 11. 2026.
 
