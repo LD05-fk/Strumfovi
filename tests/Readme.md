@@ -187,3 +187,40 @@ uključen je u `master`. Prema zahtjevu #110, na granici gumb za dodavanje
 ostaje vidljiv i onemogućen; nakon uklanjanja slike ponovno je dostupan.
 Postojeći CI automatski izvodi obje `IT` klase preko Failsafea i nove
 Selenium testove te sprema Surefire/Failsafe, pytest i PNG/HTML dokaze pada.
+
+## Objava, uređivanje i geokodiranje prilika (OPP-01-TEST)
+
+`OpportunityApiIT` koristi `IntegrationTestBase`, PostgreSQL iz Testcontainersa
+i testne organizatore. Provjerava zabranu uređivanja tuđe prilike te uspješno
+uređivanje prilike njezina vlasnika. Uloge za geokodiranje ne dupliciraju se:
+`GeocodingIntegrationTest` već provjerava umjetnikov `403` i organizatorov `200`
+s lažnim Nominatimom na `artconnect.geocoding.base-url`.
+
+Ciljano pokretanje integracijskih slučajeva iz `backend/`:
+
+```powershell
+.\mvnw.cmd -B '-Dit.test=OpportunityApiIT' verify
+```
+
+Selenium testovi u `test_opportunities.py` pokrivaju objavu fizičke prilike s
+ručno kliknutom oznakom, obaveznu poveznicu za online priliku i odbijanje
+umjetnika na obrascu organizatora. Fixture briše samo prilike s jedinstvenim
+naslovom testa. Pad E2E testa sprema PNG i HTML dokaze kao i ostali Selenium
+testovi.
+
+Pokretanje automatiziranih OPP-01 E2E testova iz korijena repozitorija:
+
+```powershell
+pytest tests/selenium/test_opportunities.py -m "not external" --html=report.html --self-contained-html --junitxml=test-results/pytest.xml
+```
+
+Vanjski test `test_opp_01_external_nominatim_search_finds_unska_3` označen je
+`external` i isključen je iz CI-ja. Pokrenuti ga ručno samo jednom prije predaje,
+jer šalje jedan zahtjev javnom Nominatimu:
+
+```powershell
+pytest tests/selenium/test_opportunities.py -m external --html=report.html --self-contained-html --junitxml=test-results/pytest-external.xml
+```
+
+Zabilježiti njegov stvarni rezultat u §5.3 dokumenta
+[5-Ispitivanje.md](../docs/5-Ispitivanje.md).
