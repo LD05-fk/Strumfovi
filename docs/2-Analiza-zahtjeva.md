@@ -131,7 +131,7 @@ Sljedivost se vodi vezama, bez zasebne matrice: zahtjev `FR-xx` → obrazac upor
 | Kontrolna točka | Povratna informacija ili nalaz | Odluka o zahtjevu ili opsegu |
 | --- | --- | --- |
 | Vježba, 26. 10. 2026. | Funkcijskih zahtjeva ima previše i predetaljni su; nefunkcijske zahtjeve treba pojednostaviti. Sigurnost se ostvaruje Google prijavom bez lozinki. | Zahtjevi sažeti u FR-01–FR-10 i pojednostavljeni NF-01–NF-10; vidi §2.5 (1. 11. 2026.). |
-| Kontrolna točka 1 (7. tjedan) | Još nije održano. | — |
+| Kontrolna točka 1 (7. tjedan), 16. 11. 2026. | Zahtjevi i dokumentacija su u redu; jedina primjedba odnosila se na dijagram obrazaca uporabe (§3.1), koji treba više nalikovati UML dijagramu (zasebni obrasci, veze `<<extend>>`/`<<include>>`). | Zahtjevi ostaju nepromijenjeni; dijagram je dorađen u [PR #392](https://github.com/LD05-fk/Strumfovi/pull/392). |
 | Demo 2 (11. tjedan) | Još nije održano. | — |
 | Kontrolna točka 2 (14. tjedan) | Još nije održano. | — |
 
