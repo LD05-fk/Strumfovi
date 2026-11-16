@@ -8,13 +8,6 @@
 
 **Slika 3.1. Dijagram obrazaca uporabe sustava ArtConnect** · **PlantUML izvor:** [izvor](puml/3-1-artconnect-system-UC.puml)
 
-Detaljni dijagrami po skupinama obrazaca:
-
-- [Računi i portfolio](puml/3-1-artconnect-racuni-UC.puml) (`assets/diagrams/3-1-artconnect-racuni-UC.svg`)
-- [Prilike](puml/3-1-artconnect-prilike-UC.puml) (`assets/diagrams/3-1-artconnect-prilike-UC.svg`)
-- [Prijave i rezultati](puml/3-1-artconnect-prijave-UC.puml) (`assets/diagrams/3-1-artconnect-prijave-UC.svg`)
-- [Izvještaji i administracija](puml/3-1-artconnect-izvjestaji-UC.puml) (`assets/diagrams/3-1-artconnect-izvjestaji-UC.svg`)
-
 | ID | Obrazac uporabe | Akter(i) |
 | --- | --- | --- |
 | UC-01 | Prijaviti se i upravljati računom | Posjetitelj, prijavljeni korisnik, Google OAuth 2.0 |
