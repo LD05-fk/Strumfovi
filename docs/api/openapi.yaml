@@ -1,0 +1,1673 @@
+openapi: 3.1.0
+info:
+  title: ArtConnect API
+  version: 1. ciklus (20. 11. 2026.)
+  description: Snimka generirana iz koda (springdoc). Glavna dokumentacija s pravilima i kodovima grešaka je u docs/api/*.md.
+servers:
+- url: https://artconnect-fer.duckdns.org
+  description: Javna inačica
+- url: http://localhost:8080
+  description: Lokalno
+paths:
+  /api/v1/past-exhibitions/{pastExhibitionId}:
+    put:
+      tags:
+      - past-exhibition-controller
+      operationId: updatePastExhibition
+      parameters:
+      - name: pastExhibitionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PastExhibitionRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PastExhibitionDto'
+    delete:
+      tags:
+      - past-exhibition-controller
+      operationId: deletePastExhibition
+      parameters:
+      - name: pastExhibitionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+  /api/v1/opportunities/{opportunityId}:
+    get:
+      tags:
+      - opportunity-controller
+      operationId: get
+      parameters:
+      - name: opportunityId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/OpportunityDto'
+    put:
+      tags:
+      - opportunity-controller
+      operationId: update
+      parameters:
+      - name: opportunityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpportunityInput'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/OpportunityDto'
+    delete:
+      tags:
+      - opportunity-controller
+      operationId: delete
+      parameters:
+      - name: opportunityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+  /api/v1/me/organizer-profile:
+    get:
+      tags:
+      - organizer-profile-controller
+      operationId: getMyOrganizerProfile
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/OrganizerProfileDto'
+    put:
+      tags:
+      - organizer-profile-controller
+      operationId: updateMyOrganizerProfile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizerProfileUpdateRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/OrganizerProfileDto'
+  /api/v1/me/artist-profile:
+    get:
+      tags:
+      - artist-profile-controller
+      operationId: getMyArtistProfile
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ArtistProfileDto'
+    put:
+      tags:
+      - artist-profile-controller
+      operationId: updateMyArtistProfile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArtistProfileUpdateRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ArtistProfileDto'
+  /api/v1/artworks/{artworkId}:
+    get:
+      tags:
+      - artwork-controller
+      operationId: getArtwork
+      parameters:
+      - name: artworkId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ArtworkDto'
+    put:
+      tags:
+      - artwork-controller
+      operationId: updateArtwork
+      parameters:
+      - name: artworkId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArtworkRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ArtworkDto'
+    delete:
+      tags:
+      - artwork-controller
+      operationId: deleteArtwork
+      parameters:
+      - name: artworkId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+  /api/v1/admin/opportunity-types/{itemId}:
+    put:
+      tags:
+      - opportunity-type-admin-controller
+      operationId: update_1
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CatalogItemInput'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CatalogItem'
+    delete:
+      tags:
+      - opportunity-type-admin-controller
+      operationId: delete_1
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+  /api/v1/admin/art-fields/{itemId}:
+    put:
+      tags:
+      - art-field-admin-controller
+      operationId: update_2
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CatalogItemInput'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CatalogItem'
+    delete:
+      tags:
+      - art-field-admin-controller
+      operationId: delete_2
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+  /api/v1/past-exhibitions:
+    post:
+      tags:
+      - past-exhibition-controller
+      operationId: createPastExhibition
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PastExhibitionRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PastExhibitionDto'
+  /api/v1/opportunities:
+    get:
+      tags:
+      - opportunity-controller
+      operationId: search
+      parameters:
+      - name: params
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/OpportunitySearchParams'
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PageResponseOpportunitySummary'
+    post:
+      tags:
+      - opportunity-controller
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpportunityInput'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/OpportunityDto'
+  /api/v1/opportunities/{opportunityId}/status:
+    post:
+      tags:
+      - opportunity-controller
+      operationId: changeStatus
+      parameters:
+      - name: opportunityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpportunityStatusChange'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/OpportunityDto'
+  /api/v1/opportunities/{opportunityId}/archive:
+    post:
+      tags:
+      - opportunity-controller
+      operationId: archive
+      parameters:
+      - name: opportunityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/OpportunityDto'
+  /api/v1/me/role:
+    post:
+      tags:
+      - auth-controller
+      operationId: chooseRole
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChooseRoleRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CurrentUserDto'
+  /api/v1/artworks:
+    post:
+      tags:
+      - artwork-controller
+      operationId: createArtwork
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArtworkRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ArtworkDto'
+  /api/v1/artworks/{artworkId}/images:
+    post:
+      tags:
+      - artwork-controller
+      operationId: uploadArtworkImage
+      parameters:
+      - name: artworkId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: altText
+        in: query
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+              - file
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ArtworkImageDto'
+  /api/v1/admin/opportunity-types:
+    get:
+      tags:
+      - opportunity-type-admin-controller
+      operationId: list
+      parameters:
+      - name: params
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/PageRequestParams'
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PageResponseCatalogItem'
+    post:
+      tags:
+      - opportunity-type-admin-controller
+      operationId: create_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CatalogItemInput'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CatalogItem'
+  /api/v1/admin/art-fields:
+    get:
+      tags:
+      - art-field-admin-controller
+      operationId: list_1
+      parameters:
+      - name: params
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/PageRequestParams'
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PageResponseCatalogItem'
+    post:
+      tags:
+      - art-field-admin-controller
+      operationId: create_2
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CatalogItemInput'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CatalogItem'
+  /api/v1/settings/public:
+    get:
+      tags:
+      - settings-controller
+      operationId: getPublicSettings
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UploadLimits'
+  /api/v1/opportunity-types:
+    get:
+      tags:
+      - catalog-controller
+      operationId: getOpportunityTypes
+      parameters:
+      - name: params
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/PageRequestParams'
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PageResponseCatalogItem'
+  /api/v1/me:
+    get:
+      tags:
+      - auth-controller
+      operationId: me
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CurrentUserDto'
+  /api/v1/me/opportunities:
+    get:
+      tags:
+      - organizer-opportunity-controller
+      operationId: getMyOpportunities
+      parameters:
+      - name: params
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/OrganizerOpportunityQueryParams'
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PageResponseOrganizerOpportunity'
+  /api/v1/geocoding/search:
+    get:
+      tags:
+      - geocoding-controller
+      operationId: search_1
+      parameters:
+      - name: street
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 200
+          minLength: 3
+      - name: city
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 100
+          minLength: 2
+      - name: postalCode
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 10
+          minLength: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/GeocodingResponse'
+  /api/v1/files/{fileId}:
+    get:
+      tags:
+      - file-controller
+      operationId: downloadFile
+      parameters:
+      - name: fileId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+  /api/v1/auth/csrf:
+    get:
+      tags:
+      - csrf-controller
+      operationId: csrf
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/CsrfToken'
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CsrfResponse'
+  /api/v1/artists/{artistId}:
+    get:
+      tags:
+      - artist-public-profile-controller
+      operationId: getArtistPublicProfile
+      parameters:
+      - name: artistId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ArtistPublicProfileDto'
+  /api/v1/artists/{artistId}/artworks:
+    get:
+      tags:
+      - artist-artwork-controller
+      operationId: listArtistArtworks
+      parameters:
+      - name: artistId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: params
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/PageRequestParams'
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PageResponseArtworkDto'
+  /api/v1/art-fields:
+    get:
+      tags:
+      - catalog-controller
+      operationId: getArtFields
+      parameters:
+      - name: params
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/PageRequestParams'
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PageResponseCatalogItem'
+  /api/v1/admin/users:
+    get:
+      tags:
+      - admin-user-controller
+      operationId: getUsers
+      parameters:
+      - name: params
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/AdminUserQueryParams'
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PageResponseAdminUser'
+  /api/v1/artworks/{artworkId}/images/{imageId}:
+    delete:
+      tags:
+      - artwork-controller
+      operationId: deleteArtworkImage
+      parameters:
+      - name: artworkId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: imageId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+components:
+  schemas:
+    PastExhibitionRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+          minLength: 0
+        year:
+          type: integer
+          format: int32
+          minimum: 1900
+        place:
+          type: string
+          maxLength: 200
+          minLength: 0
+      required:
+      - place
+      - title
+      - year
+    PastExhibitionDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        year:
+          type: integer
+          format: int32
+        place:
+          type: string
+    LocationInput:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+          - PHYSICAL
+          - ONLINE
+        streetAddress:
+          type: string
+          maxLength: 200
+          minLength: 0
+        city:
+          type: string
+          maxLength: 100
+          minLength: 0
+        postalCode:
+          type: string
+          maxLength: 10
+          minLength: 0
+        latitude:
+          type: number
+          maximum: 90
+          minimum: -90
+        longitude:
+          type: number
+          maximum: 180
+          minimum: -180
+        onlineUrl:
+          type: string
+          maxLength: 1024
+          minLength: 0
+      required:
+      - type
+    OpportunityInput:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+          minLength: 3
+        description:
+          type: string
+          maxLength: 10000
+          minLength: 1
+        typeId:
+          type: string
+          format: uuid
+        artFieldIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 10
+          minItems: 1
+        deadline:
+          type: string
+          format: date-time
+        criteria:
+          type: string
+          maxLength: 5000
+          minLength: 0
+        prize:
+          type: string
+          maxLength: 2000
+          minLength: 0
+        location:
+          $ref: '#/components/schemas/LocationInput'
+        eventStart:
+          type: string
+          format: date-time
+        eventEnd:
+          type: string
+          format: date-time
+      required:
+      - artFieldIds
+      - deadline
+      - description
+      - location
+      - title
+      - typeId
+    CatalogRef:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+    LocationDto:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+          - PHYSICAL
+          - ONLINE
+        streetAddress:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        onlineUrl:
+          type: string
+    OpportunityDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          $ref: '#/components/schemas/CatalogRef'
+        artFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogRef'
+        deadline:
+          type: string
+          format: date-time
+        criteria:
+          type: string
+        prize:
+          type: string
+        location:
+          $ref: '#/components/schemas/LocationDto'
+        eventStart:
+          type: string
+          format: date-time
+        eventEnd:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - PREPARATION
+          - OPEN
+          - CLOSED
+          - SELECTION
+          - FINISHED
+        archived:
+          type: boolean
+        hiddenByAdmin:
+          type: boolean
+        organizer:
+          $ref: '#/components/schemas/OrganizerSummary'
+        publishedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        hasResults:
+          type: boolean
+        myApplicationId:
+          type: string
+          format: uuid
+    OrganizerSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        organizationName:
+          type: string
+    OrganizerProfileUpdateRequest:
+      type: object
+      properties:
+        organizationName:
+          type: string
+          maxLength: 200
+          minLength: 0
+    OrganizerProfileDto:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        organizationName:
+          type: string
+        organizerApproval:
+          type: string
+          enum:
+          - PENDING
+          - APPROVED
+    ArtistLinkRequest:
+      type: object
+      properties:
+        label:
+          type: string
+          maxLength: 60
+          minLength: 0
+        url:
+          type: string
+          maxLength: 1024
+          minLength: 0
+      required:
+      - url
+    ArtistProfileUpdateRequest:
+      type: object
+      properties:
+        biography:
+          type: string
+          maxLength: 5000
+          minLength: 0
+        artistStatement:
+          type: string
+          maxLength: 5000
+          minLength: 0
+        artFieldIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 10
+          minItems: 0
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtistLinkRequest'
+          maxItems: 10
+          minItems: 0
+      required:
+      - artFieldIds
+      - links
+    ArtistLink:
+      type: object
+      properties:
+        label:
+          type: string
+        url:
+          type: string
+    ArtistProfileDto:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+        biography:
+          type: string
+        artistStatement:
+          type: string
+        artFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogRef'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtistLink'
+    ArtworkRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+          minLength: 0
+        year:
+          type: integer
+          format: int32
+          minimum: 1900
+        technique:
+          type: string
+          maxLength: 200
+          minLength: 0
+        dimensions:
+          type: string
+          maxLength: 100
+          minLength: 0
+        description:
+          type: string
+          maxLength: 5000
+          minLength: 0
+        visibility:
+          type: string
+          enum:
+          - PUBLIC
+          - PRIVATE
+      required:
+      - technique
+      - title
+      - visibility
+      - year
+    ArtworkDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        artistId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        year:
+          type: integer
+          format: int32
+        technique:
+          type: string
+        dimensions:
+          type: string
+        description:
+          type: string
+        visibility:
+          type: string
+          enum:
+          - PUBLIC
+          - PRIVATE
+        hiddenByAdmin:
+          type: boolean
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtworkImageDto'
+        createdAt:
+          type: string
+          format: date-time
+    ArtworkImageDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        file:
+          $ref: '#/components/schemas/StoredFileDto'
+        altText:
+          type: string
+    StoredFileDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        originalName:
+          type: string
+        contentType:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+        url:
+          type: string
+    CatalogItemInput:
+      type: object
+      properties:
+        code:
+          type: string
+          maxLength: 40
+          minLength: 2
+          pattern: ^[a-z0-9-]+$
+        name:
+          type: string
+          maxLength: 80
+          minLength: 2
+        active:
+          type: boolean
+        position:
+          type: integer
+          format: int32
+          maximum: 999
+          minimum: 0
+      required:
+      - active
+      - code
+      - name
+      - position
+    CatalogItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        active:
+          type: boolean
+        position:
+          type: integer
+          format: int32
+    OpportunityStatusChange:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - OPEN
+          - CLOSED
+          - SELECTION
+      required:
+      - status
+    ChooseRoleRequest:
+      type: object
+      properties:
+        role:
+          type: string
+          minLength: 1
+          pattern: ARTIST|ORGANIZER
+      required:
+      - role
+    CurrentUserDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        email:
+          type: string
+        avatarUrl:
+          type: string
+        role:
+          type: string
+          enum:
+          - ARTIST
+          - ORGANIZER
+          - ADMIN
+        status:
+          type: string
+          enum:
+          - INVITED
+          - ONBOARDING
+          - ACTIVE
+          - BLOCKED
+          - DELETED
+        organizerApproval:
+          type: string
+          enum:
+          - PENDING
+          - APPROVED
+    DevLoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          minLength: 0
+      required:
+      - email
+    UploadLimits:
+      type: object
+      properties:
+        artworkMaxImageBytes:
+          type: integer
+          format: int64
+        artworkMaxImages:
+          type: integer
+          format: int32
+        applicationMaxImageBytes:
+          type: integer
+          format: int64
+        applicationMaxPdfBytes:
+          type: integer
+          format: int64
+        applicationMaxFiles:
+          type: integer
+          format: int32
+    PageRequestParams:
+      type: object
+      properties:
+        page:
+          type: integer
+          format: int32
+          minimum: 1
+        pageSize:
+          type: integer
+          format: int32
+          maximum: 100
+          minimum: 1
+    PageMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32
+        total:
+          type: integer
+          format: int64
+    PageResponseCatalogItem:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogItem'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+    OpportunitySearchParams:
+      type: object
+      properties:
+        page:
+          type: integer
+          format: int32
+          minimum: 1
+        pageSize:
+          type: integer
+          format: int32
+          maximum: 100
+          minimum: 1
+        q:
+          type: string
+          maxLength: 100
+          minLength: 0
+        artFieldIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        typeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        city:
+          type: string
+          maxLength: 100
+          minLength: 0
+        locationType:
+          type: string
+          enum:
+          - PHYSICAL
+          - ONLINE
+        statuses:
+          type: array
+          items:
+            type: string
+            enum:
+            - PREPARATION
+            - OPEN
+            - CLOSED
+            - SELECTION
+            - FINISHED
+          uniqueItems: true
+        deadlineFrom:
+          type: string
+          format: date
+        deadlineTo:
+          type: string
+          format: date
+        sort:
+          type: string
+    OpportunitySummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        type:
+          $ref: '#/components/schemas/CatalogRef'
+        artFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogRef'
+        deadline:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - PREPARATION
+          - OPEN
+          - CLOSED
+          - SELECTION
+          - FINISHED
+        locationType:
+          type: string
+          enum:
+          - PHYSICAL
+          - ONLINE
+        city:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        eventStart:
+          type: string
+          format: date-time
+        organizer:
+          $ref: '#/components/schemas/OrganizerSummary'
+    PageResponseOpportunitySummary:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OpportunitySummary'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+    OrganizerOpportunityQueryParams:
+      type: object
+      properties:
+        page:
+          type: integer
+          format: int32
+          minimum: 1
+        pageSize:
+          type: integer
+          format: int32
+          maximum: 100
+          minimum: 1
+        status:
+          type: string
+          enum:
+          - PREPARATION
+          - OPEN
+          - CLOSED
+          - SELECTION
+          - FINISHED
+        archived:
+          type: boolean
+    ApplicationCounts:
+      type: object
+      properties:
+        total:
+          type: integer
+          format: int64
+        submitted:
+          type: integer
+          format: int64
+        underReview:
+          type: integer
+          format: int64
+        needsInfo:
+          type: integer
+          format: int64
+        accepted:
+          type: integer
+          format: int64
+        rejected:
+          type: integer
+          format: int64
+    OrganizerOpportunity:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        type:
+          $ref: '#/components/schemas/CatalogRef'
+        artFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogRef'
+        deadline:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - PREPARATION
+          - OPEN
+          - CLOSED
+          - SELECTION
+          - FINISHED
+        locationType:
+          type: string
+          enum:
+          - PHYSICAL
+          - ONLINE
+        city:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        eventStart:
+          type: string
+          format: date-time
+        organizer:
+          $ref: '#/components/schemas/OrganizerSummary'
+        archived:
+          type: boolean
+        hiddenByAdmin:
+          type: boolean
+        applicationCounts:
+          $ref: '#/components/schemas/ApplicationCounts'
+    PageResponseOrganizerOpportunity:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizerOpportunity'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+    GeocodeResult:
+      type: object
+      properties:
+        displayName:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        city:
+          type: string
+        postalCode:
+          type: string
+    GeocodingResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/GeocodeResult'
+    CsrfToken:
+      type: object
+      properties:
+        parameterName:
+          type: string
+        token:
+          type: string
+        headerName:
+          type: string
+    CsrfResponse:
+      type: object
+      properties:
+        headerName:
+          type: string
+        token:
+          type: string
+    ArtistPublicProfileDto:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+        biography:
+          type: string
+        artistStatement:
+          type: string
+        artFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogRef'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtistLink'
+        pastExhibitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PastExhibitionDto'
+        participations:
+          type: array
+          items: {}
+    PageResponseArtworkDto:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtworkDto'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+    AdminUserQueryParams:
+      type: object
+      properties:
+        page:
+          type: integer
+          format: int32
+          minimum: 1
+        pageSize:
+          type: integer
+          format: int32
+          maximum: 100
+          minimum: 1
+        q:
+          type: string
+          maxLength: 100
+          minLength: 0
+        role:
+          type: string
+          enum:
+          - ARTIST
+          - ORGANIZER
+          - ADMIN
+        status:
+          type: string
+          enum:
+          - INVITED
+          - ONBOARDING
+          - ACTIVE
+          - BLOCKED
+          - DELETED
+        organizerApproval:
+          type: string
+          enum:
+          - PENDING
+          - APPROVED
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum:
+          - ARTIST
+          - ORGANIZER
+          - ADMIN
+        status:
+          type: string
+          enum:
+          - INVITED
+          - ONBOARDING
+          - ACTIVE
+          - BLOCKED
+          - DELETED
+        organizerApproval:
+          type: string
+          enum:
+          - PENDING
+          - APPROVED
+        organizationName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        lastLoginAt:
+          type: string
+          format: date-time
+    PageResponseAdminUser:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUser'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
