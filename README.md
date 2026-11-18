@@ -3,7 +3,7 @@
 [![CI](https://github.com/LD05-fk/Projekt-PROGI/actions/workflows/ci.yml/badge.svg)](https://github.com/LD05-fk/Projekt-PROGI/actions/workflows/ci.yml)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=LD05-fk_Projekt-PROGI&metric=coverage)](https://sonarcloud.io/summary/new_code?id=LD05-fk_Projekt-PROGI)
 
-Projekt iz kolegija Programsko inženjerstvo (FER, 2026./2027.): web aplikacija u kojoj mladi umjetnici vode portfolio i prijavljuju se na prilike (natječaje, izložbe, radionice) koje objavljuju organizatori.
+Projekt iz kolegija [Programsko inženjerstvo](https://www.fer.unizg.hr/predmet/proinz) (FER, 2026./2027.): web aplikacija u kojoj mladi umjetnici vode portfolio i prijavljuju se na prilike (natječaje, izložbe, radionice) koje objavljuju organizatori.
 
 - **Zadaci:** [Issues](https://github.com/LD05-fk/Projekt-PROGI/issues), faze kao [Milestones](https://github.com/LD05-fk/Projekt-PROGI/milestones)
 - **Ploča:** [ArtConnect - razvoj](https://github.com/users/LD05-fk/projects/1); pogled „Za preuzimanje” prikazuje slobodne zadatke redom rada
@@ -13,16 +13,25 @@ Projekt iz kolegija Programsko inženjerstvo (FER, 2026./2027.): web aplikacija 
 
 ArtConnect povezuje mlade umjetnike i organizatore: umjetnici vode javni portfolio i prijavljuju se na prilike, a organizatori objavljuju natječaje, izložbe i radionice te biraju prijave. Aplikacija je u razvoju u dva ciklusa (predaje 20. 11. 2026. i 22. 1. 2027.).
 
-**Planirane ključne funkcionalnosti**
+**Trenutno dostupno (1. ciklus)**
 
-- Prijava Googleom i odabir uloge (umjetnik, organizator; administrator je unaprijed određen).
-- Portfolio umjetnika: profil, djela sa slikama i javna stranica koju umjetnik dijeli poveznicom.
-- Prilike: objava s lokacijom na karti (OpenStreetMap), javno pretraživanje i filtri.
-- Prijave na prilike, pregled prijava, status i objava rezultata (2. ciklus).
+- Prijava Googleom i odabir uloge (umjetnik ili organizator; administrator je unaprijed određen).
+- Portfolio umjetnika: profil, prethodne izložbe, djela sa slikama i vidljivošću te javna stranica koju umjetnik dijeli poveznicom.
+- Profil organizatora s nazivom organizacije.
+- Prilike: objava i uređivanje s lokacijom na karti (OpenStreetMap), promjena statusa, arhiviranje i brisanje.
+- Javni popis prilika s pretragom, filtrima i prikazom na karti.
+
+**Planirano (2. ciklus)**
+
+- Prijave na prilike prema uvjetima organizatora, pregled prijava i odluke.
+- Objava rezultata i dodavanje događanja u Google kalendar.
+- Statistika za organizatora, mjesečni izvještaj i administracija platforme.
+- Brisanje vlastitog računa.
 
 Za potpuni opseg, zahtjeve, oblikovanje i ispitivanje pogledajte [docs](docs/Home.md).
 
-## Server
+<a id="deployment"></a>
+## Postavljanje
 
 **<https://artconnect-fer.duckdns.org>**
 
@@ -34,12 +43,13 @@ Poslužitelj (AWS EC2) nije stalno upaljen, da se štede AWS krediti. Pali ga i 
 
 Kad vam više ne treba, ugasite ga (`stop`). Svaku noć u 1:00 UTC poslužitelj se ionako sam ugasi; u razdobljima ocjenjivanja to je isključeno (varijabla repozitorija `ALWAYS_ON=true`). Detalji postavljanja: [poglavlje 6](docs/6-Postavljanje-instalacija-i-konfiguracija.md#63-javno-postavljanje-i-administracija).
 
-**Isprobajte:** nakon paljenja otvorite adresu iznad; stanje poslužitelja pokazuje `/actuator/health`.
+**Isprobajte:** otvorite „Prilike”, suzite popis filtrima i prebacite prikaz na kartu. Zatim se prijavite Googleom kao umjetnik i dodajte djelo u portfolio. Stanje poslužitelja pokazuje `/actuator/health`.
 
-**Demonstracija:** za pregled javnih stranica korisnički račun nije potreban. Prijava Googleom još nije dostupna u javnoj inačici.
+**Demonstracija:** za pregled javnih stranica korisnički račun nije potreban. Prijava radi s bilo kojim Google računom.
 
-**Ograničenja:** poslužitelj nije stalno upaljen (štednja AWS kredita), a javno su dostupne samo već dovršene funkcionalnosti. Poznata ograničenja vode se u [poglavlju 6](docs/6-Postavljanje-instalacija-i-konfiguracija.md).
+**Ograničenja:** poslužitelj nije stalno upaljen (štednja AWS kredita), a javno su dostupne samo već dovršene funkcionalnosti.
 
+<a id="quick-start"></a>
 ## Brzi početak
 
 **Preduvjeti:** Docker s Docker Composeom, JDK 25, Node.js (LTS) i npm.
@@ -52,11 +62,7 @@ cd backend && ./mvnw spring-boot:run       # backend na :8080 (drugi terminal)
 cd frontend && npm install && npm run dev  # frontend na :5173 (treći terminal)
 ```
 
-**Adresa:** `http://localhost:5173`. **Konfiguracija:** zadane vrijednosti rade bez `.env`; ako ih želite promijeniti, kopirajte `.env.example` u `.env` (ne stavljajte stvarne tajne u repozitorij). Detalji: [HOW_TO_RUN.md](HOW_TO_RUN.md).
-
-## Kako pokrenuti
-
-Upute za lokalno pokretanje i deploy na EC2: [HOW_TO_RUN.md](HOW_TO_RUN.md). Rad s bazom i Liquibaseom: [db/README.md](db/README.md).
+**Adresa:** `http://localhost:5173`; backend radi ako `http://localhost:8080/actuator/health` vraća `UP`. **Konfiguracija:** zadane vrijednosti rade bez `.env`; ako ih želite promijeniti, kopirajte `.env.example` u `.env` (ne stavljajte stvarne tajne u repozitorij). Detaljne upute (i Google prijava lokalno): [HOW_TO_RUN.md](HOW_TO_RUN.md). Rad s bazom i Liquibaseom: [db/README.md](db/README.md).
 
 ## Tehnologije
 
@@ -83,7 +89,7 @@ Upute za lokalno pokretanje i deploy na EC2: [HOW_TO_RUN.md](HOW_TO_RUN.md). Rad
 
 Workflow [Osvježi Ready](.github/workflows/refresh-ready.yml) nakon zatvaranja ili ponovnog otvaranja issuea prebacuje zadatke iz Backlog u Ready kad su zatvoreni svi zadaci iz njihovog retka „Ovisi o” (i obrnuto). Treba tajnu repozitorija `PROJECT_TOKEN`: classic token s pravom `project`.
 
-Workflow [Server](.github/workflows/server.yml) pali i gasi produkcijski poslužitelj (vidi [Server](#server)). Treba tajne `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (IAM korisnik koji smije samo paliti i gasiti ovu instancu) i `EC2_INSTANCE_ID`.
+Workflow [Server](.github/workflows/server.yml) pali i gasi produkcijski poslužitelj (vidi [Postavljanje](#deployment)). Treba tajne `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (IAM korisnik koji smije samo paliti i gasiti ovu instancu) i `EC2_INSTANCE_ID`.
 
 ## Članovi tima
 
@@ -109,11 +115,24 @@ Workflow [Server](.github/workflows/server.yml) pali i gasi produkcijski posluž
 - **Tajne** (`.env`, ključevi, tokeni) nikad ne idu u repozitorij.
 
 <a id="ai-usage"></a>
-## Uporaba umjetne inteligencije
+## Uporaba umjetne inteligencije [![AI Usage: Disclosed](https://img.shields.io/badge/AI%20Usage-Disclosed-blue.svg)](https://www.fer.unizg.hr/_download/repository/Policy%20on%20the%20appropriate%20use%20of%20artificial%20intelligence%20at%20the%20faculty%20of%20electrical%20engineering%20and%20computing%5B1%5D.pdf)
 
 Projekt slijedi FER-ova [pravila o primjerenoj uporabi umjetne inteligencije](https://www.fer.unizg.hr/_download/repository/Policy%20on%20the%20appropriate%20use%20of%20artificial%20intelligence%20at%20the%20faculty%20of%20electrical%20engineering%20and%20computing%5B1%5D.pdf).
 
 **Izjava:** Tim nema prethodnog iskustva u vođenju projekta ovog opsega, pa je voditelj tima koristio Claude Code (Anthropic) kao pomoć u organizaciji i infrastrukturi: za razradu zahtjeva iz projektnog zadatka u epike, funkcionalnosti i zadatke (GitHub Issues) te za pripremu CI/CD pipelinea (GitHub Actions, Docker, isporuka na AWS EC2) i pripadne dokumentacije. Opseg, prioritete i odluke donio je tim; generirani zadaci, konfiguracija i tekst pregledani su i ispravljeni prije objave, a infrastruktura je provjerena u radu (CI, isporuka, javna adresa). U alate nisu uneseni pristupni podaci ni osobni podaci. Detaljan zapis: [Home – Izjava o uporabi umjetne inteligencije](docs/Home.md#izjava-o-uporabi-umjetne-inteligencije).
+
+<a id="code-of-conduct-and-support"></a>
+## Kodeks ponašanja i podrška [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
+
+Od studenata se očekuje pridržavanje minimalnih standarda prihvatljivog ponašanja definiranih [Kodeksom ponašanja studenata Fakulteta elektrotehnike i računarstva Sveučilišta u Zagrebu](https://www.fer.hr/_download/repository/Kodeks_ponasanja_studenata_FER-a_procisceni_tekst_2016%5B1%5D.pdf). Također se očekuje pridržavanje [Etičkog kodeksa IEEE-a](https://www.ieee.org/about/corporate/governance/p7-8.html), koji postavlja visoke standarde integriteta, odgovornog i etičnog profesionalnog ponašanja. Repozitorij koristi i [Kodeks ponašanja](CODE_OF_CONDUCT.md) (Contributor Covenant 2.1).
+
+**Očekivanja od tima:**
+
+- jasno definirati kako će se rad raspodijeliti među članovima tima i kako će tim komunicirati;
+- primjenjivati dogovorena pravila i standarde pri rješavanju nesuglasica;
+- svi članovi tima dužni su pridržavati se kodeksa ponašanja.
+
+Probleme u timu najbolje je prvo riješiti izravnim razgovorom; ako to ne uspije, javite se voditelju tima ili asistentici.
 
 ## Licenca i predložak
 
