@@ -1,234 +1,151 @@
 @startuml
-' ER dijagram postojećih tablica (changesetovi 001-009).
-' Dopunjuje se kako epici dodaju svoje tablice.
+' ER dijagram tablica 1. ciklusa (Liquibase changesetovi 001-009 i 021).
+' Prikazani su ključevi i najvažniji stupci; svi stupci su u changelogovima.
 hide circle
 hide methods
-skinparam linetype ortho
+skinparam linetype polyline
 
-package "Šifrarnici (modul catalog)" {
-  entity "art_fields" as art_fields {
-    * id : uuid <<PK>>
-    --
-    * code : varchar(40) <<UNIQUE>>
-    * name : varchar(80) <<UNIQUE>>
-    * active : boolean = true
-    * position : smallint = 0
-  }
-
-  entity "opportunity_types" as opportunity_types {
-    * id : uuid <<PK>>
-    --
-    * code : varchar(40) <<UNIQUE>>
-    * name : varchar(80) <<UNIQUE>>
-    * active : boolean = true
-    * position : smallint = 0
-  }
+entity "users" as users {
+  * id : uuid <<PK>>
+  --
+  email
+  display_name
+  role : ARTIST | ORGANIZER | ADMIN
+  status : INVITED | ONBOARDING | ACTIVE | BLOCKED | DELETED
+  organizer_approval : PENDING | APPROVED
 }
 
-package "Korisnici (modul auth)" {
-  entity "users" as users {
-    * id : uuid <<PK>>
-    --
-    google_sub : varchar(255) <<UNIQUE>>
-    email : varchar(254) <<UNIQUE lower(email)>>
-    * display_name : varchar(120)
-    avatar_url : varchar(1024)
-    role : varchar(32) <<ARTIST|ORGANIZER|ADMIN>>
-    * status : varchar(32) = 'ONBOARDING'
-    organizer_approval : varchar(32) <<PENDING|APPROVED>>
-    blocked_at : timestamptz
-    deleted_at : timestamptz
-    last_login_at : timestamptz
-    * created_at : timestamptz = now()
-    * updated_at : timestamptz = now()
-  }
-
-  entity "organizer_profiles" as organizer_profiles {
-    * user_id : uuid <<PK>> <<FK>>
-    --
-    organization_name : varchar(200)
-    * updated_at : timestamptz = now()
-  }
+entity "organizer_profiles" as organizer_profiles {
+  * user_id : uuid <<PK, FK>>
+  --
+  organization_name
 }
 
-users ||--o| organizer_profiles : "ON DELETE CASCADE"
-
-note bottom of users
-  organizer_approval je popunjen samo kad je role = 'ORGANIZER'.
-end note
-
-package "Datoteke (modul file)" {
-  entity "stored_files" as stored_files {
-    * id : uuid <<PK>>
-    --
-    * owner_id : uuid <<FK>>
-    * purpose : varchar(32) <<ARTWORK_IMAGE|APPLICATION_ATTACHMENT>>
-    * original_name : varchar(255)
-    * content_type : varchar(100) <<image/jpeg|image/png|application/pdf>>
-    * size_bytes : bigint <<> 0>>
-    * storage_key : varchar(255) <<UNIQUE>>
-    * created_at : timestamptz = now()
-  }
+entity "artist_profiles" as artist_profiles {
+  * user_id : uuid <<PK, FK>>
+  --
+  biography
+  artist_statement
 }
 
-package "Portfelj (modul artwork)" {
-  entity "artworks" as artworks {
-    * id : uuid <<PK>>
-    --
-    * artist_id : uuid <<FK>>
-    * title : varchar(200)
-    * year : smallint <<>= 1900>>
-    * technique : varchar(200)
-    dimensions : varchar(100)
-    description : text <<max 5000 znakova>>
-    * visibility : varchar(16) = PRIVATE <<PUBLIC|PRIVATE>>
-    * hidden_by_admin : boolean = false
-    hidden_at : timestamptz
-    * created_at : timestamptz = now()
-    * updated_at : timestamptz = now()
-  }
+entity "artist_links" as artist_links {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid <<FK>>
+  label
+  url
+}
 
-  entity "artwork_images" as artwork_images {
-    * id : uuid <<PK>>
-    --
-    * artwork_id : uuid <<FK>>
-    * file_id : uuid <<FK>> <<UNIQUE>>
-    alt_text : varchar(300) = naslov djela
-    * position : smallint = 0
-  }
+entity "past_exhibitions" as past_exhibitions {
+  * id : uuid <<PK>>
+  --
+  * artist_id : uuid <<FK>>
+  title
+  year
+  place
+}
+
+entity "artist_profile_art_fields" as artist_profile_art_fields {
+  * user_id : uuid <<PK, FK>>
+  * art_field_id : uuid <<PK, FK>>
+}
+
+entity "artworks" as artworks {
+  * id : uuid <<PK>>
+  --
+  * artist_id : uuid <<FK>>
+  title
+  year
+  visibility : PUBLIC | PRIVATE
+  hidden_by_admin
+}
+
+entity "artwork_images" as artwork_images {
+  * id : uuid <<PK>>
+  --
+  * artwork_id : uuid <<FK>>
+  * file_id : uuid <<FK>>
+  alt_text
+  position
+}
+
+entity "stored_files" as stored_files {
+  * id : uuid <<PK>>
+  --
+  * owner_id : uuid <<FK>>
+  content_type
+  size_bytes
+  storage_key
+}
+
+entity "opportunities" as opportunities {
+  * id : uuid <<PK>>
+  --
+  * organizer_id : uuid <<FK>>
+  * type_id : uuid <<FK>>
+  title
+  deadline
+  location_type : PHYSICAL | ONLINE
+  city, latitude, longitude
+  status : PREPARATION ... FINISHED
+  archived
+  hidden_by_admin
+}
+
+entity "opportunity_art_fields" as opportunity_art_fields {
+  * opportunity_id : uuid <<PK, FK>>
+  * art_field_id : uuid <<PK, FK>>
+}
+
+entity "art_fields" as art_fields {
+  * id : uuid <<PK>>
+  --
+  code
+  name
+  active
+}
+
+entity "opportunity_types" as opportunity_types {
+  * id : uuid <<PK>>
+  --
+  code
+  name
+  active
 }
 
 entity "system_settings" as system_settings {
-  * key : varchar(64) <<PK>>
+  * key <<PK>>
   --
-  * value : varchar(255)
-  * updated_at : timestamptz = now()
-  updated_by : uuid
+  value
+  updated_by : uuid <<FK>>
 }
 
-package "Spring Session JDBC (infrastruktura)" {
-  entity "spring_session" as spring_session {
-    * primary_id : char(36) <<PK>>
-    --
-    * session_id : char(36) <<UNIQUE>>
-    * creation_time : bigint
-    * last_access_time : bigint
-    * max_inactive_interval : int
-    * expiry_time : bigint
-    principal_name : varchar(100)
-  }
-
-  entity "spring_session_attributes" as spring_session_attributes {
-    * session_primary_id : char(36) <<PK>> <<FK>>
-    * attribute_name : varchar(200) <<PK>>
-    --
-    * attribute_bytes : bytea
-  }
+entity "spring_session" as spring_session {
+  * primary_id <<PK>>
+  --
+  principal_name = users.id
+  expiry_time
 }
 
-package "Profil umjetnika (modul artist)" {
-  entity "artist_profiles" as artist_profiles {
-    * user_id : uuid <<PK>> <<FK>>
-    --
-    biography : text
-    artist_statement : text
-    * updated_at : timestamptz = now()
-  }
-
-  entity "artist_profile_art_fields" as artist_profile_art_fields {
-    * user_id : uuid <<PK>> <<FK>>
-    * art_field_id : uuid <<PK>> <<FK>>
-  }
-
-  entity "artist_links" as artist_links {
-    * id : uuid <<PK>>
-    --
-    * user_id : uuid <<FK>>
-    label : varchar(60)
-    * url : varchar(1024) <<http(s)://>>
-    * position : smallint = 0
-  }
-
-  entity "past_exhibitions" as past_exhibitions {
-    * id : uuid <<PK>>
-    --
-    * artist_id : uuid <<FK>>
-    * title : varchar(200)
-    * year : smallint <<1900 ili kasnije>>
-    * place : varchar(200)
-    * created_at : timestamptz = now()
-  }
+entity "spring_session_attributes" as spring_session_attributes {
+  * session_primary_id <<PK, FK>>
+  * attribute_name <<PK>>
 }
 
-package "Prilike (modul opportunity)" {
-  entity "opportunities" as opportunities {
-    * id : uuid <<PK>>
-    --
-    * organizer_id : uuid <<FK>>
-    * type_id : uuid <<FK>>
-    * title : varchar(200)
-    * description : text
-    * deadline : timestamptz
-    criteria : text
-    prize : text
-    * location_type : varchar(16)
-    street_address : varchar(200)
-    city : varchar(100)
-    postal_code : varchar(10)
-    latitude : numeric(9,6)
-    longitude : numeric(9,6)
-    online_url : varchar(1024)
-    event_start : timestamptz
-    event_end : timestamptz
-    * status : varchar(16) = PREPARATION
-    * archived : boolean = false
-    * hidden_by_admin : boolean = false
-    hidden_at : timestamptz
-    published_at : timestamptz
-    * created_at : timestamptz = now()
-    * updated_at : timestamptz = now()
-  }
-
-  entity "opportunity_art_fields" as opportunity_art_fields {
-    * opportunity_id : uuid <<PK>> <<FK>>
-    * art_field_id : uuid <<PK>> <<FK>>
-  }
-}
-
-users ||--o| artist_profiles : "ON DELETE CASCADE"
-artist_profiles ||--o{ artist_profile_art_fields : "ON DELETE CASCADE"
-art_fields ||--o{ artist_profile_art_fields : art_field_id
-artist_profiles ||--o{ artist_links : "ON DELETE CASCADE"
-artist_profiles ||--o{ past_exhibitions : "artist_id (ON DELETE CASCADE)"
-opportunity_types ||--o{ opportunities : type_id
-opportunities ||--o{ opportunity_art_fields : "ON DELETE CASCADE"
-art_fields ||--o{ opportunity_art_fields : art_field_id
-spring_session ||--o{ spring_session_attributes : "ON DELETE CASCADE"
-
-users ||--o{ system_settings : "updated_by (ON DELETE SET NULL)"
-users ||--o{ opportunities : "organizer_id (NO ACTION)"
-users ||--o{ stored_files : "owner_id (ON DELETE CASCADE)"
-users ||--o{ artworks : "artist_id (ON DELETE CASCADE)"
-artworks ||--o{ artwork_images : "ON DELETE CASCADE"
-stored_files ||--o| artwork_images : "file_id (ON DELETE CASCADE)"
-
-note bottom of stored_files
-  ix_stored_files_owner (owner_id); storage_key je relativan ključ na /data/uploads.
-  Brisanje fizičke datoteke provodi servis, ne baza.
-end note
-
-note bottom of artworks
-  ix_artworks_artist_visibility (artist_id, visibility)
-    WHERE hidden_by_admin = false
-  ix_artworks_artist_created (artist_id, created_at DESC)
-end note
-
-note bottom of artwork_images
-  ix_artwork_images_artwork (artwork_id, position).
-  Najviše 3 slike po djelu ograničava aplikacija.
-end note
-
-note bottom of system_settings
-  Ograničenja uploada koja administrator mijenja bez deploya.
-end note
+users ||--o| organizer_profiles
+users ||--o| artist_profiles
+artist_profiles ||--o{ artist_links
+artist_profiles ||--o{ past_exhibitions
+artist_profiles ||--o{ artist_profile_art_fields
+art_fields ||--o{ artist_profile_art_fields
+users ||--o{ artworks
+artworks ||--o{ artwork_images
+stored_files ||--o| artwork_images
+users ||--o{ stored_files
+users ||--o{ opportunities
+opportunity_types ||--o{ opportunities
+opportunities ||--o{ opportunity_art_fields
+art_fields ||--o{ opportunity_art_fields
+users |o--o{ system_settings
+spring_session ||--o{ spring_session_attributes
 @enduml

@@ -7,15 +7,29 @@ skinparam packageStyle rectangle
 
 package "Web" {
     class OpportunityController {
+        +get(opportunityId): OpportunityDto
+        +search(params): PageResponse
         +create(input): OpportunityDto
         +update(opportunityId, input): OpportunityDto
+        +changeStatus(opportunityId, input): OpportunityDto
+        +archive(opportunityId): OpportunityDto
+        +delete(opportunityId): void
     }
 }
 
 package "Servis" {
     class OpportunityService {
+        +get(opportunityId): OpportunityDto
+        +search(params): PageResponse
         +create(input): OpportunityDto
         +update(opportunityId, input): OpportunityDto
+        +changeStatus(opportunityId, input): OpportunityDto
+        +archive(opportunityId): OpportunityDto
+        +delete(opportunityId): void
+    }
+
+    class OpportunityVisibilityPolicy {
+        +canView(opportunity, viewer): boolean
     }
 
     class OpportunityMapper {
@@ -37,6 +51,12 @@ package "Domena prilike" {
         -archived: boolean
         +create(...): Opportunity
         +update(...): void
+        +changeStatus(status, now): void
+        +archive(now): void
+    }
+
+    class OpportunityStatusMachine {
+        +validate(current, target, archived, deadline, now, organizerApproved): void
     }
 
     class Location <<value object>> {
@@ -87,6 +107,8 @@ OpportunityService --> OpportunityMapper : oblikuje odgovor
 OpportunityService ..> Opportunity : stvara / ažurira
 OpportunityRepository ..> Opportunity : pohranjuje
 OpportunityMapper ..> Opportunity : čita
+OpportunityService --> OpportunityVisibilityPolicy : provjerava vidljivost
+Opportunity ..> OpportunityStatusMachine : provjerava prijelaz
 
 User "1" <-- "0..*" Opportunity : organizator
 OpportunityType "1" <-- "0..*" Opportunity : vrsta
