@@ -1,9 +1,18 @@
 @startuml
-title ArtConnect: obrasci uporabe
-top to bottom direction
+' Dijagram obrazaca uporabe sustava ArtConnect (§3.1).
+' Akteri su lijevo, vanjski sustavi i Planer desno; svaki obrazac (UC-01 … UC-12)
+' pojavljuje se jednom, a njegova specifikacija je u §3.2.
+'
+' Napomena o slici: veza UC-06 <<extend>> UC-05 ovdje prolazi kroz nevidljivu
+' točku "Pregib" kako bi PlantUML vezu nacrtao s desne strane obrazaca. PlantUML
+' tu točku smješta visoko, pa je u generiranom SVG-u
+' (docs/assets/diagrams/3-1-artconnect-system-UC.svg) put te jedne veze ručno
+' zamijenjen kratkim lukom između desnih rubova UC-06 i UC-05, a natpis je
+' premješten uz luk. Značenje veze je isto. Nakon ponovnog generiranja SVG-a
+' iz ove datoteke luk treba ponovno urediti ili prihvatiti put koji nacrta PlantUML.
+left to right direction
 skinparam shadowing false
 skinparam defaultFontName Arial
-
 skinparam actor {
     BackgroundColor #F8F9FA
     BorderColor #212529
@@ -12,63 +21,83 @@ skinparam actor {
     BackgroundColor<<vremenski okidač>> #E2E3E5
     BorderColor<<vremenski okidač>> #6C757D
 }
-
-skinparam rectangle {
+skinparam usecase {
     BackgroundColor #E7F1FF
     BorderColor #0D6EFD
-    FontSize 13
+    ArrowColor #212529
 }
-
-together {
-  actor "Posjetitelj" as Posjetitelj
-  actor "Umjetnik" as Umjetnik
-  actor "Organizator" as Organizator
-  actor "Administrator" as Administrator
-}
-
+' Ljudski akteri (lijevo)
+actor "Posjetitelj\n(neprijavljen)" as Posjetitelj
 actor "Prijavljeni korisnik" as Prijavljeni
+actor "Umjetnik" as Umjetnik
+actor "Organizator" as Organizator
+actor "Administrator" as Administrator
 
-Umjetnik --|> Prijavljeni
-Organizator --|> Prijavljeni
-Administrator --|> Prijavljeni
-
-together {
-  actor "Google OAuth 2.0" as GoogleOAuth <<vanjski sustav>>
-  actor "Google Calendar" as GoogleCalendar <<vanjski sustav>>
-  actor "OpenStreetMap / Nominatim" as OSM <<vanjski sustav>>
-  actor "Planer" as Planer <<vremenski okidač>>
-}
+' Vanjski sustavi (desno)
+actor "Google OAuth 2.0" as Google <<vanjski sustav>>
+actor "OpenStreetMap /\nNominatim" as OSM <<vanjski sustav>>
+actor "Google Calendar" as Calendar <<vanjski sustav>>
+actor "Planer" as Planer <<vremenski okidač>>
 
 rectangle "ArtConnect" {
-  rectangle "**Računi i portfolio**\nUC-01 Prijaviti se i upravljati računom\nUC-02 Urediti profil i portfolio\nUC-03 Pregledati javne profile i portfolije" as Racuni
-  rectangle "**Prilike**\nUC-04 Upravljati prilikama\nUC-05 Pregledati prilike" as Prilike
-  rectangle "**Prijave i rezultati**\nUC-06 Postaviti uvjete i prijaviti se na priliku\nUC-07 Odlučivati o prijavama\nUC-08 Objaviti rezultate i dodati u kalendar" as Prijave
-  rectangle "**Izvještaji i administracija**\nUC-09 Pregledati statistiku i izvještaje\nUC-10 Upravljati platformom" as Izvjestaji
-  rectangle "**Opcionalno**\nUC-11 Pregledati obavijesti\nUC-12 Pregledati dnevnik administratorskih radnji" as Opcionalno #line.dashed
+    usecase "UC-01\nPrijaviti se i\nupravljati računom" as UC01
+    usecase "UC-03\nPregledati javne\nprofile i portfolije" as UC03
+    usecase "UC-05\nPregledati prilike" as UC05
+    usecase "UC-11\nPregledati obavijesti\n(opcionalno)" as UC11 #line.dashed
+    usecase "UC-02\nUrediti profil\ni portfolio" as UC02
+    usecase "UC-06\nPostaviti uvjete i\nprijaviti se na priliku" as UC06
+    usecase "UC-07\nOdlučivati o prijavama" as UC07
+    usecase "UC-08\nObjaviti rezultate i\ndodati u kalendar" as UC08
+    usecase "UC-04\nUpravljati prilikama" as UC04
+    usecase "UC-09\nPregledati statistiku\ni izvještaje" as UC09
+    usecase "UC-10\nUpravljati platformom" as UC10
+    ' Nevidljiva točka, služi samo za raspored (vidi napomenu na vrhu)
+    usecase " " as Pregib #transparent;line:transparent
+    usecase "UC-12\nPregledati dnevnik\nadministratorskih radnji\n(opcionalno)" as UC12 #line.dashed
 }
 
-Posjetitelj -- Racuni
-Posjetitelj -- Prilike
+' Generalizacija (isti stupac)
+Umjetnik -|> Prijavljeni
+Organizator -|> Prijavljeni
+Administrator -|> Prijavljeni
 
-Prijavljeni -- Racuni
-Prijavljeni -- Opcionalno
+' Akteri i obrasci
+Posjetitelj -- UC01
+Posjetitelj -- UC03
+Posjetitelj -- UC05
+Prijavljeni -- UC01
+Prijavljeni -- UC11
+Umjetnik -- UC02
+Umjetnik -- UC05
+Umjetnik -- UC06
+Umjetnik -- UC07
+Umjetnik -- UC08
+Organizator -- UC02
+Organizator -- UC04
+Organizator -- UC06
+Organizator -- UC07
+Organizator -- UC08
+Organizator -- UC09
+Administrator -- UC09
+Administrator -- UC10
 
-Umjetnik -- Racuni
-Umjetnik -- Prijave
-Umjetnik -- Prilike
+' Veze između obrazaca
+UC06 .. Pregib : <<extend>>\n[umjetnik se prijavljuje\nna otvorenu priliku]
+UC05 <.. Pregib
+UC10 <.. UC12 : <<extend>>
 
-Organizator -- Racuni
-Organizator -- Prilike
-Organizator -- Prijave
-Organizator -- Izvjestaji
+' Vanjski sustavi
+UC01 -- Google
+UC05 -- OSM
+UC04 -- OSM
+UC08 -- Calendar
+UC04 -- Planer
+UC09 -- Planer
 
-Administrator -- Izvjestaji
-Administrator -- Opcionalno
-
-Racuni -- GoogleOAuth
-Prijave -- GoogleCalendar
-Prilike -- OSM
-Prilike -- Planer
-Izvjestaji -- Planer
-
+' Samo za raspored: vanjski sustavi skroz desno
+UC01 -[hidden]--- Google
+UC05 -[hidden]--- OSM
+UC08 -[hidden]--- Calendar
+UC09 -[hidden]--- Planer
+Pregib -[hidden]- UC12
 @enduml
