@@ -9,8 +9,6 @@
 
 ArtConnect je web aplikacija u kojoj mladi umjetnici vode portfolio i prijavljuju se na prilike (natječaje, izložbe, radionice) koje objavljuju organizatori.
 
-**API dokumentacija:** [docs/api](api/README.md) (zajednička pravila i rute po domenama).
-
 ## Članovi tima i uloge
 
 | Ime i prezime        | GitHub korisničko ime | Glavne uloge      | Sporedne uloge        |
@@ -72,7 +70,7 @@ AI su koristili svi članovi tima, na različite načine: voditelj tima za razra
 | Claude Code (Anthropic) | Claude Opus | Luka Dakić | Razrada zadataka iz projektnog zadatka, priprema CI/CD-a i poslužitelja te nezavisna provjera pull requestova uz pregled člana tima |
 | GitHub Copilot (u IDE-u) | GPT-5.6 Luna, kasnije GPT-6 Luna | Vedran Novaković | Planiranje manjih koraka implementacije i strukture datoteka, predlošci testova i testni podaci, oblikovanje dokumentacije i README uputa |
 | GitHub Copilot, Claude | nije navedeno | Bepa Tabulov-Štrelov | Pomoć pri implementaciji koda i pronalaženju grešaka |
-| ChatGPT, GitHub Copilot | nije navedeno | Luka Stare | Učenje novih tehnologija i jezika, objašnjavanje tuđeg koda, planiranje rješenja, generiranje dijelova koda, debugiranje |
+| ChatGPT, GitHub Copilot | nije navedeno | Luka Stare | Učenje novih tehnologija i jezika, objašnjavanje tuđeg koda, planiranje rješenja, debugiranje |
 | GPT-6 Luna | GPT-6 Luna | Bruno Kosmačin | Objašnjavanje dijelova koda i zadataka, ideje za sljedeći korak implementacije; kod nije generirao |
 | GitHub Copilot (u IDE-u) | GPT-6 Luna | Nikola Mustač | Pomoć pri implementaciji funkcionalnosti, analiza grešaka, pisanje i prilagodba testova, tehnička dokumentacija |
 | Claude Code (Anthropic) | Claude Opus 5 | Luka Dimjašević | Analiza i sažimanje postojećeg koda, objašnjavanje složenijih issueova, testovi prema zadanim uputama, početna struktura paketa i Liquibase changelogovi, provjera pokriva li kod zahtjeve issuea |
